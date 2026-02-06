@@ -1,28 +1,30 @@
 import * as React from "react"
-
+import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chaiyo-blue/50 disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
     {
         variants: {
             variant: {
-                default: "bg-chaiyo-blue text-white hover:bg-chaiyo-blue/90 border border-transparent",
-                accent: "bg-chaiyo-gold text-black hover:bg-chaiyo-gold/90 border border-transparent",
+                default: "bg-chaiyo-blue text-white hover:bg-chaiyo-blue/90",
                 destructive:
-                    "bg-status-rejected text-white hover:bg-status-rejected/90 border border-transparent",
+                    "bg-status-rejected text-white hover:bg-status-rejected/90",
+                accent:
+                    "bg-chaiyo-gold text-black hover:bg-chaiyo-gold/90",
                 outline:
                     "border border-border-strong bg-white hover:bg-gray-50 text-foreground",
                 secondary:
-                    "bg-gray-100 text-foreground hover:bg-gray-200 border border-transparent",
+                    "bg-gray-100 text-foreground hover:bg-gray-200",
                 ghost: "hover:bg-gray-100 text-foreground hover:text-chaiyo-blue",
                 link: "text-chaiyo-blue underline-offset-4 hover:underline",
             },
             size: {
                 default: "h-10 px-4 py-2",
-                sm: "h-8 rounded-sm px-3 text-xs",
-                lg: "h-12 rounded-md px-8 text-base",
+                sm: "h-9 rounded-md px-3",
+                lg: "h-11 rounded-md px-8",
                 icon: "h-10 w-10",
             },
         },
@@ -41,8 +43,7 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant, size, asChild = false, ...props }, ref) => {
-        // Simplified: No Slot support
-        const Comp = "button"
+        const Comp = asChild ? Slot : "button"
         return (
             <Comp
                 className={cn(buttonVariants({ variant, size, className }))}

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Check, ShieldCheck, User, Banknote, Car, FileText, X, Phone, Briefcase, MessageSquare, RefreshCcw, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, ShieldCheck, User, Banknote, Car, FileText, X, Phone, Briefcase, MessageSquare, RefreshCcw, Loader2, MapPin, Calendar, Mail, FileCheck, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 
 interface ReviewStepProps {
     formData: any;
@@ -20,13 +20,15 @@ interface ReviewStepProps {
 
 export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewStepProps) {
     const [acceptedTerms, setAcceptedTerms] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ ...formData });
     const [showOTP, setShowOTP] = useState(false);
     const [otp, setOtp] = useState("");
     const [isVerifying, setIsVerifying] = useState(false);
     const [timer, setTimer] = useState(60);
     const [canResend, setCanResend] = useState(false);
+
+    // Personal Info Edit State
+    const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+    const [editPersonalData, setEditPersonalData] = useState<any>({});
 
     useEffect(() => {
         let interval: any;
@@ -43,16 +45,6 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
     const handleTermsChange = (checked: boolean) => {
         setAcceptedTerms(checked);
         setFormData((prev: any) => ({ ...prev, consentTerms: checked }));
-    };
-
-    const handleSaveEdit = () => {
-        setFormData({ ...formData, ...editData });
-        setIsEditing(false);
-    };
-
-    const handleCancelEdit = () => {
-        setEditData({ ...formData });
-        setIsEditing(false);
     };
 
     const handleConfirmSubmission = () => {
@@ -79,6 +71,23 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
         // Simulate resend
     };
 
+    const handleEditPersonalClick = () => {
+        setEditPersonalData({ ...formData });
+        setIsEditingPersonal(true);
+    };
+
+    const handleSavePersonalEdit = () => {
+        setFormData({ ...formData, ...editPersonalData });
+        setIsEditingPersonal(false);
+    };
+
+    const handleCancelPersonalEdit = () => {
+        setIsEditingPersonal(false);
+    };
+
+    // Helper to count documents
+    const docCount = Object.keys(formData.photos || {}).length;
+
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2">
 
@@ -92,84 +101,62 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
 
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Personal Info Summary */}
-                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden">
+                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden h-full">
                     <div className="bg-gray-50 px-6 py-4 border-b border-border-subtle flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-muted" />
                             <h4 className="font-bold text-sm text-foreground">ข้อมูลส่วนตัว</h4>
                         </div>
-                        <Button variant="link" size="sm" onClick={() => setIsEditing(true)} className="text-chaiyo-blue h-auto p-0">แก้ไข</Button>
+                        <Button variant="link" size="sm" onClick={handleEditPersonalClick} className="text-chaiyo-blue h-auto p-0">แก้ไข</Button>
                     </div>
-                    <CardContent className="p-6 text-sm space-y-2">
-                        <div className="flex justify-between">
-                            <span className="text-muted">ชื่อ-นามสกุล</span>
+                    <CardContent className="p-6 text-sm space-y-3">
+                        <div className="flex justify-between items-start">
+                            <span className="text-muted shrink-0">ชื่อ-นามสกุล</span>
                             <span className="font-medium text-right">{formData.prefix} {formData.firstName} {formData.lastName}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">เลขบัตรประชาชน</span>
+                        <div className="flex justify-between items-start">
+                            <span className="text-muted shrink-0">เลขบัตรประชาชน</span>
                             <span className="font-medium text-right">{formData.idNumber}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">วันเกิด</span>
+                        <div className="flex justify-between items-start">
+                            <span className="text-muted shrink-0">วันเกิด</span>
                             <span className="font-medium text-right">{formData.birthDate || "-"}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">เบอร์โทรศัพท์</span>
-                            <span className="font-medium text-right">{formData.phoneNumber || "-"}</span>
+                        <div className="flex justify-between items-start">
+                            <span className="text-muted shrink-0">เบอร์โทรศัพท์</span>
+                            <span className="font-medium text-right">{formData.phone || formData.phoneNumber || "-"}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">อาชีพ</span>
+                        {formData.email && (
+                            <div className="flex justify-between items-start">
+                                <span className="text-muted shrink-0">อีเมล</span>
+                                <span className="font-medium text-right break-all">{formData.email}</span>
+                            </div>
+                        )}
+                        <hr className="border-dashed border-gray-200 my-2" />
+                        <div className="flex justify-between items-start">
+                            <span className="text-muted shrink-0">อาชีพ</span>
                             <span className="font-medium text-right">{formData.occupation || "-"}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">อีเมล</span>
-                            <span className="font-medium text-right">{formData.email || "-"}</span>
+                        <div className="flex justify-between items-start">
+                            <span className="text-muted shrink-0">สถานที่ทำงาน</span>
+                            <span className="font-medium text-right">{formData.workplace || "-"}</span>
                         </div>
+                        <div className="flex justify-between items-start">
+                            <span className="text-muted shrink-0">อายุงาน</span>
+                            <span className="font-medium text-right">{formData.workYears ? `${formData.workYears} ปี` : "-"}</span>
+                        </div>
+                        <hr className="border-dashed border-gray-200 my-2" />
                         <div className="flex justify-between gap-4">
                             <span className="text-muted shrink-0">ที่อยู่</span>
                             <span className="font-medium text-right">
-                                {formData.fullAddress ||
-                                    `${formData.addressLine1 || ""} ${formData.subDistrict || ""} ${formData.district || ""} ${formData.province || ""} ${formData.zipCode || ""}`.trim()}
+                                {formData.addressLine1} {formData.subDistrict} {formData.district} {formData.province} {formData.zipCode}
                             </span>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Loan Details Summary */}
-                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <div className="bg-gray-50 px-6 py-4 border-b border-border-subtle flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <Banknote className="w-4 h-4 text-muted" />
-                            <h4 className="font-bold text-sm text-foreground">รายละเอียดสินเชื่อ</h4>
-                        </div>
-                        <Button variant="link" size="sm" onClick={() => onEdit(4)} className="text-chaiyo-blue h-auto p-0">แก้ไข</Button>
-                    </div>
-                    <CardContent className="p-6 text-sm space-y-2">
-                        <div className="flex justify-between">
-                            <span className="text-muted">วงเงินที่ขอสินเชื่อ</span>
-                            <span className="font-bold text-chaiyo-blue text-lg text-right">฿{formData.requestedAmount?.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">ระยะเวลาผ่อน</span>
-                            <span className="font-medium text-right">{formData.requestedDuration} งวด</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">ดอกเบี้ย ({((formData.interestRate || 0.08) * 100).toFixed(0)}% ต่อปี)</span>
-                            <span className="font-medium text-right text-chaiyo-gold">฿{Math.ceil(formData.totalInterest || 0).toLocaleString()}</span>
-                        </div>
-                        <div className="border-t border-dashed border-border-subtle my-2 pt-2 flex justify-between">
-                            <span className="text-muted font-bold">รวมยอดชำระทั้งสิ้น</span>
-                            <span className="font-bold text-right">฿{((formData.requestedAmount || 0) + (formData.totalInterest || 0)).toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">ค่างวดโดยประมาณ</span>
-                            <span className="font-bold text-right text-emerald-600">฿{Math.ceil(formData.estimatedMonthlyPayment || 0).toLocaleString()} / เดือน</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
                 {/* Collateral Summary */}
-                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden">
+                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden h-full">
                     <div className="bg-gray-50 px-6 py-4 border-b border-border-subtle flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <Car className="w-4 h-4 text-muted" />
@@ -177,7 +164,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                         </div>
                         <Button variant="link" size="sm" onClick={() => onEdit(2)} className="text-chaiyo-blue h-auto p-0">แก้ไข</Button>
                     </div>
-                    <CardContent className="p-6 text-sm space-y-2">
+                    <CardContent className="p-6 text-sm space-y-3">
                         <div className="flex justify-between">
                             <span className="text-muted">ประเภท</span>
                             <span className="font-medium text-right capitalize">
@@ -187,6 +174,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                             formData.collateralType === 'car' ? 'รถยนต์' : formData.collateralType}
                             </span>
                         </div>
+
                         {formData.collateralType === 'land' ? (
                             <>
                                 <div className="flex justify-between">
@@ -198,19 +186,33 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                     <span className="font-medium text-right">{formData.parcelNumber || "-"} / {formData.gridNumber || "-"}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted">เนื้อที่ (ไร่-งาน-วา)</span>
-                                    <span className="font-medium text-right">{formData.rai || 0}-{formData.ngan || 0}-{formData.wah || 0}</span>
+                                    <span className="text-muted">หน้าสำรวจ</span>
+                                    <span className="font-medium text-right">{formData.surveyPage || "-"}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted">เนื้อที่</span>
+                                    <span className="font-medium text-right">{formData.rai || 0} ไร่ {formData.ngan || 0} งาน {formData.wah || 0} ตร.วา</span>
                                 </div>
                             </>
                         ) : (
                             <>
                                 <div className="flex justify-between">
+                                    <span className="text-muted">ปีจดทะเบียน</span>
+                                    <span className="font-medium text-right">{formData.year || "-"}</span>
+                                </div>
+                                <div className="flex justify-between">
                                     <span className="text-muted">ยี่ห้อ / รุ่น</span>
                                     <span className="font-medium text-right">{formData.brand} {formData.model}</span>
                                 </div>
+                                {formData.color && (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted">สีรถ</span>
+                                        <span className="font-medium text-right">{formData.color}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between">
-                                    <span className="text-muted">ปี / ทะเบียน</span>
-                                    <span className="font-medium text-right">{formData.year || "-"} / {formData.licensePlate || "-"}</span>
+                                    <span className="text-muted">ทะเบียน</span>
+                                    <span className="font-medium text-right">{formData.licensePlate || "-"}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted">เลขตัวถัง (VIN)</span>
@@ -218,19 +220,34 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                 </div>
                             </>
                         )}
+                        <hr className="border-dashed border-gray-200 my-2" />
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted">ราคาประเมิน (AI)</span>
+                            <span className="font-bold text-right text-chaiyo-blue">฿{(formData.appraisalPrice || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="bg-blue-50/50 p-3 rounded-xl flex items-center gap-3 mt-2">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                <FileCheck className="w-4 h-4 text-chaiyo-blue" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-chaiyo-blue">เอกสารและรูปภาพ</p>
+                                <p className="text-[10px] text-muted-foreground">แนบแล้ว {docCount} รายการ</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => onEdit(5)} className="ml-auto h-7 text-xs text-chaiyo-blue">ดู</Button>
+                        </div>
                     </CardContent>
                 </Card>
 
-                {/* Income Summary */}
-                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden">
+                {/* Financial Summary */}
+                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden h-full">
                     <div className="bg-gray-50 px-6 py-4 border-b border-border-subtle flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <Banknote className="w-4 h-4 text-muted" />
-                            <h4 className="font-bold text-sm text-foreground">รายได้</h4>
+                            <h4 className="font-bold text-sm text-foreground">ข้อมูลทางการเงิน</h4>
                         </div>
                         <Button variant="link" size="sm" onClick={() => onEdit(3)} className="text-chaiyo-blue h-auto p-0">แก้ไข</Button>
                     </div>
-                    <CardContent className="p-6 text-sm space-y-2">
+                    <CardContent className="p-6 text-sm space-y-3">
                         <div className="flex justify-between">
                             <span className="text-muted">รายได้หลัก</span>
                             <span className="font-medium text-right">฿{(formData.baseSalary || 0).toLocaleString()}</span>
@@ -243,18 +260,59 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                         )}
                         <div className="flex justify-between">
                             <span className="text-muted">ภาระหนี้สิน</span>
-                            <span className="font-medium text-right text-red-500">฿{(formData.expenses || 0).toLocaleString()}</span>
+                            <span className="font-medium text-right text-red-500">- ฿{(formData.expenses || 0).toLocaleString()}</span>
                         </div>
                         <div className="border-t border-dashed border-border-subtle my-2 pt-2 flex justify-between">
-                            <span className="text-muted font-bold">รายได้รวมสุทธิ</span>
-                            <span className="font-bold text-right text-emerald-600">฿{formData.income?.toLocaleString()}</span>
+                            <span className="text-muted font-bold">รายได้สุทธิ (Net Income)</span>
+                            <span className="font-bold text-right text-emerald-600">฿{((formData.income || 0) - (formData.expenses || 0)).toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted">อัตราส่วนหนี้สิน (DSR)</span>
-                            <span className="font-medium text-right">{formData.dsr || 0}%</span>
+                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl mt-2">
+                            <span className="text-muted text-xs">อัตราส่วนหนี้สิน (DSR)</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-lg">{formData.dsr || 0}%</span>
+                                {(formData.dsr || 0) < 60 ?
+                                    <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">PASS</span> :
+                                    <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-bold">HIGH</span>
+                                }
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Loan Details Summary */}
+                <Card className="border-border-subtle shadow-sm bg-white rounded-2xl overflow-hidden h-full">
+                    <div className="bg-gray-50 px-6 py-4 border-b border-border-subtle flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <Banknote className="w-4 h-4 text-muted" />
+                            <h4 className="font-bold text-sm text-foreground">รายละเอียดสินเชื่อ</h4>
+                        </div>
+                        <Button variant="link" size="sm" onClick={() => onEdit(4)} className="text-chaiyo-blue h-auto p-0">แก้ไข</Button>
+                    </div>
+                    <CardContent className="p-6 text-sm space-y-3">
+                        <div className="flex justify-between">
+                            <span className="text-muted">วงเงินที่ขอสินเชื่อ</span>
+                            <span className="font-bold text-chaiyo-blue text-lg text-right">฿{formData.requestedAmount?.toLocaleString()}</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                            <span className="text-muted">ดอกเบี้ย ({((formData.interestRate || 0.08) * 100).toFixed(0)}% ต่อปี)</span>
+                            <span className="font-bold text-right">฿{Math.ceil(formData.totalInterest || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted">ระยะเวลาผ่อน</span>
+                            <span className="font-bold text-right">{formData.requestedDuration} งวด</span>
+                        </div>
+                        <div className="border-t border-dashed border-border-subtle my-2 pt-2 flex justify-between">
+                            <span className="text-muted font-bold">รวมยอดชำระทั้งสิ้น</span>
+                            <span className="font-bold text-right">฿{((formData.requestedAmount || 0) + (formData.totalInterest || 0)).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl mt-2">
+                            <span className="text-muted text-xs">ค่างวดโดยประมาณ</span>
+                            <span className="font-bold text-right text-emerald-600 text-lg">฿{Math.ceil(formData.estimatedMonthlyPayment || 0).toLocaleString()} / เดือน</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
             </div>
 
             {/* Terms and Conditions Section */}
@@ -317,69 +375,126 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                 </Button>
             </div>
 
-            {/* Edit Personal Info Modal */}
-            {isEditing && (
+            {/* Personal Info Edit Modal */}
+            {isEditingPersonal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleCancelEdit} />
-                    <Card className="relative w-full max-w-lg bg-white shadow-2xl rounded-[2rem] border-none overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-8 space-y-8">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-xl font-bold text-foreground">แก้ไขข้อมูลส่วนตัว</h3>
-                                <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="rounded-full">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleCancelPersonalEdit} />
+                    <Card className="relative w-full max-w-lg bg-white shadow-2xl rounded-[2rem] border-none overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
+                            <div className="flex justify-between items-center sticky top-0 bg-white z-10 pb-4 border-b border-gray-100">
+                                <div>
+                                    <h3 className="text-xl font-bold text-foreground">แก้ไขข้อมูลผู้ติดต่อ</h3>
+                                    <p className="text-xs text-muted">ข้อมูลจากบัตรประชาชนไม่สามารถแก้ไขได้</p>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={handleCancelPersonalEdit} className="rounded-full">
                                     <X className="w-5 h-5" />
                                 </Button>
                             </div>
 
-                            <div className="space-y-5">
-
+                            <div className="space-y-6">
+                                {/* Disabled ID Info Section */}
+                                <div className="bg-gray-50 p-4 rounded-xl space-y-3 opacity-70">
+                                    <div className="flex gap-2 items-center text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                        <ShieldCheck className="w-3 h-3" /> ข้อมูลบัตรประชาชน
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label className="text-xs">ชื่อ-นามสกุล</Label>
+                                            <div className="text-sm font-medium mt-1">{formData.prefix} {formData.firstName} {formData.lastName}</div>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs">เลขบัตรประชาชน</Label>
+                                            <div className="text-sm font-medium mt-1">{formData.idNumber}</div>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs">วันเกิด</Label>
+                                            <div className="text-sm font-medium mt-1">{formData.birthDate || "-"}</div>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <Label className="text-xs">ที่อยู่</Label>
+                                            <div className="text-sm font-medium mt-1">
+                                                {formData.addressLine1} {formData.subDistrict} {formData.district} {formData.province} {formData.zipCode}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>เบอร์โทรศัพท์</Label>
                                         <div className="relative">
-                                            <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input className="pl-9" value={editData.phoneNumber} onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })} placeholder="08x-xxx-xxxx" />
+                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                className="pl-9 h-12 rounded-xl"
+                                                value={editPersonalData.phone || editPersonalData.phoneNumber}
+                                                onChange={(e) => setEditPersonalData({ ...editPersonalData, phone: e.target.value, phoneNumber: e.target.value })}
+                                                placeholder="08x-xxx-xxxx"
+                                            />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>อีเมล (ถ้ามี)</Label>
-                                        <Input value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} placeholder="example@email.com" />
+                                        <Label>อีเมล</Label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                className="pl-9 h-12 rounded-xl"
+                                                value={editPersonalData.email}
+                                                onChange={(e) => setEditPersonalData({ ...editPersonalData, email: e.target.value })}
+                                                placeholder="example@email.com"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>อาชีพ</Label>
-                                    <Select value={editData.occupation} onValueChange={(val) => setEditData({ ...editData, occupation: val })}>
-                                        <SelectTrigger className="pl-9 relative">
-                                            <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="พนักงานบริษัท">พนักงานบริษัท</SelectItem>
-                                            <SelectItem value="เจ้าของกิจการ">เจ้าของกิจการ</SelectItem>
-                                            <SelectItem value="รับจ้างอิสระ">รับจ้างอิสระ</SelectItem>
-                                            <SelectItem value="ข้าราชการ/รัฐวิสาหกิจ">ข้าราชการ/รัฐวิสาหกิจ</SelectItem>
-                                            <SelectItem value="เกษตรกร">เกษตรกร</SelectItem>
-                                            <SelectItem value="พ่อบ้าน/แม่บ้าน">พ่อบ้าน/แม่บ้าน</SelectItem>
-                                            <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <div className="h-px bg-gray-100" />
 
-                                <div className="space-y-2">
-                                    <Label>ที่อยู่ (ตามทะเบียนบ้าน/ที่อยู่ปัจจุบัน)</Label>
-                                    <textarea
-                                        className="flex min-h-[100px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus:border-chaiyo-blue focus:ring-2 focus:ring-chaiyo-blue/20 transition-all"
-                                        value={editData.fullAddress || `${editData.addressLine1 || ""} ${editData.subDistrict || ""} ${editData.district || ""} ${editData.province || ""} ${editData.zipCode || ""}`.trim()}
-                                        onChange={(e) => setEditData({ ...editData, fullAddress: e.target.value, addressLine1: e.target.value })}
-                                        placeholder="บ้านเลขที่, ถนน, ตำบล/แขวง, อำเภอ/เขต, จังหวัด, รหัสไปรษณีย์"
-                                    />
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>อาชีพ</Label>
+                                        <Select
+                                            value={editPersonalData.occupation}
+                                            onValueChange={(val) => setEditPersonalData({ ...editPersonalData, occupation: val })}
+                                        >
+                                            <SelectTrigger className="pl-9 relative h-12 rounded-xl">
+                                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                                                <SelectValue placeholder="เลือกอาชีพ" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="พนักงานบริษัท">พนักงานบริษัท</SelectItem>
+                                                <SelectItem value="เจ้าของกิจการ">เจ้าของกิจการ</SelectItem>
+                                                <SelectItem value="รับจ้างอิสระ">รับจ้างอิสระ</SelectItem>
+                                                <SelectItem value="ข้าราชการ/รัฐวิสาหกิจ">ข้าราชการ/รัฐวิสาหกิจ</SelectItem>
+                                                <SelectItem value="เกษตรกร">เกษตรกร</SelectItem>
+                                                <SelectItem value="พ่อบ้าน/แม่บ้าน">พ่อบ้าน/แม่บ้าน</SelectItem>
+                                                <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>สถานที่ทำงาน</Label>
+                                            <Input
+                                                className="h-12 rounded-xl"
+                                                value={editPersonalData.workplace}
+                                                onChange={(e) => setEditPersonalData({ ...editPersonalData, workplace: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>อายุงาน (ปี)</Label>
+                                            <Input
+                                                type="number"
+                                                className="h-12 rounded-xl"
+                                                value={editPersonalData.workYears}
+                                                onChange={(e) => setEditPersonalData({ ...editPersonalData, workYears: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 pt-2">
-                                <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={handleCancelEdit}>ยกเลิก</Button>
-                                <Button className="flex-1 h-12 rounded-xl bg-chaiyo-blue text-white hover:bg-chaiyo-blue/90" onClick={handleSaveEdit}>บันทึกข้อมูล</Button>
+                            <div className="flex gap-3 pt-4 sticky bottom-0 bg-white border-t border-gray-100 mt-auto">
+                                <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={handleCancelPersonalEdit}>ยกเลิก</Button>
+                                <Button className="flex-1 h-12 rounded-xl bg-chaiyo-blue text-white hover:bg-chaiyo-blue/90" onClick={handleSavePersonalEdit}>บันทึกข้อมูล</Button>
                             </div>
                         </div>
                     </Card>
@@ -401,7 +516,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                             <div className="text-center space-y-2">
                                 <h3 className="text-2xl font-bold text-foreground">ยืนยันตัวตน</h3>
                                 <p className="text-sm text-muted">
-                                    ระบบได้ส่งรหัส OTP ไปยัง <span className="font-bold text-foreground">{formData.phoneNumber}</span>
+                                    ระบบได้ส่งรหัส OTP ไปยัง <span className="font-bold text-foreground">{formData.phoneNumber || formData.phone}</span>
                                 </p>
                             </div>
 
@@ -414,14 +529,20 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                             </div>
 
                             <div className="space-y-4">
-                                <div className="relative">
-                                    <Input
-                                        value={otp}
-                                        onChange={(e) => setOtp(e.target.value)}
-                                        placeholder="เลข 6 หลัก"
-                                        className="h-16 text-center text-3xl font-bold tracking-[0.5em] rounded-2xl border-2 focus:border-chaiyo-blue font-mono"
-                                        maxLength={6}
-                                    />
+                                <div className="flex justify-center">
+                                    <InputOTP maxLength={6} value={otp} onChange={(val) => setOtp(val)}>
+                                        <InputOTPGroup>
+                                            <InputOTPSlot index={0} />
+                                            <InputOTPSlot index={1} />
+                                            <InputOTPSlot index={2} />
+                                        </InputOTPGroup>
+                                        <InputOTPSeparator />
+                                        <InputOTPGroup>
+                                            <InputOTPSlot index={3} />
+                                            <InputOTPSlot index={4} />
+                                            <InputOTPSlot index={5} />
+                                        </InputOTPGroup>
+                                    </InputOTP>
                                 </div>
                                 <div className="text-center">
                                     {canResend ? (

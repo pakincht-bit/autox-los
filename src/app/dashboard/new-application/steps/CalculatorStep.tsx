@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Calculator, Banknote, Calendar, ChevronRight, ChevronLeft, Car, Bike, Truck, Sprout, MapIcon, Tractor, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,7 @@ interface CalculatorStepProps {
 }
 
 export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavigation, readOnlyProduct }: CalculatorStepProps) {
-    const [amount, setAmount] = useState<number>(formData?.requestedAmount || 100000);
+    const [amount, setAmount] = useState<number>(Number(formData?.requestedAmount) || 100000);
     const [months, setMonths] = useState<number>(formData?.requestedDuration || 24);
     const [monthlyPayment, setMonthlyPayment] = useState<number>(0);
     const [totalInterest, setTotalInterest] = useState<number>(0);
@@ -29,11 +30,11 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
     // Mock Interest Rates per product
     const INTEREST_RATES: Record<string, number> = {
-        car: 0.08,     // 8%
-        moto: 0.12,    // 12%
-        truck: 0.10,   // 10%
-        agri: 0.11,    // 11%
-        land: 0.09,    // 9%
+        car: 0.2399,
+        moto: 0.2399,
+        truck: 0.2399,
+        agri: 0.2399,
+        land: 0.2399,
     };
 
     // Calculate Max Loan based on formData (if available)
@@ -46,7 +47,14 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
     // Calculate Max Loan based on formData (if available)
     useEffect(() => {
-        if (formData && formData.income) {
+        let calculatedMax = 1000000; // Default Max Loan
+
+        // Priority 1: Appraisal Price (from AI/Collateral Step) - 90% LTV
+        if (formData && formData.appraisalPrice > 0) {
+            calculatedMax = Math.floor(formData.appraisalPrice * 0.90);
+        }
+        // Priority 2: Income Multiplier (Fallback)
+        else if (formData && formData.income > 0) {
             // Mock Logic: Max Loan = Income * Multiplier
             // Multiplier varies by collateral type
             let multiplier = 20; // Default
@@ -55,15 +63,16 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
             if (selectedProduct === 'truck') multiplier = 35;
             if (selectedProduct === 'moto') multiplier = 10;
 
-            const calculatedMax = Math.floor(formData.income * multiplier);
-            setMaxLoanAmount(calculatedMax);
-
-            // Adjust current amount if it exceeds max
-            if (amount > calculatedMax) {
-                setAmount(calculatedMax);
-            }
+            calculatedMax = Math.floor(formData.income * multiplier);
         }
-    }, [formData?.income, selectedProduct]);
+
+        setMaxLoanAmount(calculatedMax);
+
+        // Adjust current amount if it exceeds max
+        if (amount > calculatedMax) {
+            setAmount(calculatedMax);
+        }
+    }, [formData?.income, formData?.appraisalPrice, selectedProduct]);
 
     useEffect(() => {
         calculateLoan();
@@ -77,7 +86,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                 requestedDuration: months,
                 estimatedMonthlyPayment: monthlyPayment,
                 totalInterest: totalInterest,
-                interestRate: INTEREST_RATES[selectedProduct] || 0.08
+                interestRate: INTEREST_RATES[selectedProduct] || 0.2399
             };
 
             // Only sync collateralType if NOT in read-only mode
@@ -95,7 +104,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
             return;
         }
 
-        const rate = INTEREST_RATES[selectedProduct] || 0.08;
+        const rate = INTEREST_RATES[selectedProduct] || 0.2399;
         const years = months / 12;
         const totalInt = amount * rate * years;
         const total = amount + totalInt;
@@ -111,7 +120,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
             requestedDuration: months,
             estimatedMonthlyPayment: monthlyPayment,
             totalInterest: totalInterest,
-            interestRate: INTEREST_RATES[selectedProduct] || 0.08,
+            interestRate: INTEREST_RATES[selectedProduct] || 0.2399,
             collateralType: selectedProduct
         };
 
@@ -131,10 +140,18 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
         { id: "land", label: "โฉนดที่ดิน", icon: MapIcon },
     ];
 
-    const COMPARISON_DURATIONS = [12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84];
+    const LOAN_DURATIONS_BY_PRODUCT: Record<string, number[]> = {
+        moto: [6, 12, 18, 24, 30, 36],
+        land: [12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84],
+        car: [12, 18, 24, 30, 36, 42, 48, 54, 60],
+        truck: [12, 18, 24, 30, 36, 42, 48, 54, 60],
+        agri: [12, 18, 24, 30, 36, 42, 48, 54, 60]
+    };
+
+    const COMPARISON_DURATIONS = LOAN_DURATIONS_BY_PRODUCT[selectedProduct] || LOAN_DURATIONS_BY_PRODUCT['car'];
 
     const getMonthlyForDuration = (m: number) => {
-        const rate = INTEREST_RATES[selectedProduct] || 0.08;
+        const rate = INTEREST_RATES[selectedProduct] || 0.2399;
         const years = m / 12;
         const totalInt = amount * rate * years;
         return (amount + totalInt) / m;
@@ -146,28 +163,71 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
             <div className="grid lg:grid-cols-12 gap-10 max-w-7xl mx-auto">
                 {/* Input Section - Minimal Styling */}
-                <div className="lg:col-span-5 space-y-6">
+                <div className="lg:col-span-5 space-y-6 lg:order-2">
                     {/* Product Selection */}
                     <div className="space-y-4 animate-in fade-in duration-500">
-                        {readOnlyProduct && formData ? (
+                        {/* Show Summary if ReadOnly OR if we already have a collateral type from previous steps */}
+                        {(readOnlyProduct || (formData && formData.collateralType)) ? (
                             // Read-Only Info Mode
                             <div className="space-y-4">
-                                <Label className="text-sm font-bold">หลักประกันที่ต้องการจำนำ</Label>
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100 shadow-sm text-chaiyo-blue">
-                                        {PRODUCTS.find(p => p.id === selectedProduct)?.icon ?
-                                            (() => { const Icon = PRODUCTS.find(p => p.id === selectedProduct)!.icon; return <Icon className="w-5 h-5" /> })() : <Car className="w-5 h-5" />}
+                                <Label className="text-sm font-bold">ข้อมูลการประเมินและการเงิน</Label>
+                                <div className="space-y-2">
+                                    {/* 1. Collateral & Appraisal Card */}
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100 shadow-sm text-chaiyo-blue">
+                                                {PRODUCTS.find(p => p.id === selectedProduct)?.icon ?
+                                                    (() => { const Icon = PRODUCTS.find(p => p.id === selectedProduct)!.icon; return <Icon className="w-5 h-5" /> })() : <Car className="w-5 h-5" />}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-bold text-foreground text-sm">
+                                                    {PRODUCTS.find(p => p.id === selectedProduct)?.label}
+                                                </p>
+                                                <p className="text-xs text-muted">
+                                                    {selectedProduct === 'land'
+                                                        ? `โฉนดเลขที่: ${formData.deedNumber || '-'}`
+                                                        : `${formData.brand || ''} ${formData.model || ''} ${formData.year ? `(${formData.year})` : ''}`
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-px bg-gray-200/60" />
+
+                                        <div className="flex justify-between items-center pl-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                                <span className="text-xs font-bold text-muted-foreground">ราคาประเมิน (บาท)</span>
+                                            </div>
+                                            <span className="text-sm font-mono font-bold text-emerald-700">
+                                                {formData.appraisalPrice ? Number(formData.appraisalPrice).toLocaleString() : '0'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-foreground text-sm">
-                                            {PRODUCTS.find(p => p.id === selectedProduct)?.label}
-                                        </p>
-                                        <p className="text-xs text-muted">
-                                            {selectedProduct === 'land'
-                                                ? `โฉนดเลขที่: ${formData.deedNumber || '-'}`
-                                                : `${formData.brand || ''} ${formData.model || ''} ${formData.year ? `(${formData.year})` : ''}`
-                                            }
-                                        </p>
+
+                                    {/* 2. Net Income Card (Same Style) */}
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100 shadow-sm text-blue-600">
+                                                <Banknote className="w-5 h-5" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-bold text-foreground text-sm">รายได้สุทธิ</p>
+                                                <p className="text-xs text-muted">เกณฑ์พิจารณาสินเชื่อ</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-px bg-gray-200/60" />
+
+                                        <div className="flex justify-between items-center pl-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                                <span className="text-xs font-bold text-muted-foreground">รายได้ต่อเดือนสุทธิ (บาท)</span>
+                                            </div>
+                                            <span className="text-sm font-mono font-bold text-blue-700">
+                                                {formData.income ? Number(formData.income).toLocaleString() : '0'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -213,7 +273,6 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                                 )}
                             </div>
                             <div className="relative">
-                                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
                                 <Input
                                     type="text"
                                     value={amount.toLocaleString()}
@@ -224,14 +283,13 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                                     className="pl-9 pr-4 text-lg font-semibold font-mono h-12 bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right"
                                 />
                             </div>
-                            <input
-                                type="range"
-                                min="10000"
+                            <Slider
+                                value={[amount]}
+                                min={10000}
                                 max={maxLoanAmount}
-                                step="5000"
-                                value={amount}
-                                onChange={(e) => setAmount(Number(e.target.value))}
-                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-chaiyo-blue"
+                                step={5000}
+                                onValueChange={(val) => setAmount(val[0])}
+                                className="w-full py-4"
                             />
                             <div className="flex justify-between text-[10px] text-muted">
                                 <span>10,000</span>
@@ -262,28 +320,31 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                 </div>
 
                 {/* Output Container with Chart */}
-                <Card className="lg:col-span-7 bg-[#001080] text-white border-none shadow-2xl overflow-hidden rounded-[2.5rem] flex flex-col h-full lg:sticky lg:top-6">
-                    <CardContent className="p-8 flex flex-col h-full space-y-10 items-center text-center">
-                        <div className="space-y-4 w-full">
-                            <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto">
-                                <Calculator className="w-7 h-7 text-white" />
+                <Card className="lg:col-span-7 bg-[#001080] text-white border-none shadow-2xl overflow-hidden rounded-[2.5rem] flex flex-col h-full lg:sticky lg:top-6 lg:order-1">
+                    <CardContent className="p-8 flex flex-col h-full relative items-center">
+                        {/* 1. Main Payment Display (Replacing Header & Separator) */}
+                        {/* 1. Header: Title Left, Result Right */}
+                        <div className="flex justify-between items-start w-full mb-6 pt-2">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
+                                    <Calculator className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-white">เปรียบเทียบระยะเวลาผ่อน</p>
+                                    <p className="text-[10px] text-white/50">(บาท/เดือน)</p>
+                                </div>
                             </div>
-                            <div className="space-y-1">
-                                <p className="text-white/70 text-base">ค่างวดต่อเดือน ({months} งวด)</p>
-                                <h3 className="text-6xl font-bold tracking-tight text-white">
+
+                            <div className="text-right">
+                                <p className="text-white/70 text-xs font-medium mb-1">ค่างวดต่อเดือน ({months} งวด)</p>
+                                <h3 className="text-4xl font-bold tracking-tight text-white">
                                     ฿{Math.ceil(monthlyPayment).toLocaleString()}
                                 </h3>
                             </div>
                         </div>
 
-                        {/* Chart Comparison */}
-                        <div className="w-full space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="h-[1px] flex-1 bg-white/20"></div>
-                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">เปรียบเทียบระยะเวลาผ่อน (บาท/เดือน)</span>
-                                <div className="h-[1px] flex-1 bg-white/20"></div>
-                            </div>
-
+                        {/* 2. Chart Comparison */}
+                        <div className="w-full">
                             <div className="flex justify-between items-end h-[220px] gap-2 px-1">
                                 {COMPARISON_DURATIONS.map(m => {
                                     const mPayment = getMonthlyForDuration(m);
@@ -337,6 +398,9 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                             </div>
                         </div>
 
+                        {/* 3. Extra White Space (Gap) */}
+                        <div className="h-10 w-full" />
+
                         {/* Summary Content */}
                         <div className="w-full space-y-6 bg-white/5 p-6 rounded-2xl border border-white/10 relative overflow-hidden group">
                             <div className="absolute top-0 left-0 w-1 h-full transition-opacity"></div>
@@ -355,9 +419,9 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                             </div>
                         </div>
 
-                        <div className="w-full space-y-4">
+                        <div className="w-full space-y-4 pt-4">
                             <p className="text-[10px] text-white/40 italic">
-                                *คำนวณจากอัตราดอกเบี้ยเบื้องต้น {(INTEREST_RATES[selectedProduct] || 0.08) * 100}% ต่อปี ดอกเบี้ยจริงขึ้นอยู่กับการพิจารณาของบริษัท
+                                *คำนวณจากอัตราดอกเบี้ยเบื้องต้น {((INTEREST_RATES[selectedProduct] || 0.2399) * 100).toFixed(2)}% ต่อปี ดอกเบี้ยจริงขึ้นอยู่กับการพิจารณาของบริษัท
                             </p>
                             {!hideNavigation && (
                                 <div className="flex gap-4">

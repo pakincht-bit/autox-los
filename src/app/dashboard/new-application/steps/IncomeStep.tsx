@@ -38,81 +38,8 @@ export function IncomeStep({ formData, setFormData }: IncomeStepProps) {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                {/* Left Column: Inputs (Successively stacked) */}
-                <div className="lg:col-span-7">
-
-                    {/* Income Section */}
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                                <Wallet className="w-5 h-5 text-chaiyo-blue" />
-                            </div>
-                            <h3 className="text-xl font-bold text-foreground">รายได้ (Income)</h3>
-                        </div>
-
-                        <div className="grid gap-6 px-1">
-                            <div>
-                                <Label className="text-base text-muted-foreground mb-2 block">เงินเดือน / รายได้หลัก</Label>
-                                <Input
-                                    type="text"
-                                    value={baseSalary ? baseSalary.toLocaleString() : ""}
-                                    onChange={(e) => {
-                                        const numericValue = Number(e.target.value.replace(/,/g, ''));
-                                        if (!isNaN(numericValue)) setBaseSalary(numericValue);
-                                    }}
-                                    className="font-mono text-lg h-12 bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label className="text-base text-muted-foreground mb-2 block">รายได้อื่นๆ (ค่าคอม, โอที)</Label>
-                                <Input
-                                    type="text"
-                                    value={otherIncome ? otherIncome.toLocaleString() : ""}
-                                    onChange={(e) => {
-                                        const numericValue = Number(e.target.value.replace(/,/g, ''));
-                                        if (!isNaN(numericValue)) setOtherIncome(numericValue);
-                                    }}
-                                    className="font-mono text-lg h-12 bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right"
-                                    placeholder="0"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-px bg-gray-200 my-10" />
-
-                    {/* Expenses Section */}
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
-                                <TrendingDown className="w-5 h-5 text-orange-500" />
-                            </div>
-                            <h3 className="text-xl font-bold text-foreground">ภาระหนี้สิน (Expenses)</h3>
-                        </div>
-
-                        <div className="px-1">
-                            <Label className="text-base text-muted-foreground mb-2 block">ผ่อนชำระต่อเดือน (ในระบบเครดิตบูโร)</Label>
-                            <Input
-                                type="text"
-                                value={expenses ? expenses.toLocaleString() : ""}
-                                onChange={(e) => {
-                                    const numericValue = Number(e.target.value.replace(/,/g, ''));
-                                    if (!isNaN(numericValue)) setExpenses(numericValue);
-                                }}
-                                className="font-mono text-lg h-12 bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right"
-                                placeholder="0"
-                            />
-                            <p className="mt-3 text-sm text-muted-foreground bg-gray-50 inline-block px-3 py-1 rounded-lg">
-                                *ข้อมูลภาระหนี้เบื้องต้นที่ลูกค้าแจ้ง (ยังไม่รวมตรวจสอบ NCB)
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Column: Summary Output */}
-                <div className="lg:col-span-5">
+                {/* Left Column: Summary Output (Moved from Right) */}
+                <div className="lg:col-span-12 xl:col-span-5 order-last lg:order-first"> {/* Allow responsive reordering if needed, but per request moving to Left */}
                     <div className="sticky top-6">
                         <div className="bg-chaiyo-blue text-white p-8 rounded-[2.5rem] space-y-8 shadow-xl shadow-blue-900/10">
                             <div>
@@ -147,6 +74,77 @@ export function IncomeStep({ formData, setFormData }: IncomeStepProps) {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Inputs (Moved from Left) */}
+                <div className="lg:col-span-12 xl:col-span-7">
+
+                    {/* Income Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                                <Wallet className="w-5 h-5 text-chaiyo-blue" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground">รายได้ (Income)</h3>
+                        </div>
+
+                        <div className="grid gap-6 px-1">
+                            <div>
+                                <Label className="text-base text-muted-foreground mb-2 block">เงินเดือน / รายได้หลัก</Label>
+                                <Input
+                                    type="text"
+                                    value={baseSalary ? baseSalary.toLocaleString() : ""}
+                                    onChange={(e) => {
+                                        const numericValue = Number(e.target.value.replace(/,/g, ''));
+                                        if (!isNaN(numericValue)) setBaseSalary(numericValue);
+                                    }}
+                                    className="font-mono text-lg h-14 bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right"
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-base text-muted-foreground mb-2 block">รายได้อื่นๆ (ค่าคอม, โอที)</Label>
+                                <Input
+                                    type="text"
+                                    value={otherIncome ? otherIncome.toLocaleString() : ""}
+                                    onChange={(e) => {
+                                        const numericValue = Number(e.target.value.replace(/,/g, ''));
+                                        if (!isNaN(numericValue)) setOtherIncome(numericValue);
+                                    }}
+                                    className="font-mono text-lg h-14 bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right"
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-gray-200 my-10" />
+
+                    {/* Expenses Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                                <TrendingDown className="w-5 h-5 text-orange-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground">ภาระหนี้สิน (Expenses)</h3>
+                        </div>
+
+                        <div className="px-1">
+                            <Label className="text-base text-muted-foreground mb-2 block">ผ่อนชำระต่อเดือน (ยังไม่รวมตรวจสอบ NCB)</Label>
+                            <Input
+                                type="text"
+                                value={expenses ? expenses.toLocaleString() : ""}
+                                onChange={(e) => {
+                                    const numericValue = Number(e.target.value.replace(/,/g, ''));
+                                    if (!isNaN(numericValue)) setExpenses(numericValue);
+                                }}
+                                className="font-mono text-lg h-14 bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right"
+                                placeholder="0"
+                            />
+
                         </div>
                     </div>
                 </div>

@@ -55,7 +55,7 @@ export default function DashboardPage() {
                         </Button>
                     </Link>
                     <Link href="/dashboard/new-application">
-                        <Button className="bg-chaiyo-blue hover:bg-blue-700 shadow-lg shadow-chaiyo-blue/20 font-semibold active:scale-95 transition-transform">
+                        <Button className="shadow-lg shadow-chaiyo-blue/20 font-semibold active:scale-95 transition-transform">
                             <Plus className="w-4 h-4 mr-2" />
                             สร้างใบคำขอใหม่
                         </Button>
@@ -72,7 +72,7 @@ export default function DashboardPage() {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={cn(
-                                "relative px-4 py-1.5 text-xs font-bold transition-colors z-10",
+                                "relative px-4 py-1.5 text-xs font-bold transition-colors z-10 cursor-pointer",
                                 isActive
                                     ? "text-chaiyo-blue"
                                     : "text-muted hover:text-foreground"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, Loader2, CreditCard, User, Camera, ArrowRight, UserCheck, UserPlus, FileText, MapPin, Briefcase, Calendar } from "lucide-react";
+import { CheckCircle, Loader2, CreditCard, User, Camera, ArrowRight, UserCheck, UserPlus, FileText, MapPin, Briefcase, Calendar, ShieldAlert, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
@@ -16,11 +16,13 @@ interface IdentityCheckStepProps {
 }
 
 type KYCStage = 'INIT' | 'READING_CARD' | 'CHECKING_MEMBER' | 'CARD_SUCCESS' | 'FACE_VERIFY' | 'FACE_SUCCESS' | 'COMPLETE';
+type VerificationStatus = 'NORMAL' | 'WATCHLIST' | 'BLACKLIST' | 'FRAUD';
 
 export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityCheckStepProps) {
     const [stage, setStage] = useState<KYCStage>('INIT');
     const [isExistingMember, setIsExistingMember] = useState<boolean>(false);
     const [existingProfile, setExistingProfile] = useState<any>(null);
+    const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('NORMAL');
 
     // Mock Data
     const [mockChipPhoto, setMockChipPhoto] = useState<string | null>(null);
@@ -58,7 +60,26 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
     const checkMemberStatus = async (idNumber: string) => {
         setStage('CHECKING_MEMBER');
+        setVerificationStatus('NORMAL'); // Reset
+
         await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Mock Logic for Fraud/Blacklist/Watchlist
+        if (idNumber.endsWith('999') || formData.idNumber.endsWith('999')) {
+            setVerificationStatus('FRAUD');
+            setStage('COMPLETE');
+            return;
+        }
+        if (idNumber.endsWith('888') || formData.idNumber.endsWith('888')) {
+            setVerificationStatus('BLACKLIST');
+            setStage('COMPLETE');
+            return;
+        }
+        if (idNumber.endsWith('777') || formData.idNumber.endsWith('777')) {
+            setVerificationStatus('WATCHLIST');
+            setStage('COMPLETE');
+            return;
+        }
 
         let isExisting = false;
         let profile = null;
@@ -115,7 +136,24 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
 
             {/* Stage Indicators */}
-            <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="relative flex items-center justify-between px-12 md:px-24 mb-8">
+                {/* Connecting Line Container - Aligned to centers of first and last circles */}
+                <div className="absolute top-[15px] left-16 right-16 md:left-28 md:right-28 h-[2px] z-0">
+                    {/* Gray Background */}
+                    <div className="absolute inset-0 bg-gray-300"></div>
+
+                    {/* Progress Line */}
+                    <div
+                        className="absolute left-0 top-0 h-full bg-chaiyo-blue transition-all duration-500"
+                        style={{
+                            width: stage === 'COMPLETE' || stage === 'FACE_SUCCESS' ? '100%' :
+                                stage === 'FACE_VERIFY' ? '100%' :
+                                    stage === 'CHECKING_MEMBER' ? '50%' :
+                                        stage === 'READING_CARD' ? '10%' : '0%'
+                        }}
+                    ></div>
+                </div>
+
                 <StepIndicator
                     num={1}
                     label="อ่านบัตรประชาชน"
@@ -123,16 +161,12 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                     completed={stage !== 'INIT' && stage !== 'READING_CARD'}
                 />
 
-                <div className="w-8 h-[1px] bg-gray-200"></div>
-
                 <StepIndicator
                     num={2}
                     label="ตรวจสอบสถานะ"
                     active={stage === 'CHECKING_MEMBER'}
                     completed={stage === 'COMPLETE' || stage === 'FACE_VERIFY' || stage === 'FACE_SUCCESS'}
                 />
-
-                <div className="w-8 h-[1px] bg-gray-200"></div>
 
                 <StepIndicator
                     num={3}
@@ -144,7 +178,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-10">
                 {/* LEFT COLUMN */}
                 <div className="space-y-6">
                     {/* STAGE 1: CARD READER */}
@@ -198,26 +232,82 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                     )}
 
                     {stage === 'COMPLETE' && (
-                        <Card className={cn(
-                            "border-2",
-                            isExistingMember ? "bg-blue-50 border-blue-200" : "bg-emerald-50 border-emerald-200"
-                        )}>
-                            <CardContent className="flex flex-col items-center justify-center py-10">
-                                {isExistingMember ? (
-                                    <>
-                                        <UserCheck className="w-12 h-12 text-blue-600 mb-2" />
-                                        <h3 className="text-xl font-bold text-blue-800">ลูกค้าเก่าในระบบ</h3>
-                                        <p className="text-blue-700">ยืนยันตัวตนเรียบร้อย</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle className="w-12 h-12 text-emerald-500 mb-2" />
-                                        <h3 className="text-xl font-bold text-emerald-800">ยืนยันตัวตนเรียบร้อย</h3>
-                                        <p className="text-emerald-700 mb-6">ตรวจสอบข้อมูลลูกค้าใหม่</p>
-                                    </>
-                                )}
-                            </CardContent>
-                        </Card>
+                        verificationStatus !== 'NORMAL' ? (
+                            <Card className={cn(
+                                "border-2",
+                                verificationStatus === 'FRAUD' || verificationStatus === 'BLACKLIST' ? "bg-red-50 border-red-200" : "bg-orange-50 border-orange-200"
+                            )}>
+                                <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                                    {verificationStatus === 'FRAUD' && (
+                                        <>
+                                            <ShieldAlert className="w-16 h-16 text-red-600 mb-4" />
+                                            <h3 className="text-xl font-bold text-red-800">ตรวจพบประวัติฉ้อโกง (FRAUD)</h3>
+                                            <p className="text-red-700 max-w-xs mt-2">บุคคลนี้อยู่ในบัญชีรายชื่อบุคคลเฝ้าระวังพิเศษ ห้ามทำธุรกรรม</p>
+                                        </>
+                                    )}
+                                    {verificationStatus === 'BLACKLIST' && (
+                                        <>
+                                            <XCircle className="w-16 h-16 text-red-600 mb-4" />
+                                            <h3 className="text-xl font-bold text-red-800">ติด Blacklist</h3>
+                                            <p className="text-red-700 max-w-xs mt-2">บุคคลนี้มีประวัติค้างชำระหนี้หรือผิดนัดชำระหนี้กับสถาบันการเงิน</p>
+                                        </>
+                                    )}
+                                    {verificationStatus === 'WATCHLIST' && (
+                                        <>
+                                            <AlertTriangle className="w-16 h-16 text-orange-500 mb-4" />
+                                            <h3 className="text-xl font-bold text-orange-800">อยู่ในกลุ่มเฝ้าระวัง (Watchlist)</h3>
+                                            <p className="text-orange-700 max-w-xs mt-2">โปรดตรวจสอบเอกสารและข้อมูลเพิ่มเติมอย่างละเอียด</p>
+                                        </>
+                                    )}
+
+                                    <div className="mt-6 flex gap-3 w-full px-10">
+                                        <Button
+                                            variant="outline"
+                                            className="flex-1 border-red-200 hover:bg-red-100 text-red-700"
+                                            onClick={() => {
+                                                setStage('INIT');
+                                                setVerificationStatus('NORMAL');
+                                                setFormData({ ...formData, idNumber: "" });
+                                            }}
+                                        >
+                                            ตรวจสอบใหม่
+                                        </Button>
+                                        {verificationStatus === 'WATCHLIST' && (
+                                            <Button
+                                                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                                                onClick={() => {
+                                                    // Allow proceed for Watchlist
+                                                    setVerificationStatus('NORMAL');
+                                                }}
+                                            >
+                                                ดำเนินการต่อ
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card className={cn(
+                                "border-2",
+                                isExistingMember ? "bg-blue-50 border-blue-200" : "bg-emerald-50 border-emerald-200"
+                            )}>
+                                <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                                    {isExistingMember ? (
+                                        <>
+                                            <UserCheck className="w-12 h-12 text-blue-600 mb-2" />
+                                            <h3 className="text-xl font-bold text-blue-800">ลูกค้าเก่าในระบบ</h3>
+                                            <p className="text-blue-700">สถานะปกติ ยืนยันตัวตนเรียบร้อย</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle className="w-12 h-12 text-emerald-500 mb-2" />
+                                            <h3 className="text-xl font-bold text-emerald-800">ยืนยันตัวตนเรียบร้อย</h3>
+                                            <p className="text-emerald-700 mb-6">สถานะปกติ ตรวจสอบข้อมูลลูกค้าใหม่</p>
+                                        </>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )
                     )}
                 </div>
 
@@ -383,11 +473,15 @@ function StepIndicator({ num, label, active, completed, skipped }: { num: number
     }
 
     return (
-        <div className={cn("flex items-center gap-2", active || completed ? "text-chaiyo-blue font-bold" : "text-muted")}>
-            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border", active || completed ? "bg-chaiyo-blue text-white border-chaiyo-blue" : "bg-white border-gray-200")}>
-                {completed ? "✓" : num}
+        <div className={cn("flex flex-col items-center gap-2 z-10")}>
+            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300",
+                active ? "border-chaiyo-blue ring-4 ring-blue-50 text-chaiyo-blue bg-white" :
+                    completed ? "bg-chaiyo-blue text-white border-chaiyo-blue" :
+                        "bg-white border-gray-200 text-gray-300"
+            )}>
+                {completed ? <CheckCircle className="w-5 h-5" /> : num}
             </div>
-            <span>{label}</span>
+            <span className={cn("text-xs font-bold absolute -bottom-6 w-32 text-center", active || completed ? "text-chaiyo-blue" : "text-muted")}>{label}</span>
         </div>
     )
 }

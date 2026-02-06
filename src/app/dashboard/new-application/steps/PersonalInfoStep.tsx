@@ -100,7 +100,7 @@ export function PersonalInfoStep({ formData, setFormData }: PersonalInfoStepProp
                         <div className="space-y-2">
                             <Label>คำนำหน้า</Label>
                             <Select defaultValue={formData.prefix || "นาย"} onValueChange={(val) => handleChange("prefix", val)}>
-                                <SelectTrigger className="w-full !h-12 rounded-xl shadow-none border-input focus:ring-2 focus:ring-chaiyo-blue/20">
+                                <SelectTrigger className="w-full !h-14 rounded-xl shadow-none border-input focus:ring-2 focus:ring-chaiyo-blue/20">
                                     <SelectValue placeholder="เลือกคำนำหน้า" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -114,19 +114,23 @@ export function PersonalInfoStep({ formData, setFormData }: PersonalInfoStepProp
 
                         <div className="space-y-2">
                             <Label>ชื่อจริง</Label>
-                            <Input defaultValue={formData.firstName || "สมชาย"} className="h-12 rounded-xl" onChange={(e) => handleChange("firstName", e.target.value)} />
+                            <Input defaultValue={formData.firstName || "สมชาย"} className="h-14 rounded-xl" onChange={(e) => handleChange("firstName", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>นามสกุล</Label>
-                            <Input defaultValue={formData.lastName || "รักชาติ"} className="h-12 rounded-xl" onChange={(e) => handleChange("lastName", e.target.value)} />
+                            <Input defaultValue={formData.lastName || "รักชาติ"} className="h-14 rounded-xl" onChange={(e) => handleChange("lastName", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>วันเกิด</Label>
-                            <Input defaultValue={formData.birthDate || "12/05/1985"} placeholder="DD/MM/YYYY" className="h-12 rounded-xl" onChange={(e) => handleChange("birthDate", e.target.value)} />
+                            <Input defaultValue={formData.birthDate || "12/05/1985"} placeholder="DD/MM/YYYY" className="h-14 rounded-xl" onChange={(e) => handleChange("birthDate", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>เบอร์โทรศัพท์มือถือ</Label>
-                            <Input defaultValue={formData.phone || "081-234-5678"} className="font-mono h-12 rounded-xl" onChange={(e) => handleChange("phone", e.target.value)} />
+                            <Input defaultValue={formData.phone || "081-234-5678"} className="font-mono h-14 rounded-xl" onChange={(e) => handleChange("phone", e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>อีเมล (ถ้ามี)</Label>
+                            <Input defaultValue={formData.email || ""} placeholder="example@email.com" className="h-14 rounded-xl" onChange={(e) => handleChange("email", e.target.value)} />
                         </div>
                     </div>
                 </div>
@@ -142,23 +146,23 @@ export function PersonalInfoStep({ formData, setFormData }: PersonalInfoStepProp
                     <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">
                         <div className="md:col-span-2 space-y-2">
                             <Label>ที่อยู่ (บ้านเลขที่, หมู่, ซอย, ถนน)</Label>
-                            <Input value={formData.addressLine1} placeholder="99/9 หมู่ 1 ถ.วิภาวดีรังสิต" className="h-12 rounded-xl" onChange={(e) => handleChange("addressLine1", e.target.value)} />
+                            <Input value={formData.addressLine1} placeholder="99/9 หมู่ 1 ถ.วิภาวดีรังสิต" className="h-14 rounded-xl" onChange={(e) => handleChange("addressLine1", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>จังหวัด</Label>
-                            <Input value={formData.province} placeholder="กรุงเทพมหานคร" className="h-12 rounded-xl" onChange={(e) => handleChange("province", e.target.value)} />
+                            <Input value={formData.province} placeholder="กรุงเทพมหานคร" className="h-14 rounded-xl" onChange={(e) => handleChange("province", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>เขต / อำเภอ</Label>
-                            <Input value={formData.district} placeholder="จตุจักร" className="h-12 rounded-xl" onChange={(e) => handleChange("district", e.target.value)} />
+                            <Input value={formData.district} placeholder="จตุจักร" className="h-14 rounded-xl" onChange={(e) => handleChange("district", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>แขวง / ตำบล</Label>
-                            <Input value={formData.subDistrict} placeholder="จอมพล" className="h-12 rounded-xl" onChange={(e) => handleChange("subDistrict", e.target.value)} />
+                            <Input value={formData.subDistrict} placeholder="จอมพล" className="h-14 rounded-xl" onChange={(e) => handleChange("subDistrict", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>รหัสไปรษณีย์</Label>
-                            <Input value={formData.zipCode} placeholder="10900" className="font-mono h-12 rounded-xl" onChange={(e) => handleChange("zipCode", e.target.value)} />
+                            <Input value={formData.zipCode} placeholder="10900" className="font-mono h-14 rounded-xl" onChange={(e) => handleChange("zipCode", e.target.value)} />
                         </div>
                     </div>
                 </div>
@@ -175,7 +179,7 @@ export function PersonalInfoStep({ formData, setFormData }: PersonalInfoStepProp
                         <div className="space-y-2">
                             <Label>อาชีพ</Label>
                             <Select defaultValue={formData.occupation} onValueChange={(val) => handleChange("occupation", val)}>
-                                <SelectTrigger className="w-full !h-12 rounded-xl shadow-none border-input focus:ring-2 focus:ring-chaiyo-blue/20">
+                                <SelectTrigger className="w-full !h-14 rounded-xl shadow-none border-input focus:ring-2 focus:ring-chaiyo-blue/20">
                                     <SelectValue placeholder="เลือกอาชีพ" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -190,15 +194,15 @@ export function PersonalInfoStep({ formData, setFormData }: PersonalInfoStepProp
                         </div>
                         <div className="space-y-2">
                             <Label>สถานที่ทำงาน</Label>
-                            <Input placeholder="บริษัท เงินไชโย จำกัด" className="h-12 rounded-xl" onChange={(e) => handleChange("workplace", e.target.value)} />
+                            <Input placeholder="บริษัท เงินไชโย จำกัด" className="h-14 rounded-xl" onChange={(e) => handleChange("workplace", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>รายได้ต่อเดือน (บาท)</Label>
-                            <Input placeholder="0.00" className="h-12 rounded-xl text-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right" onChange={(e) => handleChange("income", e.target.value)} />
+                            <Input placeholder="0.00" className="h-14 rounded-xl text-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-all text-right" onChange={(e) => handleChange("income", e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label>อายุงาน (ปี)</Label>
-                            <Input placeholder="2" type="number" className="h-12 rounded-xl" onChange={(e) => handleChange("workYears", e.target.value)} />
+                            <Input placeholder="2" type="number" className="h-14 rounded-xl" onChange={(e) => handleChange("workYears", e.target.value)} />
                         </div>
                     </div>
                 </div>

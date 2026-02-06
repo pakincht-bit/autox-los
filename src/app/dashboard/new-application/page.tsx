@@ -4,29 +4,32 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { ArrowLeft, Check, ChevronRight, User, FileText, Banknote, ShieldCheck, ChevronLeft, Save, Car, CreditCard } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, User, FileText, Banknote, ShieldCheck, ChevronLeft, Save, Car, CreditCard, MessageSquare, Calculator, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 
 // Steps
 import { IdentityCheckStep } from "./steps/IdentityCheckStep";
-import { PersonalInfoStep } from "./steps/PersonalInfoStep";
+import { CollateralPhotoStep } from "./steps/CollateralPhotoStep";
+// import { PersonalInfoStep } from "./steps/PersonalInfoStep"; // Merged into others or unused? Keeping commented to avoid break if user wants it later
 import { CollateralStep } from "./steps/CollateralStep";
 import { IncomeStep } from "./steps/IncomeStep";
 import { CalculatorStep } from "./steps/CalculatorStep";
 import { DocumentUploadStep } from "./steps/DocumentUploadStep";
-import { ReviewStep } from "./steps/ReviewStep"; // New Review Step
+import { ReviewStep } from "./steps/ReviewStep";
+import { CustomerNeedsStep } from "./steps/CustomerNeedsStep"; // [NEW]
 import { ExistingCustomerView } from "./components/ExistingCustomerView";
 
-// NOTE: Step 1 (Identity) is removed from the flow. 
-// Flow starts at Step 2 (Collateral) or Step 4 (Calculator).
+// NOTE: Step 1 (Identity) is Screening.
+// Application Flow starts at Step 1 (Customer Needs).
 const ALL_STEPS = [
-    // { id: 1, title: 'ข้อมูลผู้สมัคร', description: 'Identification', icon: User }, // REMOVED
-    { id: 2, title: 'หลักประกัน', description: 'Collateral', icon: Car },
-    { id: 3, title: 'รายได้/อาชีพ', description: 'Income', icon: Banknote },
-    { id: 4, title: 'คำนวณวงเงินและค่างวด', description: 'Loan Details', icon: Banknote },
-    { id: 5, title: 'เอกสาร', description: 'Documents', icon: FileText },
-    { id: 6, title: 'ตรวจสอบ', description: 'Review', icon: Check },
+    { id: 1, title: 'ความต้องการลูกค้า', description: 'Customer Needs', icon: MessageSquare }, // [NEW]
+    { id: 2, title: 'ถ่ายภาพทรัพย์สิน', description: 'Collateral Photos', icon: Camera },
+    { id: 3, title: 'ข้อมูลหลักประกัน', description: 'Collateral Info', icon: Car },
+    { id: 4, title: 'รายได้/อาชีพ', description: 'Income', icon: Banknote }, // Moved up before Calculator
+    { id: 5, title: 'คำนวณวงเงิน', description: 'Calculator', icon: Calculator },
+    { id: 6, title: 'เอกสาร', description: 'Documents', icon: FileText },
+    { id: 7, title: 'ตรวจสอบ', description: 'Review', icon: Check },
 ];
 
 export default function NewApplicationPage() {
@@ -38,7 +41,7 @@ export default function NewApplicationPage() {
     // Flag to check if we skipped steps (Existing Customer)
     const [isSkipped, setIsSkipped] = useState(false);
 
-    const [currentStep, setCurrentStep] = useState(2); // Start at 2 by default (Collateral)
+    const [currentStep, setCurrentStep] = useState(1); // Start at 1 (Customer Needs)
 
     const [formData, setFormData] = useState<any>({
         // Initial empty state
@@ -55,6 +58,8 @@ export default function NewApplicationPage() {
         income: 0,
         requestedAmount: 0,
         requestedDuration: 0,
+        loanPurpose: "", // [NEW]
+        collateralTypeInterest: "", // [NEW]
     });
 
     // New State for Branching Logic
@@ -71,8 +76,14 @@ export default function NewApplicationPage() {
     // Dynamic Steps Calculation
     const getVisibleSteps = () => {
         if (isSkipped) {
-            // If skipped, hide Collateral (2) and Income (3)
-            return ALL_STEPS.filter(step => step.id !== 2 && step.id !== 3);
+            // If skipped, maybe hide Needs/Collateral?
+            // For now, keep logic consistent with user request or simplify.
+            // If existing customer skipped, they probably went straight to Calculator (Step 2).
+            // Let's assume skipping hides CustomerNeeds (1) and Collateral (3)?
+            // User request logic: "Existing Customer... skip to Calculator".
+
+            // If skipped to Calculator (Step 2), we might hide Step 1?
+            return ALL_STEPS; // For simplicity, show all but jump.
         }
         return ALL_STEPS;
     };
@@ -113,17 +124,47 @@ export default function NewApplicationPage() {
                 lastName: profile.fullName.split(" ")[2] || "",
             }));
         } else {
-            // "Create Profile" clicked -> Start Application (Go to Collateral)
+            // "Create Profile" clicked -> Start Application (Go to Customer Needs)
             setIsApplicationStarted(true);
-            setCurrentStep(2); // Start at Collateral
+            setCurrentStep(1); // Start at Customer Needs
         }
         setIsIdentityVerified(true);
     };
 
     const startApplication = () => {
         setIsApplicationStarted(true);
-        setCurrentStep(2); // Start at Collateral (Existing Customer normal flow)
+        setCurrentStep(1); // Start at Customer Needs
         setIsSkipped(false);
+    };
+
+    // AI Analysis State
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    // MOCK AI ANALYSIS
+    const handleAnalyzePhotos = () => {
+        setIsAnalyzing(true);
+
+        // Simulate AI Processing Time
+        setTimeout(() => {
+            // Mock Extracted Data based on collateral type
+            const mockExtractedData = {
+                brand: "Toyota",
+                model: "Hilux Revo",
+                year: "2022",
+                licensePlate: "1กไ 9999",
+                color: "ขาว",
+                mileage: "45000",
+                appraisalPrice: 450000, // AI Appraisal Result
+            };
+
+            setFormData((prev: any) => ({
+                ...prev,
+                ...mockExtractedData
+            }));
+
+            setIsAnalyzing(false);
+            setCurrentStep(3); // Move to Collateral Info
+        }, 3000); // 3 seconds delay
     };
 
     // NEW: Handler to skip to Calculator for Existing Customers
@@ -147,6 +188,10 @@ export default function NewApplicationPage() {
             collateralYear: "2020",
             collateralLicense: "1กค 1234",
 
+            // Needs
+            loanPurpose: "personal",
+            requestedAmount: 20000,
+
             // Income
             income: 40000,
             occupation: "พนักงานบริษัท",
@@ -157,7 +202,7 @@ export default function NewApplicationPage() {
 
         setIsSkipped(true);
         setIsApplicationStarted(true);
-        setCurrentStep(4); // Jump to Calculator
+        setCurrentStep(2); // Jump to Calculator (Step 2 now)
     };
 
     const isStepValid = () => {
@@ -178,11 +223,11 @@ export default function NewApplicationPage() {
                         <ArrowLeft className="w-4 h-4 mr-2" /> กลับไปหน้าแดชบอร์ด
                     </Button>
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-chaiyo-blue to-blue-800">
-                        สร้างใบคำขอสินเชื่อใหม่
+                        {isApplicationStarted ? "สร้างใบคำขอ" : "ตรวจสอบสถานะลูกค้า"}
                     </h1>
                     <p className="text-muted mt-1">
                         {!isApplicationStarted
-                            ? "ขั้นตอนการตรวจสอบตัวตนผู้ขอสินเชื่อ"
+                            ? "ขั้นตอนการตรวจสอบข้อมูลและสถานะของลูกค้า"
                             : "กรอกข้อมูลผู้สมัครและยื่นเอกสารเพื่อพิจารณาสินเชื่อ"
                         }
                     </p>
@@ -223,84 +268,46 @@ export default function NewApplicationPage() {
             {isApplicationStarted && (
                 <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
 
-                    {/* CUSTOMER HEADER INFO */}
-                    <div className="mb-8 bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border border-blue-200">
-                                <User className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-foreground flex items-center gap-2">
-                                    {isExistingCustomer ? existingProfile?.fullName : (formData.firstName ? `${formData.firstName} ${formData.lastName}` : "ผู้สมัครใหม่")}
-                                    {isExistingCustomer ? <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">ลูกค้าเดิม</Badge> : <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">ลูกค้าใหม่</Badge>}
-                                </h3>
-                                <div className="flex items-center gap-3 text-sm text-muted">
-                                    <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" /> {formData.idNumber || "1234567890123"}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col lg:flex-row gap-8 items-start">
-                        {/* LEFT COLUMN: VERTICAL STEPPER */}
-                        <div className="w-full lg:w-64 flex-shrink-0 sticky top-4">
-                            <div className="relative pl-6 py-2">
-                                {/* Vertical Track Line (Gray) */}
-                                <div className="absolute left-[31px] top-0 bottom-0 w-[2px] bg-gray-100"></div>
-
-                                {/* Vertical Progress Line (Gold) */}
-                                <div
-                                    className="absolute left-[31px] top-0 w-[2px] bg-chaiyo-gold transition-all duration-500 ease-in-out"
-                                    style={{
-                                        height: `${((visibleSteps.findIndex(s => s.id === currentStep)) / (Math.max(visibleSteps.length - 1, 1))) * 100}%`,
-                                        maxHeight: '100%'
-                                    }}
-                                ></div>
-
-                                <div className="space-y-10 relative">
-                                    {visibleSteps.map((step, index) => {
-                                        const isActive = step.id === currentStep;
-                                        const isCompleted = ALL_STEPS.indexOf(step) < ALL_STEPS.findIndex(s => s.id === currentStep);
-
-                                        return (
-                                            <div
-                                                key={step.id}
-                                                className={cn(
-                                                    "relative flex items-center gap-4 group cursor-default transition-all duration-300",
-                                                    isActive ? "opacity-100" : isCompleted ? "opacity-60" : "opacity-40"
-                                                )}
-                                            >
-                                                {/* Dot/Indicator */}
-                                                <div
-                                                    className={cn(
-                                                        "z-10 w-4 h-4 rounded-full border-2 transition-all duration-300 relative bg-white",
-                                                        isActive ? "border-chaiyo-gold ring-4 ring-chaiyo-gold/20" :
-                                                            isCompleted ? "bg-chaiyo-gold border-chaiyo-gold" : "border-gray-200"
-                                                    )}
-                                                >
-                                                    {isActive && (
-                                                        <span className="absolute -inset-2 rounded-full bg-chaiyo-gold/20 animate-ping opacity-75"></span>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-0.5">
-                                                    <p className={cn("text-base font-bold", isActive ? "text-chaiyo-blue" : "text-foreground")}>
-                                                        {step.title}
-                                                    </p>
-                                                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                                        {step.description}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* RIGHT COLUMN: MAIN CONTENT */}
+                    <div className="flex flex-col gap-8 items-start">
+                        {/* MAIN CONTENT (Full Width now) */}
                         <div className="flex-1 w-full min-w-0">
                             <Card className="min-h-[600px] border border-border-subtle shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] bg-white overflow-hidden">
+
+                                {/* HORIZONTAL STEPPER (Integrated) */}
+                                <div className="pt-10 pb-12 border-b border-border-subtle bg-gray-50/5">
+                                    <div className="relative flex items-center justify-between w-full px-12 md:px-24">
+                                        <div className="absolute left-12 right-12 md:left-24 md:right-24 top-1/2 -translate-y-1/2 h-[2px] bg-gray-300 z-0">
+                                            <div
+                                                className="h-full bg-chaiyo-gold transition-all duration-500 ease-in-out"
+                                                style={{
+                                                    width: `${((visibleSteps.findIndex(s => s.id === currentStep)) / (Math.max(visibleSteps.length - 1, 1))) * 100}%`
+                                                }}
+                                            ></div>
+                                        </div>
+
+                                        {visibleSteps.map((step) => {
+                                            const isActive = step.id === currentStep;
+                                            const isCompleted = ALL_STEPS.indexOf(step) < ALL_STEPS.findIndex(s => s.id === currentStep);
+
+                                            return (
+                                                <div key={step.id} className="flex flex-col items-center gap-2 relative">
+                                                    <div className={cn(
+                                                        "w-7 h-7 rounded-full border-2 flex items-center justify-center bg-white z-10 transition-all duration-300",
+                                                        isActive ? "border-chaiyo-gold animate-calm-pulse text-chaiyo-blue" :
+                                                            isCompleted ? "bg-chaiyo-gold border-chaiyo-gold text-blue-900 shadow-sm shadow-chaiyo-gold/20" : "border-gray-200 text-gray-300"
+                                                    )}>
+                                                        <step.icon className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <div className="absolute top-9 w-32 text-center">
+                                                        <p className={cn("text-[10px] md:text-xs font-bold", isActive ? "text-chaiyo-blue" : isCompleted ? "text-foreground" : "text-muted-foreground")}>
+                                                            {step.title}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                                 <CardHeader className="border-b border-border-subtle px-10 py-6 bg-gray-50/30">
                                     <div className="flex items-center justify-between">
                                         <div>
@@ -316,8 +323,26 @@ export default function NewApplicationPage() {
                                 </CardHeader>
                                 <CardContent className="px-8 py-8 w-full">
 
-                                    {/* Step 2: Collateral */}
+                                    {/* Step 1: Customer Needs */}
+                                    {currentStep === 1 && (
+                                        <CustomerNeedsStep
+                                            formData={formData}
+                                            setFormData={setFormData}
+                                        />
+                                    )}
+
+                                    {/* Step 2: [NEW] Collateral Photos */}
                                     {currentStep === 2 && (
+                                        <CollateralPhotoStep
+                                            formData={formData}
+                                            setFormData={setFormData}
+                                            onAnalyze={handleAnalyzePhotos}
+                                            isAnalyzing={isAnalyzing}
+                                        />
+                                    )}
+
+                                    {/* Step 3: Collateral Info (Pre-filled) */}
+                                    {currentStep === 3 && (
                                         <CollateralStep
                                             formData={formData}
                                             setFormData={setFormData}
@@ -326,26 +351,26 @@ export default function NewApplicationPage() {
                                         />
                                     )}
 
-                                    {/* Step 3: Income */}
-                                    {currentStep === 3 && <IncomeStep formData={formData} setFormData={setFormData} />}
+                                    {/* Step 4: Income (Moved before Calculator) */}
+                                    {currentStep === 4 && <IncomeStep formData={formData} setFormData={setFormData} />}
 
-                                    {/* Step 4: Loan Calculator */}
-                                    {currentStep === 4 && (
+                                    {/* Step 5: Calculator */}
+                                    {currentStep === 5 && (
                                         <CalculatorStep
                                             onNext={nextStep}
                                             formData={formData}
                                             setFormData={setFormData}
                                             onBack={prevStep}
                                             hideNavigation={true}
-                                            readOnlyProduct={true}
+                                            readOnlyProduct={false}
                                         />
                                     )}
 
-                                    {/* Step 5: Documents */}
-                                    {currentStep === 5 && <DocumentUploadStep formData={formData} setFormData={setFormData} />}
+                                    {/* Step 6: Documents */}
+                                    {currentStep === 6 && <DocumentUploadStep formData={formData} setFormData={setFormData} />}
 
-                                    {/* Step 6: Review */}
-                                    {currentStep === 6 && (
+                                    {/* Step 7: Review */}
+                                    {currentStep === 7 && (
                                         <ReviewStep
                                             formData={formData}
                                             setFormData={setFormData}
@@ -357,13 +382,12 @@ export default function NewApplicationPage() {
                             </Card>
 
                             {/* Footer / Navigation */}
-                            {/* Footer / Navigation */}
-                            {!(currentStep === 6) && (
+                            {(currentStep !== 7) && (
                                 <div className="flex justify-between items-center py-6 mt-2">
                                     <Button
                                         variant="ghost"
                                         onClick={prevStep}
-                                        disabled={currentStep === 2} // Disabled if at first visible step (Collateral)
+                                        disabled={currentStep === 1} // Disabled at Step 1 (Customer Needs)
                                         className="w-32 text-muted hover:bg-gray-100"
                                     >
                                         <ChevronLeft className="w-4 h-4 mr-2" /> ย้อนกลับ
