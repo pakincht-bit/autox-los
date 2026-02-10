@@ -34,7 +34,7 @@ const MOCK_DATA: Application[] = [
         applicantName: "กมล คนขยัน",
         submissionDate: "03/10/2023",
         requestedAmount: 35000,
-        status: "Pending Docs",
+        status: "In Review",
         productType: "สินเชื่อนาโนไฟแนนซ์"
     },
     {
@@ -76,9 +76,8 @@ export default function ApplicationsPage() {
         { label: "ทั้งหมด", value: "all" },
         { label: "แบบร่าง", value: "Draft" },
         { label: "รอพิจารณา", value: "In Review" },
-        { label: "รอเอกสาร", value: "Pending Docs" },
         { label: "อนุมัติ", value: "Approved" },
-        { label: "ปฏิเสธ", value: "Rejected" },
+        { label: "ถูกปฎิเสธ", value: "Rejected" },
     ];
 
     const filteredData = MOCK_DATA.filter((app) => {

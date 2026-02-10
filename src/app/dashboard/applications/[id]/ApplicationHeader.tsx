@@ -21,7 +21,6 @@ const getStatusBadgeVariant = (status: ApplicationStatus) => {
         case 'Approved': return 'success';
         case 'Rejected': return 'danger';
         case 'In Review': return 'warning';
-        case 'Pending Docs': return 'info';
         case 'Draft':
         default: return 'neutral';
     }
@@ -32,7 +31,6 @@ const getStatusLabel = (status: ApplicationStatus) => {
         case 'Approved': return 'อนุมัติ';
         case 'Rejected': return 'ปฏิเสธ';
         case 'In Review': return 'รอพิจารณา';
-        case 'Pending Docs': return 'รอเอกสาร';
         case 'Draft': return 'แบบร่าง';
         default: return status;
     }
@@ -106,12 +104,7 @@ export function ApplicationHeader({
                                 </>
                             )}
 
-                            {status === 'Pending Docs' && (
-                                <Button className="bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20">
-                                    <Clock className="h-4 w-4 mr-2" />
-                                    ติดตามเอกสาร
-                                </Button>
-                            )}
+
                         </div>
                     </div>
                 </div>

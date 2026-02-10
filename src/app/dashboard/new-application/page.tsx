@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { ArrowLeft, Check, ChevronRight, User, FileText, Banknote, ShieldCheck, ChevronLeft, Save, Car, CreditCard, MessageSquare, Calculator, Camera } from "lucide-react";
@@ -34,6 +34,7 @@ const ALL_STEPS = [
 
 export default function NewApplicationPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     // Phase 1: Screening (False) -> Phase 2: Application (True)
     const [isApplicationStarted, setIsApplicationStarted] = useState(false);
@@ -42,6 +43,14 @@ export default function NewApplicationPage() {
     const [isSkipped, setIsSkipped] = useState(false);
 
     const [currentStep, setCurrentStep] = useState(1); // Start at 1 (Customer Needs)
+
+    useEffect(() => {
+        const state = searchParams.get('state');
+        if (state === 'draft') {
+            setIsApplicationStarted(true);
+            // Optionally set other state here if needed
+        }
+    }, [searchParams]);
 
     const [formData, setFormData] = useState<any>({
         // Initial empty state
@@ -271,14 +280,16 @@ export default function NewApplicationPage() {
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    {/* Save Draft Button */}
-                    <Button
-                        variant="outline"
-                        onClick={() => alert("บันทึกแบบร่างเรียบร้อยแล้ว")}
-                        className="bg-white border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50"
-                    >
-                        <Save className="w-4 h-4 mr-2" /> บันทึกแบบร่าง
-                    </Button>
+                    {/* Save Draft Button - Only visible in Phase 2 */}
+                    {isApplicationStarted && (
+                        <Button
+                            variant="outline"
+                            onClick={() => alert("บันทึกแบบร่างเรียบร้อยแล้ว")}
+                            className="bg-white border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50"
+                        >
+                            <Save className="w-4 h-4 mr-2" /> บันทึกแบบร่าง
+                        </Button>
+                    )}
                 </div>
             </div>
 

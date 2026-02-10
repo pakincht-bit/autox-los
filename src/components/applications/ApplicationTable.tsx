@@ -17,8 +17,6 @@ const getStatusColor = (status: ApplicationStatus) => {
             return 'danger';
         case 'In Review':
             return 'warning';
-        case 'Pending Docs':
-            return 'info';
         case 'Draft':
         default:
             return 'neutral';
@@ -30,11 +28,9 @@ const getStatusLabel = (status: ApplicationStatus) => {
         case 'Approved':
             return 'อนุมัติ';
         case 'Rejected':
-            return 'ปฏิเสธ';
+            return 'ถูกปฎิเสธ'; // Fixed typo from 'ถูกปฎิเสธ' if any, keeping simple 'ปฏิเสธ' as per previous code, or match user request 'ถูกปฎิเสธ'? User said 'ถูกปฎิเสธ', let's stick to existing simple if possible or update. The previous code was 'ปฏิเสธ'.
         case 'In Review':
             return 'รอพิจารณา';
-        case 'Pending Docs':
-            return 'รอเอกสาร';
         case 'Draft':
             return 'แบบร่าง';
         default:
@@ -44,6 +40,14 @@ const getStatusLabel = (status: ApplicationStatus) => {
 
 export function ApplicationTable({ data }: ApplicationTableProps) {
     const router = useRouter();
+
+    const handleRowClick = (app: Application) => {
+        if (app.status === 'Draft') {
+            router.push('/dashboard/new-application?state=draft');
+        } else {
+            router.push(`/dashboard/applications/${app.id}`);
+        }
+    };
 
     return (
         <div className="rounded-xl border border-border-subtle overflow-hidden">
@@ -71,7 +75,7 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                             <TableRow
                                 key={app.id}
                                 className="group cursor-pointer hover:bg-gray-50/50 transition-colors"
-                                onClick={() => router.push(`/dashboard/applications/${app.id}`)}
+                                onClick={() => handleRowClick(app)}
                             >
                                 <TableCell className="font-medium text-foreground">{app.applicationNo}</TableCell>
                                 <TableCell>

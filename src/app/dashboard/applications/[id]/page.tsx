@@ -18,7 +18,7 @@ const MOCK_DETAIL_DATA: ApplicationDetail = {
     applicantName: "สมชาย ใจดี",
     submissionDate: "01/10/2023",
     requestedAmount: 500000,
-    status: "Pending Docs",
+    status: "In Review",
     productType: "สินเชื่อจำนำทะเบียนรถยนต์",
     email: "somchai.j@example.com",
     phone: "081-234-5678",
@@ -93,7 +93,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
                 {/* Action Required Section */}
-                {(app.status === 'Pending Docs' || app.status === 'In Review') && (
+                {(app.status === 'In Review') && (
                     <ActionRequiredList items={app.actionItems} />
                 )}
 
