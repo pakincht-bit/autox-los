@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FileText, CheckCircle, Upload, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Label";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { cn } from "@/lib/utils";
 
 interface DocumentUploadStepProps {
@@ -80,6 +81,26 @@ export function DocumentUploadStep({ formData, setFormData }: DocumentUploadStep
                         )}
                     </div>
                 ))}
+            </div>
+
+            <div className="flex items-center space-x-3 p-4 border border-blue-100 rounded-xl bg-blue-50/50 mt-6">
+                <Checkbox
+                    id="requireNCB"
+                    checked={formData.requireNCB || false}
+                    onCheckedChange={(checked) => setFormData((prev: any) => ({ ...prev, requireNCB: checked }))}
+                    className="border-chaiyo-blue data-[state=checked]:bg-chaiyo-blue data-[state=checked]:text-white"
+                />
+                <div className="grid gap-1.5 leading-none">
+                    <label
+                        htmlFor="requireNCB"
+                        className="text-sm font-bold text-chaiyo-blue cursor-pointer"
+                    >
+                        ตรวจสอบเครดิตบูโร (NCB)
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                        หากเลือก การขอความยินยอมเปิดเผยข้อมูลเครดิต (NCB Consent) จะถูกเพิ่มในขั้นตอนการตรวจสอบ
+                    </p>
+                </div>
             </div>
 
 

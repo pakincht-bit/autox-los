@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calculator, Banknote, Calendar, ChevronRight, ChevronLeft, Car, Bike, Truck, Sprout, MapIcon, Tractor, AlertCircle } from "lucide-react";
+import { Calculator, Banknote, Calendar, ChevronRight, ChevronLeft, Car, Bike, Truck, Sprout, MapIcon, Tractor, AlertCircle, ShieldCheck, Info, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Verify if available, otherwise use custom or standard input
 import { Badge } from "@/components/ui/Badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 
@@ -28,8 +31,17 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
     const [totalInterest, setTotalInterest] = useState<number>(0);
     const [selectedProduct, setSelectedProduct] = useState<string>("car");
 
+    // Local Payment Method State
+    const [localPaymentMethod, setLocalPaymentMethod] = useState<'installment' | 'bullet'>(formData?.paymentMethod || paymentMethod || 'installment');
+
     // New State for Max Loan Logic
     const [maxLoanAmount, setMaxLoanAmount] = useState<number>(1000000);
+    const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+
+    // Insurance State
+    const [selectedInsurances, setSelectedInsurances] = useState<string[]>([]);
+    const [includeInsuranceInLoan, setIncludeInsuranceInLoan] = useState<boolean>(true);
+
 
     // Mock Interest Rates per product
     const INTEREST_RATES: Record<string, number> = {
@@ -38,6 +50,28 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
         truck: 0.2399,
         agri: 0.2399,
         land: 0.2399,
+    };
+
+    interface InsuranceOption {
+        id: string;
+        label: string;
+        price: number;
+        type: 'car' | 'pa'; // Car Insurance or Personal Accident
+        requiredProduct?: string[]; // If specified, only available for these products
+    }
+
+    const INSURANCE_OPTIONS: InsuranceOption[] = [
+        { id: 'car_tier1', label: 'ประกันรถยนต์ ชั้น 1', price: 20000, type: 'car' },
+        { id: 'car_tier2', label: 'ประกันรถยนต์ ชั้น 2+', price: 15000, type: 'car' },
+        { id: 'car_tier3', label: 'ประกันรถยนต์ ชั้น 3+', price: 10000, type: 'car' },
+        { id: 'pa_basic', label: 'ประกันอุบัติเหตุส่วนบุคคล (PA)', price: 2500, type: 'pa' },
+    ];
+
+    const calculateTotalInsurancePremium = () => {
+        return selectedInsurances.reduce((total, id) => {
+            const option = INSURANCE_OPTIONS.find(opt => opt.id === id);
+            return total + (option ? option.price : 0);
+        }, 0);
     };
 
     // Calculate Max Loan based on formData (if available)
@@ -105,7 +139,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
     useEffect(() => {
         calculateLoan();
-    }, [amount, months, selectedProduct, paymentMethod]);
+    }, [amount, months, selectedProduct, localPaymentMethod, selectedInsurances, includeInsuranceInLoan]);
 
     // Sync state to formData continuously to support external navigation
     useEffect(() => {
@@ -116,7 +150,9 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                 estimatedMonthlyPayment: monthlyPayment,
                 totalInterest: totalInterest,
                 interestRate: INTEREST_RATES[selectedProduct] || 0.2399,
-                paymentMethod: paymentMethod // Sync payment method back
+                paymentMethod: localPaymentMethod, // Sync payment method back
+                selectedInsurances: selectedInsurances,
+                includeInsuranceInLoan: includeInsuranceInLoan
             };
 
             // Only sync collateralType if NOT in read-only mode
@@ -124,9 +160,20 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                 data.collateralType = selectedProduct;
             }
 
-            setFormData((prev: any) => ({ ...prev, ...data }));
+            setFormData((prev: any) => {
+                const income = Number(prev.income) || 0;
+                const expenses = Number(prev.expenses) || 0;
+                // DSR = Current Expenses / Total Income (Excluding New Loan as per request)
+                const newDsr = income > 0 ? (expenses / income) * 100 : 0;
+
+                return {
+                    ...prev,
+                    ...data,
+                    dsr: newDsr.toFixed(2)
+                };
+            });
         }
-    }, [amount, months, monthlyPayment, totalInterest, selectedProduct, hideNavigation, readOnlyProduct, paymentMethod]);
+    }, [amount, months, monthlyPayment, totalInterest, selectedProduct, hideNavigation, readOnlyProduct, localPaymentMethod, selectedInsurances, includeInsuranceInLoan, setFormData]);
 
     const calculateLoan = () => {
         if (amount <= 0 || months <= 0) {
@@ -136,10 +183,15 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
         const rate = INTEREST_RATES[selectedProduct] || 0.2399;
         const years = months / 12;
-        const totalInt = amount * rate * years;
-        const total = amount + totalInt;
 
-        if (paymentMethod === 'bullet') {
+        // Insurance Logic
+        const insurancePremium = calculateTotalInsurancePremium();
+        const principal = amount + (includeInsuranceInLoan ? insurancePremium : 0);
+
+        const totalInt = principal * rate * years;
+        const total = principal + totalInt;
+
+        if (localPaymentMethod === 'bullet') {
             // Bullet: Pay total at end. Monthly = 0 (or technically interest only, but request said pay once)
             // Let's set monthly to 0 and handle display logic to show "Pay at end"
             setMonthlyPayment(0);
@@ -159,7 +211,9 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
             totalInterest: totalInterest,
             interestRate: INTEREST_RATES[selectedProduct] || 0.2399,
             collateralType: selectedProduct,
-            paymentMethod: paymentMethod
+            paymentMethod: localPaymentMethod,
+            selectedInsurances: selectedInsurances,
+            includeInsuranceInLoan: includeInsuranceInLoan
         };
 
         // If part of the main flow (formData present), update it
@@ -205,54 +259,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                     {/* Product Selection */}
                     <div className="space-y-4 animate-in fade-in duration-500">
                         {/* Show Summary if ReadOnly OR if we already have a collateral type from previous steps */}
-                        {(readOnlyProduct || (formData && formData.collateralType)) ? (
-                            // Read-Only Info Mode
-                            <div className="space-y-4">
-                                <Label className="text-sm font-bold">ข้อมูลการประเมินและการเงิน</Label>
-                                <div className="space-y-2">
-                                    {/* 1. Collateral & Appraisal Card */}
-                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100 shadow-sm text-chaiyo-blue">
-                                                {PRODUCTS.find(p => p.id === selectedProduct)?.icon ?
-                                                    (() => { const Icon = PRODUCTS.find(p => p.id === selectedProduct)!.icon; return <Icon className="w-5 h-5" /> })() : <Car className="w-5 h-5" />}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between items-start">
-                                                    <p className="font-bold text-foreground text-sm">
-                                                        {PRODUCTS.find(p => p.id === selectedProduct)?.label}
-                                                    </p>
-                                                    <Badge variant="outline" className="text-[9px] h-4 bg-white">
-                                                        {formData.legalStatus === 'pawned' ? 'ติดจำนำ' : formData.legalStatus === 'lease' ? 'ติดเช่าซื้อ' : 'ปลอดภาระ'}
-                                                    </Badge>
-                                                </div>
-                                                <p className="text-xs text-muted">
-                                                    {selectedProduct === 'land'
-                                                        ? `โฉนดเลขที่: ${formData.deedNumber || '-'}`
-                                                        : `${formData.brand || ''} ${formData.model || ''} ${formData.year ? `(${formData.year})` : ''}`
-                                                    }
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="h-px bg-gray-200/60" />
-
-
-                                        <div className="flex justify-between items-center pl-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold text-muted-foreground">  วงเงินสูงสุด:</span>
-                                            </div>
-                                            <span className="text-sm font-mono font-bold text-blue-700">
-                                                ฿{maxLoanAmount.toLocaleString()}
-                                            </span>
-                                        </div>
-
-                                    </div>
-
-
-                                </div>
-                            </div>
-                        ) : (
+                        {(readOnlyProduct || (formData && formData.collateralType)) ? null : (
                             // Selector Mode
                             <>
                                 <Label className="text-sm font-bold text-muted uppercase tracking-wider">เลือกประเภทหลักประกัน</Label>
@@ -287,13 +294,48 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                             <div className="flex justify-between items-baseline">
                                 <Label className="text-sm font-bold">สินเชื่อที่ต้องการ (บาท)</Label>
                                 {formData && (
-                                    <div className={cn(
-                                        "inline-flex items-center px-2 py-0.5 gap-1 rounded-full text-[9px] font-bold",
-                                        maxLoanAmount <= 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"
-                                    )}>
-                                        <AlertCircle className="w-2.5 h-2.5" />
-                                        วงเงินสูงสุด: {maxLoanAmount.toLocaleString()}
-                                    </div>
+                                    <Popover open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
+                                        <PopoverTrigger asChild>
+                                            <div
+                                                className={cn(
+                                                    "inline-flex items-center px-2 py-0.5 gap-1 rounded-full text-[9px] font-bold cursor-pointer transition-colors hover:bg-blue-100",
+                                                    maxLoanAmount <= 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"
+                                                )}
+                                            >
+                                                <Info className="w-2.5 h-2.5" />
+                                                วงเงินสูงสุด: {maxLoanAmount.toLocaleString()}
+                                            </div>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="bg-white border-blue-100 text-blue-900 shadow-xl p-3 rounded-xl relative w-auto max-w-[280px]">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsTooltipOpen(false);
+                                                }}
+                                                className="absolute top-3 right-3 text-blue-300 hover:text-blue-500 transition-colors cursor-pointer"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                            <div className="space-y-1 pr-6">
+                                                <p className="font-bold text-xs mb-2">ที่มาของวงเงินสูงสุด</p>
+                                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                                                    <span className="text-muted-foreground">ราคาประเมินกลาง:</span>
+                                                    <span className="text-right font-medium">฿{(Number(formData?.appraisalPrice) || 0).toLocaleString()}</span>
+
+                                                    <span className="text-muted-foreground">LTV (อัตราส่วน):</span>
+                                                    <span className="text-right font-medium">{(selectedProduct === 'land' ? 0.70 : 0.90) * 100}%</span>
+
+                                                    <span className="text-muted-foreground">หัก ภาระหนี้เดิม:</span>
+                                                    <span className="text-right text-red-500 font-medium">-฿{(Number(formData?.existingDebt) || 0).toLocaleString()}</span>
+
+                                                    <div className="col-span-2 h-px bg-blue-100 my-1"></div>
+
+                                                    <span className="font-bold text-blue-700">วงเงินสูงสุดสุทธิ:</span>
+                                                    <span className="text-right font-bold text-blue-700">฿{maxLoanAmount.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
                                 )}
                             </div>
 
@@ -332,24 +374,25 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                         </div>
 
 
+
                         {/* Payment Method Toggle (Moved here - ABOVE Loan Term) */}
                         <div className="space-y-4">
                             <Label className="text-sm font-bold">รูปแบบการผ่อนชำระ</Label>
                             <div className="flex p-1 bg-gray-100/50 border border-gray-200 rounded-xl">
                                 <button
-                                    onClick={() => setFormData && setFormData({ ...formData, paymentMethod: 'installment' })}
+                                    onClick={() => setLocalPaymentMethod('installment')}
                                     className={cn(
                                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                                        paymentMethod !== 'bullet' ? "bg-white shadow-sm text-chaiyo-blue border border-gray-100" : "text-gray-400 hover:text-gray-600"
+                                        localPaymentMethod !== 'bullet' ? "bg-white shadow-sm text-chaiyo-blue border border-gray-100" : "text-gray-400 hover:text-gray-600"
                                     )}
                                 >
                                     ผ่อนรายเดือน
                                 </button>
                                 <button
-                                    onClick={() => setFormData && setFormData({ ...formData, paymentMethod: 'bullet' })}
+                                    onClick={() => setLocalPaymentMethod('bullet')}
                                     className={cn(
                                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                                        paymentMethod === 'bullet' ? "bg-white shadow-sm text-chaiyo-blue border border-gray-100" : "text-gray-400 hover:text-gray-600"
+                                        localPaymentMethod === 'bullet' ? "bg-white shadow-sm text-chaiyo-blue border border-gray-100" : "text-gray-400 hover:text-gray-600"
                                     )}
                                 >
                                     โปะงวดสุดท้าย
@@ -360,7 +403,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                         <div className="space-y-4">
                             <Label className="text-sm font-bold">ระยะเวลาผ่อนชำระ (เดือน)</Label>
                             <div className="grid grid-cols-4 gap-2">
-                                {(paymentMethod === 'bullet' ? [1, 2, 3, 4, 5, 6] : COMPARISON_DURATIONS).map((m) => (
+                                {(localPaymentMethod === 'bullet' ? [1, 2, 3, 4, 5, 6] : COMPARISON_DURATIONS).map((m) => (
                                     <button
                                         key={m}
                                         disabled={maxLoanAmount <= 0}
@@ -378,6 +421,141 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                                 ))}
                             </div>
                         </div>
+
+                        {/* --- NEW Insurance Section --- */}
+                        <div className="pt-6 border-t border-gray-100 space-y-6">
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck className="w-5 h-5 text-chaiyo-blue" />
+                                <Label className="text-sm font-bold">ประกันภัยที่แนะนำ</Label>
+                            </div>
+
+                            {/* 1. Freebie Insurance (Mock Logic: Car/Moto/Truck/Agri get free loan protection) */}
+                            {['car', 'moto', 'truck', 'agri'].includes(selectedProduct) && (
+                                <div className="p-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-xl flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                        <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-blue-800">ฟรี! ประกันคุ้มครองวงเงินกู้</p>
+                                        <p className="text-xs text-blue-600/80 mt-1">
+                                            คุ้มครองวงเงินกู้สูงสุดตามยอดหนี้คงเหลือ กรณีเสียชีวิตหรือทุพพลภาพ
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 2. Optional Insurance Selection */}
+                            <div className="space-y-4">
+                                <Label className="text-xs font-bold text-muted-foreground uppercase">เลือกประกันเพิ่มเติม (สมัครใจ)</Label>
+
+                                {/* Car Insurance Options */}
+                                {selectedProduct === 'car' && (
+                                    <div className="space-y-3">
+                                        <p className="text-sm font-semibold">ประกันภัยรถยนต์</p>
+                                        <RadioGroup
+                                            value={selectedInsurances.find(id => INSURANCE_OPTIONS.find(opt => opt.id === id)?.type === 'car') || ""}
+                                            onValueChange={(val: string) => {
+                                                // Remove existing car insurance if checking a new one
+                                                const others = selectedInsurances.filter(id => INSURANCE_OPTIONS.find(opt => opt.id === id)?.type !== 'car');
+                                                if (val) setSelectedInsurances([...others, val]);
+                                                else setSelectedInsurances(others);
+                                            }}
+                                            className="grid gap-3"
+                                        >
+                                            {INSURANCE_OPTIONS.filter(opt => opt.type === 'car').map(option => (
+                                                <div key={option.id} className="flex items-center space-x-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => {
+                                                    // Toggle logic for radio style div click
+                                                    const current = selectedInsurances.find(id => INSURANCE_OPTIONS.find(opt => opt.id === id)?.type === 'car');
+                                                    if (current === option.id) {
+                                                        // Deselect if clicking same
+                                                        setSelectedInsurances(selectedInsurances.filter(id => id !== option.id));
+                                                    } else {
+                                                        // Select new
+                                                        const others = selectedInsurances.filter(id => INSURANCE_OPTIONS.find(opt => opt.id === id)?.type !== 'car');
+                                                        setSelectedInsurances([...others, option.id]);
+                                                    }
+                                                }}>
+                                                    <RadioGroupItem value={option.id} id={option.id} className="border-chaiyo-blue text-chaiyo-blue pointer-events-none" />
+                                                    <div className="flex-1 flex justify-between items-center pointer-events-none">
+                                                        <Label htmlFor={option.id} className="cursor-pointer font-medium pointer-events-none">{option.label}</Label>
+                                                        <span className="text-sm font-bold text-chaiyo-blue pointer-events-none">+{option.price.toLocaleString()}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </RadioGroup>
+                                    </div>
+                                )}
+
+                                {/* PA Insurance Option */}
+                                <div className="space-y-3">
+                                    <p className="text-sm font-semibold">ประกันอุบัติเหตุ (PA)</p>
+                                    {INSURANCE_OPTIONS.filter(opt => opt.type === 'pa').map(option => (
+                                        <div
+                                            key={option.id}
+                                            className="flex items-center space-x-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                                            onClick={() => {
+                                                if (selectedInsurances.includes(option.id)) {
+                                                    setSelectedInsurances(selectedInsurances.filter(id => id !== option.id));
+                                                } else {
+                                                    setSelectedInsurances([...selectedInsurances, option.id]);
+                                                }
+                                            }}
+                                        >
+                                            <Checkbox
+                                                id={option.id}
+                                                checked={selectedInsurances.includes(option.id)}
+                                                // Removed onCheckedChange to avoid double-toggle or event bubbling issues since container handles it
+                                                className="border-chaiyo-blue data-[state=checked]:bg-chaiyo-blue data-[state=checked]:text-white pointer-events-none"
+                                            />
+                                            <div className="flex-1 flex justify-between items-center">
+                                                <Label htmlFor={option.id} className="cursor-pointer font-medium pointer-events-none">{option.label}</Label>
+                                                <span className="text-sm font-bold text-chaiyo-blue">+{option.price.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Payment Method for Insurance */}
+                                {selectedInsurances.length > 0 && (
+                                    <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Label className="text-sm font-bold">วิธีชำระค่าเบี้ยประกัน</Label>
+                                            <span className="text-sm font-bold text-chaiyo-blue">฿{calculateTotalInsurancePremium().toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex p-1 bg-gray-100/50 border border-gray-200 rounded-xl">
+                                            <button
+                                                onClick={() => setIncludeInsuranceInLoan(true)}
+                                                className={cn(
+                                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                                    includeInsuranceInLoan
+                                                        ? "bg-white shadow-sm text-chaiyo-blue border border-gray-100"
+                                                        : "text-gray-400 hover:text-gray-600"
+                                                )}
+                                            >
+                                                รวมในยอดจัดฯ
+                                            </button>
+                                            <button
+                                                onClick={() => setIncludeInsuranceInLoan(false)}
+                                                className={cn(
+                                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                                    !includeInsuranceInLoan
+                                                        ? "bg-white shadow-sm text-chaiyo-blue border border-gray-100"
+                                                        : "text-gray-400 hover:text-gray-600"
+                                                )}
+                                            >
+                                                ชำระเงินสด
+                                            </button>
+                                        </div>
+                                        {includeInsuranceInLoan && (
+                                            <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                                                *ค่าเบี้ยประกันจะถูกรวมในยอดจัดสินเชื่อ และคิดดอกเบี้ยตามอัตราปกติ
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -394,23 +572,23 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                                 <div>
                                     <p className="text-sm font-bold text-white">เปรียบเทียบระยะเวลาผ่อน</p>
                                     <p className="text-[10px] text-white/50">
-                                        {paymentMethod === 'bullet' ? '(ชำระครั้งเดียว)' : '(บาท/เดือน)'}
+                                        {localPaymentMethod === 'bullet' ? '(ชำระครั้งเดียว)' : '(บาท/เดือน)'}
                                     </p>
                                 </div>
                             </div>
 
                             <div className="text-right">
                                 <p className="text-white/70 text-xs font-medium mb-1">
-                                    {paymentMethod === 'bullet' ? 'ยอดชำระเมื่อครบกำหนด' : `ค่างวดต่อเดือน (${months} งวด)`}
+                                    {localPaymentMethod === 'bullet' ? 'ยอดชำระเมื่อครบกำหนด' : `ค่างวดต่อเดือน (${months} งวด)`}
                                 </p>
                                 <h3 className="text-4xl font-bold tracking-tight text-white">
-                                    ฿{paymentMethod === 'bullet' ? (amount + totalInterest).toLocaleString() : Math.ceil(monthlyPayment).toLocaleString()}
+                                    ฿{localPaymentMethod === 'bullet' ? (amount + (includeInsuranceInLoan ? calculateTotalInsurancePremium() : 0) + totalInterest).toLocaleString() : Math.ceil(monthlyPayment).toLocaleString()}
                                 </h3>
                             </div>
                         </div>
 
                         {/* 2. Chart Comparison */}
-                        <div className={cn("w-full", paymentMethod === 'bullet' && "opacity-50 pointer-events-none grayscale")}>
+                        <div className={cn("w-full", localPaymentMethod === 'bullet' && "opacity-50 pointer-events-none grayscale")}>
                             {/* Hide Chart for Bullet because it's irrelevant (only 1 option usually, or just confusing to compare monthly bars) 
                                 Actually, keep it but maybe disable interaction or show it visualizing total cost? 
                                 For simplicity/time, just greying it out or hiding it is safest. 
@@ -418,7 +596,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                             */}
 
                             <div className="flex justify-between items-end h-[220px] gap-2 px-1 relative">
-                                {paymentMethod === 'bullet' && (
+                                {localPaymentMethod === 'bullet' && (
                                     <div className="absolute inset-0 z-10 flex items-center justify-center">
                                         <div className="bg-black/40 backdrop-blur-sm px-4 py-2 rounded-lg text-white text-xs font-bold">
                                             การผ่อนชำระแบบครั้งเดียว (ไม่แสดงกราฟเปรียบเทียบรายเดือน)
@@ -487,17 +665,30 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                         <div className="w-full space-y-4 pt-8">
                             <div className="bg-white/5 p-5 rounded-2xl border border-white/10 space-y-3">
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-white/60">วงเงินกู้ (เงินต้น):</span>
+                                    <span className="text-white/60">วงเงินที่ต้องการ:</span>
                                     <span className="font-bold text-white">฿{amount.toLocaleString()}</span>
                                 </div>
+                                {includeInsuranceInLoan && calculateTotalInsurancePremium() > 0 && (
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-white/60">ค่าเบี้ยประกัน (รวมในยอดจัด):</span>
+                                        <span className="font-bold text-white">฿{calculateTotalInsurancePremium().toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-white/60">ยอดจัดสินเชื่อสุทธิ:</span>
+                                    <span className="font-bold text-white">฿{(amount + (includeInsuranceInLoan ? calculateTotalInsurancePremium() : 0)).toLocaleString()}</span>
+                                </div>
+
+                                <div className="h-[1px] bg-white/10 my-1"></div>
+
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-white/60">ดอกเบี้ยรวม:</span>
                                     <span className="font-bold text-chaiyo-gold">฿{Math.ceil(totalInterest).toLocaleString()}</span>
                                 </div>
-                                <div className="h-[1px] bg-white/10 my-1"></div>
+
                                 <div className="flex justify-between items-center">
                                     <span className="text-lg font-bold text-white/80">ยอดชำระทั้งหมด:</span>
-                                    <span className="text-2xl font-bold text-white">฿{(amount + totalInterest).toLocaleString()}</span>
+                                    <span className="text-2xl font-bold text-white">฿{(amount + (includeInsuranceInLoan ? calculateTotalInsurancePremium() : 0) + totalInterest).toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
