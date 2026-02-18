@@ -11,6 +11,14 @@ import {
     DialogDescription
 } from "@/components/ui/Dialog";
 import { Label } from "@/components/ui/Label";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const branchInfo = {
     code: '108',
@@ -34,13 +42,44 @@ export function DashboardHeader() {
             </div>
 
             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="text-muted hover:bg-white hover:shadow-sm h-9 w-9">
-                    <Bell className="w-4.5 h-4.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-muted hover:bg-white hover:shadow-sm h-9 w-9">
-                    <HelpCircle className="w-4.5 h-4.5" />
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-muted hover:bg-white hover:shadow-sm h-9 w-9 relative group">
+                            <HelpCircle className="w-4.5 h-4.5 group-hover:text-foreground transition-colors" />
+                            <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80 border-border-subtle shadow-lg bg-white/95 backdrop-blur-sm">
+                        <DropdownMenuLabel className="font-semibold text-foreground">ประกาศ</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-gray-100" />
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer focus:bg-gray-50">
+                                <span className="font-medium text-sm text-chaiyo-blue">ประกาศสำคัญจากสำนักงานใหญ่</span>
+                                <span className="text-xs text-muted line-clamp-2">
+                                    แจ้งเปลี่ยนแปลงนโยบายการอนุมัติสินเชื่อและปรับอัตราดอกเบี้ย มีผล 1 มี.ค. 67
+                                </span>
+                                <span className="text-[10px] text-gray-400 mt-1">วันนี้, 09:00</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-gray-100" />
+                            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer focus:bg-gray-50 opacity-70">
+                                <span className="font-medium text-sm text-foreground">แจ้งปิดปรับปรุงระบบ</span>
+                                <span className="text-xs text-muted line-clamp-2">
+                                    ระบบจะปิดปรับปรุงชั่วคราวในวันที่ 20 ก.พ. เวลา 02:00 - 04:00 น.
+                                </span>
+                                <span className="text-[10px] text-gray-400 mt-1">เมื่อวาน</span>
+                            </DropdownMenuItem>
+                        </div>
+                        <DropdownMenuSeparator className="bg-gray-100" />
+                        <div className="p-2 text-center">
+                            <Button variant="link" className="text-xs text-muted h-auto p-0 hover:text-chaiyo-blue">
+                                ดูประกาศทั้งหมด
+                            </Button>
+                        </div>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
                 <div className="h-4 w-[1px] bg-border-color mx-2"></div>
+
                 <div className="flex items-center gap-3 pl-2">
                     <Dialog>
                         <DialogTrigger asChild>
