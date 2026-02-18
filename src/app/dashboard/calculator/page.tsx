@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { QuotationPrint } from "@/components/calculator/QuotationPrint";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft, Printer, FileText, PiggyBank, Briefcase, Car, Camera, Check, Sparkles, Bike, Truck, Tractor, Map, Upload, Eye, X, ChevronRight, Plus, CreditCard, Gift, Shield, Percent, ArrowRight, Star, User, Banknote } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 
 const CAR_BRANDS = [
     { value: "toyota", label: "Toyota" },
@@ -59,6 +60,10 @@ const YEARS = Array.from({ length: 30 }, (_, i) => {
 
 export default function CalculatorPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const initialStep = searchParams.get('step') ? parseInt(searchParams.get('step')!) : 1;
+
+    const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'balloon'>('monthly');
     // Local state for "Sales Talk"
     const [formData, setFormData] = useState<any>({
         collateralType: 'car',
@@ -74,14 +79,50 @@ export default function CalculatorPage() {
     // Step 3: Info
     // Step 4: Calculate (Result)
     // Step 4: Calculate (Result)
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState(initialStep);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    // Load state from localStorage on mount
+    useEffect(() => {
+        const savedState = localStorage.getItem('calculatorState');
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                if (parsed.formData) setFormData(parsed.formData);
+                // If URL param step exists, use it has priority (for the back navigation scenario)
+                // Otherwise use saved step if available, or default to 1.
+                // Wait, if initialStep is from URL, currentStep is already initialized with it.
+                // If no URL param, initialStep is 1.
+                // We should only overwrite currentStep from storage if URL param is NOT present.
+                if (!searchParams.get('step') && parsed.currentStep) {
+                    setCurrentStep(parsed.currentStep);
+                }
+            } catch (e) {
+                console.error("Failed to load calculator state", e);
+            }
+        }
+    }, [searchParams]);
+
+    // Save state to localStorage
+    useEffect(() => {
+        localStorage.setItem('calculatorState', JSON.stringify({
+            formData,
+            currentStep
+        }));
+    }, [formData, currentStep]);
 
     // Lightbox State
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-    const uploadedDocs = [
+    const [uploadedDocs, setUploadedDocs] = useState<string[]>([
         "https://placehold.co/600x800/e2e8f0/1e293b?text=Registration+Book+Page+1",
-    ];
+    ]);
+
+    const handleAddPhoto = () => {
+        setUploadedDocs(prev => [
+            ...prev,
+            `https://placehold.co/600x800/e2e8f0/1e293b?text=New+Photo+${prev.length + 1}`
+        ]);
+    };
 
     // Enhanced Product List for UI Design
     const PRODUCTS = [
@@ -132,28 +173,11 @@ export default function CalculatorPage() {
     };
 
     const handlePrint = () => {
-        const date = new Date();
-        const yyyymmdd = date.toISOString().slice(0, 10).replace(/-/g, '');
-
-        // Mobile/Local Counter Logic
-        const stored = localStorage.getItem('dailyPrintCounter');
-        let counter = 1;
-
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed.date === yyyymmdd) {
-                counter = parsed.count + 1;
-            }
+        let pdfPath = "/salesheets/Sale Sheet_รถ บุคคลทั่วไป V8.0 2.pdf";
+        if (formData.collateralType === 'land') {
+            pdfPath = "/salesheets/Sales Sheet_ที่ดิน_บุคคลทั่วไปV7_ปกค231.2568.pdf";
         }
-
-        // Save new counter
-        localStorage.setItem('dailyPrintCounter', JSON.stringify({ date: yyyymmdd, count: counter }));
-
-        // Format ID as 3 digits (e.g., 001)
-        const id = counter.toString().padStart(3, '0');
-
-        document.title = `${yyyymmdd}_${id}_quotation`;
-        window.print();
+        window.open(pdfPath, '_blank');
     };
 
     const handleCreateApplication = () => {
@@ -195,11 +219,14 @@ export default function CalculatorPage() {
                 <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => router.push("/dashboard")}
+                    onClick={() => {
+                        localStorage.removeItem('calculatorState');
+                        router.push("/dashboard/applications");
+                    }}
                     className="text-muted hover:text-foreground -ml-2"
                 >
                     <ChevronLeft className="w-4 h-4 mr-1" />
-                    กลับไปที่แผงควบคุม
+                    กลับไปหน้ารายการใบคำขอ
                 </Button>
             </div>
 
@@ -436,7 +463,10 @@ export default function CalculatorPage() {
                                         ))}
 
                                         {/* Add More Placeholder */}
-                                        <div className="aspect-[3/4] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-chaiyo-blue hover:text-chaiyo-blue transition-all group">
+                                        <div
+                                            onClick={handleAddPhoto}
+                                            className="aspect-[3/4] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-chaiyo-blue hover:text-chaiyo-blue transition-all group"
+                                        >
                                             <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center mb-2 transition-colors">
                                                 <Plus className="w-4 h-4" />
                                             </div>
@@ -452,14 +482,17 @@ export default function CalculatorPage() {
                                     สามารถคลิกที่รูปภาพเพื่อดูขนาดใหญ่ หรือเพิ่มรูปภาพเพิ่มเติมได้
                                 </div>
 
-                                <div
-                                    onClick={() => {
-                                        setFormData({ ...formData, collateralType: 'car' }); // Reset minimal
-                                        setCurrentStep(1);
-                                    }}
-                                    className="text-red-500 text-sm cursor-pointer hover:underline text-center lg:text-left mt-4 inline-block"
-                                >
-                                    ล้างข้อมูล / เริ่มใหม่ทั้งหมด
+                                <div className="mt-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setFormData({ ...formData, collateralType: 'car' }); // Reset minimal
+                                            setCurrentStep(1);
+                                        }}
+                                        className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    >
+                                        ล้างข้อมูล / เริ่มใหม่ทั้งหมด
+                                    </Button>
                                 </div>
                             </div>
 
@@ -623,28 +656,12 @@ export default function CalculatorPage() {
                                                 {Number(formData.appraisalPrice || 0).toLocaleString()} บาท
                                             </span>
                                         </div>
-
-                                        <div className="flex justify-between items-center text-sm text-green-600">
-                                            <span className="font-medium">วงเงินจาก LTV ({formData.collateralType === 'land' ? '70%' : '90%'})</span>
-                                            <span className="font-bold text-lg">
-                                                + {Math.floor((formData.appraisalPrice || 0) * (formData.collateralType === 'land' ? 0.7 : 0.9)).toLocaleString()} บาท
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
-                                        <span className="text-chaiyo-blue font-bold text-lg">วงเงินสุทธิ (Net Limit)</span>
-                                        <span className="text-3xl font-bold text-chaiyo-blue">
-                                            {Math.max(0, Math.floor((formData.appraisalPrice || 0) * (formData.collateralType === 'land' ? 0.7 : 0.9)) - (Number(formData.existingDebt) || 0)).toLocaleString()} บาท
-                                        </span>
                                     </div>
                                 </div>
 
                                 {/* Action Buttons */}
                                 <div className="flex justify-end pt-4 gap-4">
-                                    <Button variant="ghost" onClick={prevStep} className="text-gray-500 h-12">
-                                        <ChevronLeft className="w-4 h-4 mr-2" /> ย้อนกลับ
-                                    </Button>
+
                                     <Button onClick={nextStep} className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white min-w-[150px] h-12 shadow-lg shadow-chaiyo-blue/20">
                                         ถัดไป <ChevronLeft className="w-5 h-5 rotate-180 ml-2" />
                                     </Button>
@@ -719,6 +736,7 @@ export default function CalculatorPage() {
                         </div>
 
                         {/* Divider */}
+                        {/* Income & Expense Section Hidden for Sales Talk Flow
                         <div className="border-t border-gray-100 pt-4">
                             <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
                                 <Banknote className="w-4 h-4 text-emerald-600" />
@@ -726,7 +744,6 @@ export default function CalculatorPage() {
                             </Label>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Monthly Income */}
                                 <div className="space-y-2">
                                     <Label className="text-sm text-gray-600">รายได้ต่อเดือน (บาท)</Label>
                                     <Input
@@ -743,7 +760,6 @@ export default function CalculatorPage() {
                                     />
                                 </div>
 
-                                {/* Other Income */}
                                 <div className="space-y-2">
                                     <Label className="text-sm text-gray-600">รายได้อื่นๆ ต่อเดือน (บาท)</Label>
                                     <Input
@@ -762,7 +778,6 @@ export default function CalculatorPage() {
                             </div>
                         </div>
 
-                        {/* Monthly Expense */}
                         <div className="space-y-2">
                             <Label className="text-sm text-gray-600">ภาระหนี้สินต่อเดือน (บาท)</Label>
                             <Input
@@ -779,6 +794,7 @@ export default function CalculatorPage() {
                             />
                             <p className="text-xs text-gray-400">รวมค่างวดรถ, บ้าน, บัตรเครดิต, สินเชื่อส่วนบุคคล ฯลฯ</p>
                         </div>
+                        */}
                     </div>
 
                     {/* Action Buttons */}
@@ -807,11 +823,11 @@ export default function CalculatorPage() {
                 // Determine loan product name
                 const loanProduct = (() => {
                     switch (formData.collateralType) {
-                        case 'land': return { name: 'สินเชื่อโฉนดที่ดิน', tagline: 'Chaiyo Land Loan' };
-                        case 'moto': return { name: 'สินเชื่อรถจักรยานยนต์', tagline: 'Chaiyo Moto Loan' };
-                        case 'truck': return { name: 'สินเชื่อรถบรรทุก', tagline: 'Chaiyo Truck Loan' };
-                        case 'agri': return { name: 'สินเชื่อรถเพื่อการเกษตร', tagline: 'Chaiyo Agri Loan' };
-                        default: return { name: 'สินเชื่อรถยนต์', tagline: 'Chaiyo Auto Loan' };
+                        case 'land': return { name: 'สินเชื่อโฉนดที่ดิน', tagline: 'สินเชื่อโฉนดที่ดินไชโย' };
+                        case 'moto': return { name: 'สินเชื่อรถจักรยานยนต์', tagline: 'สินเชื่อรถจักรยานยนต์ไชโย' };
+                        case 'truck': return { name: 'สินเชื่อรถบรรทุก', tagline: 'สินเชื่อรถบรรทุกไชโย' };
+                        case 'agri': return { name: 'สินเชื่อรถเพื่อการเกษตร', tagline: 'สินเชื่อรถเพื่อการเกษตรไชโย' };
+                        default: return { name: 'สินเชื่อรถยนต์', tagline: 'สินเชื่อรถยนต์ไชโย' };
                     }
                 })();
 
@@ -828,27 +844,92 @@ export default function CalculatorPage() {
 
                 const exampleMonths = [12, 24, 36, 48, 60];
 
-                // Document checklist per collateral type
-                const documentChecklist: { label: string; items: string[] } = (() => {
+                // Document checklist per collateral type & plan
+                type SectionGroup = { title: string; items: string[] };
+                const documentChecklist: { label: string; items: (string | SectionGroup)[] } = (() => {
                     const common = [
                         'บัตรประชาชนตัวจริง (ผู้กู้)',
                         'ทะเบียนบ้าน (สำเนา)',
                         'รูปถ่ายหน้าตรงคู่บัตรประชาชน',
                     ];
+
+                    const isVehicle = ['car', 'moto', 'truck'].includes(formData.collateralType || '');
+
+                    if (isVehicle) {
+                        return {
+                            label: `เอกสารสำหรับ${loanProduct.name} (${selectedPlan === 'monthly' ? 'ผ่อนรายเดือน' : 'One-Time'})`,
+                            items: [
+                                {
+                                    title: "ยืนยันตัวตน",
+                                    items: [
+                                        "สำเนาบัตรประชาชน ผู้กู้",
+                                        "สำเนาบัตรประชาชน ผู้ค้ำประกัน (ถ้ามี)",
+                                        "ใบเปลี่ยนชื่อ-นามสกุล ผู้กู้ (ถ้ามี)"
+                                    ]
+                                },
+                                {
+                                    title: "ตรวจสอบหลักประกัน / รูปถ่ายหลักประกัน (Time Stamp)",
+                                    items: [
+                                        "รูปหลังรถเห็นป้ายทะเบียน พร้อม เซลฟี่-ถือบัตรพนักงาน",
+                                        "รูปหน้ารถ เห็นป้ายทะเบียน / เปิดกระโปงหน้า + เห็นเครื่องยนต์",
+                                        "รูปหน้ารถ - เฉียงซ้าย45องศา",
+                                        "รูปหน้ารถ - เฉียงขวา45องศา",
+                                        "รูปหลังรถ - เฉียงซ้าย45องศา",
+                                        "รูปหลังรถ - เฉียงขวา45องศา",
+                                        "รูปภายในรถ + เห็นคอนโซล + เกียร์รถ",
+                                        "รูปเลขตัวถัง/คัสซี",
+                                        formData.collateralType === 'truck' ? "รูปเกียร์ 4x4 / 4WD (ถ้ามี)_สำหรับรถกระบะที่ขับเคลื่อน 4ล้อ" : null
+                                    ].filter(Boolean) as string[]
+                                },
+                                {
+                                    title: "หลักประกัน / เล่มทะเบียน เอกสารตรวจหลักประกัน (Time Stamp)",
+                                    items: [
+                                        "รูปถ่ายเล่มทะเบียน หน้าปก",
+                                        "รูปถ่ายเล่มทะเบียน หน้ารายการจดทะเบียน",
+                                        "รูปถ่ายเล่มทะเบียน หน้ากลางเล่ม",
+                                        "รูปถ่ายเล่มทะเบียน หน้ารายการภาษี",
+                                        "รูปถ่ายเล่มทะเบียน หน้าบันทึกเจ้าหน้าที่",
+                                        "ผลเช็คต้น (ตามเงื่อนไข)",
+                                        "หน้าตรวจสอบการชำระภาษีจากเว็ปกรมการขนส่งทางบก"
+                                    ]
+                                },
+                                {
+                                    title: "พิจารณาอนุมัติสินเชื่อ",
+                                    items: [
+                                        "สำเนาสมุดคู่ฝากธนาคารเพื่อใช้ในการโอนเงิน (บัญชีของลูกค้าเท่านั้น)",
+                                        "ใบประเมินความสามารถลูกค้า (ผ่าน Branch App)",
+                                        "แบบฟอร์มตรวจที่พักอาศัย (ถ้ามี)",
+                                        "อีเมลผล ABC (ถ้ามี)"
+                                    ]
+                                },
+                                {
+                                    title: "รายได้",
+                                    items: [
+                                        "แบบฟอร์มประเมินรายได้ ผู้กู้",
+                                        "แบบฟอร์มประเมินรายได้ ผู้ค้ำ (ถ้ามี)",
+                                        "เอกสารรายได้ ของผู้กู้ (สลิปเงินเดือน, Bank Statement หรือ เอกสารอื่นๆ ที่แสดงให้เห็นรายได้ชัดเจน เช่น ใบประทวน, ใบเสร็จซื้อขายพืชผลทางการเกษตร, สัญญาว่าจ้าง เป็นต้น)",
+                                        "เอกสารรายได้ ของผู้ค้ำ (ถ้ามี) (สลิปเงินเดือน, Bank Statement หรือ เอกสารอื่นๆ ที่แสดงให้เห็นรายได้ชัดเจน เช่น ใบประทวน, ใบเสร็จซื้อขายพืชผลทางการเกษตร, สัญญาว่าจ้าง เป็นต้น)",
+                                        "แบบฟอร์มตรวจสอบภาคสนาม และข้อมูลบุคคลอ้างอิง (กรณีไม่มีเอกสารแสดงรายได้)"
+                                    ]
+                                },
+                                {
+                                    title: "เอกสารยืนยันการประกอบอาชีพ",
+                                    items: [
+                                        "รูปถ่ายกิจการ ของผู้กู้ (Time Stamp)",
+                                        "รูปถ่ายกิจการ ของผู้ค้ำ (ถ้ามี) (Time Stamp)"
+                                    ]
+                                },
+                                {
+                                    title: "เอกสารอนุโลม",
+                                    items: [
+                                        "อนุโลม ผู้กู้ทำหรือไม่ทำประกัน ( PA Safty Loan) / ประกันภัยรถยนต์"
+                                    ]
+                                }
+                            ]
+                        };
+                    }
+
                     switch (formData.collateralType) {
-                        case 'car':
-                        case 'moto':
-                        case 'truck':
-                            return {
-                                label: 'เอกสารสำหรับสินเชื่อรถ',
-                                items: [
-                                    ...common,
-                                    'เล่มทะเบียนรถ (ตัวจริง)',
-                                    'กุญแจรถ สำรอง (ถ้ามี)',
-                                    'ประกันภัย พ.ร.บ. (ตัวจริง)',
-                                    'สัญญาซื้อขาย / ใบเสร็จ (ถ้ามี)',
-                                ]
-                            };
                         case 'agri':
                             return {
                                 label: 'เอกสารสำหรับสินเชื่อเครื่องจักรเกษตร',
@@ -876,206 +957,285 @@ export default function CalculatorPage() {
                 })();
 
                 return (
-                    <div className="max-w-4xl mx-auto print:hidden space-y-8 animate-in slide-in-from-right-8 duration-300 pb-20">
+                    <div className="max-w-6xl mx-auto print:hidden space-y-8 animate-in slide-in-from-right-8 duration-300 pb-20">
                         {/* Header */}
                         <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="w-6 h-6 text-chaiyo-blue" />
-                                <h2 className="text-2xl font-bold text-gray-800">ผลิตภัณฑ์ที่แนะนำ</h2>
-                            </div>
-                            <p className="text-gray-500 pl-8">จากข้อมูลหลักประกันที่ได้รับ ระบบขอแนะนำผลิตภัณฑ์ที่เหมาะสม</p>
+
+                            <h2 className="text-2xl font-bold text-gray-800">ผลิตภัณฑ์ที่แนะนำ</h2>
+                            <p className="text-gray-500">เลือกผลิตภัณฑ์ที่เหมาะสมกับลูกค้าเพื่อดูรายการเอกสารที่ต้องใช้</p>
                         </div>
 
-                        {/* Main Loan Product Card */}
-                        <div className="relative overflow-hidden bg-gradient-to-br from-chaiyo-blue via-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-2xl shadow-chaiyo-blue/30">
-                            <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/5 rounded-full" />
-                            <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/5 rounded-full" />
+                        <Tabs
+                            defaultValue="monthly"
+                            value={selectedPlan}
+                            onValueChange={(val) => setSelectedPlan(val as 'monthly' | 'balloon')}
+                            className="w-full"
+                        >
+                            <TabsList className="grid w-full grid-cols-2 mb-8 h-14 bg-gray-100 p-1.5 rounded-2xl">
+                                <TabsTrigger
+                                    value="monthly"
+                                    className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-chaiyo-blue data-[state=active]:shadow-sm text-gray-500 font-bold h-full text-base transition-all"
+                                >
+                                    ผ่อนชำระรายเดือน
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="balloon"
+                                    className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-sm text-gray-500 font-bold h-full text-base transition-all"
+                                >
+                                    โปะงวดท้าย (One-Time)
+                                </TabsTrigger>
+                            </TabsList>
 
-                            <div className="relative z-10">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                {/* Column 1: Product Card */}
+                                <div>
+                                    <TabsContent value="monthly" className="mt-0 animate-in fade-in zoom-in-95 duration-300">
+                                        {/* Option 1: Monthly Installment */}
+                                        <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-lg shadow-blue-100 relative group w-full">
+                                            {/* Header - Product & Key Figures */}
+                                            <div className="p-6 text-white relative overflow-hidden transition-colors bg-gradient-to-r from-chaiyo-blue to-blue-600">
+                                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <p className="text-white/80 text-xs font-bold uppercase tracking-wider">{loanProduct.tagline}</p>
+                                                            <div className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10">
+                                                                {selectedProduct?.label}
+                                                            </div>
+                                                        </div>
+                                                        <h3 className="text-2xl font-bold">ผ่อนชำระรายเดือน</h3>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-white/80 text-xs">วงเงินสูงสุด</p>
+                                                        <div className="flex items-baseline gap-1 justify-end">
+                                                            <span className="text-3xl font-bold">{maxLoan.toLocaleString()}</span>
+                                                            <span className="text-sm">บาท</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-
-                                <div className="flex items-start justify-between gap-6">
-                                    <div className="space-y-4">
-                                        <div>
-                                            <p className="text-blue-200 text-sm font-medium uppercase tracking-wider">{loanProduct.tagline}</p>
-                                            <h3 className="text-3xl font-bold mt-1">{loanProduct.name}</h3>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 flex-wrap">
-                                            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3">
-                                                <TypeIcon className="w-6 h-6" />
-                                                <div>
-                                                    <p className="text-sm font-medium">{selectedProduct?.label}</p>
-                                                    <p className="text-xs text-blue-200">{formData.brand ? `${formData.brand} ${formData.model || ''} ${formData.year || ''}` : 'หลักประกัน'}</p>
+                                                {/* Key Stats Bar */}
+                                                <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/10">
+                                                    <div>
+                                                        <p className="text-white/70 text-xs">ดอกเบี้ย</p>
+                                                        <p className="font-bold">23.99% <span className="text-[10px] font-normal opacity-75">ต่อปี</span></p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white/70 text-xs">ราคาประเมิน</p>
+                                                        <p className="font-bold">{Number(formData.appraisalPrice || 0).toLocaleString()}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white/70 text-xs">LTV</p>
+                                                        <p className="font-bold">{formData.collateralType === 'land' ? '70%' : '90%'}</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3">
-                                                <p className="text-xs text-blue-200">ราคาประเมิน</p>
-                                                <p className="text-sm font-bold">{Number(formData.appraisalPrice || 0).toLocaleString()} บาท</p>
-                                            </div>
-                                            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3">
-                                                <p className="text-xs text-blue-200">ดอกเบี้ย</p>
-                                                <p className="text-sm font-bold">23.99% <span className="text-xs text-blue-200">ต่อปี</span></p>
-                                            </div>
-                                            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3">
-                                                <p className="text-xs text-blue-200">LTV</p>
-                                                <p className="text-sm font-bold">{formData.collateralType === 'land' ? '70%' : '90%'}</p>
+
+                                            {/* Payment Method Details */}
+                                            <div className="p-6 bg-white">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors bg-blue-50">
+                                                        <PiggyBank className="w-5 h-5 text-blue-600" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-lg text-gray-800">ชำระแบบผ่อนรายเดือน</h4>
+                                                        <p className="text-xs text-gray-500">ผ่อนเท่ากันทุกงวด นานสูงสุด 60 เดือน</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                                    <p className="text-xs font-medium text-gray-500 mb-3">ตัวอย่างค่างวด (Estimated Installment)</p>
+                                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                                        {exampleMonths.map((m) => (
+                                                            <div key={m} className="bg-white p-3 rounded-lg border border-gray-200 text-center shadow-sm">
+                                                                <div className="text-xs text-gray-400 mb-1">{m} เดือน</div>
+                                                                <div className="font-bold text-[13px] text-chaiyo-blue">{calcMonthly(maxLoan, m).toLocaleString()}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Bundle Deal Inside Monthly Card */}
+                                                <div className="mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
+
+                                                    <div className="flex items-start gap-4 relative z-10">
+                                                        <div className="shrink-0">
+                                                            <img
+                                                                src="/images/chaiyo-card.svg"
+                                                                alt="Chaiyo Card"
+                                                                className="w-28 h-auto shadow-sm rounded-lg"
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <h5 className="font-bold text-gray-800 text-sm">รับฟรี! บัตรเงินไชโย</h5>
+                                                                <span className="bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                                                                    <Gift className="w-2.5 h-2.5" /> Bundle
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-gray-600 leading-relaxed">
+                                                                วงเงินหมุนเวียนพร้อมใช้ จ่ายเงินต้นไปแล้วเท่าไร กดใช้เพิ่มได้เท่านั้น ไม่มีค่าธรรมเนียม
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action Buttons for Monthly Plan */}
+                                                <div className="mt-6 grid grid-cols-2 gap-3">
+                                                    <Button
+                                                        onClick={handleCreateApplication}
+                                                        className="w-full h-12 gap-2 bg-chaiyo-blue hover:bg-chaiyo-blue/90 shadow-lg shadow-chaiyo-blue/20 text-white rounded-xl"
+                                                    >
+                                                        สร้างใบคำขอสินเชื่อ
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handlePrint}
+                                                        variant="outline"
+                                                        className="w-full h-12 gap-2 border-chaiyo-blue/20 text-chaiyo-blue hover:bg-blue-50 hover:border-chaiyo-blue/40 rounded-xl"
+                                                    >
+                                                        <Printer className="w-4 h-4" /> พิมพ์ Salesheets
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </TabsContent>
 
-                                    {/* Max Loan Amount */}
-                                    <div className="text-right shrink-0">
-                                        <p className="text-blue-200 text-sm">วงเงินสูงสุดที่จะได้รับ</p>
-                                        <p className="text-4xl font-bold mt-1">{maxLoan.toLocaleString()}</p>
-                                        <p className="text-blue-200 text-sm">บาท</p>
-                                    </div>
+                                    <TabsContent value="balloon" className="mt-0 animate-in fade-in zoom-in-95 duration-300">
+                                        {/* Option 2: Balloon Payment */}
+                                        <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-lg shadow-amber-100 relative group w-full">
+                                            {/* Header - Product & Key Figures (Amber Variant) */}
+                                            <div className="p-6 text-white relative overflow-hidden transition-colors bg-gradient-to-r from-amber-500 to-orange-600">
+                                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <p className="text-white/80 text-xs font-bold uppercase tracking-wider">{loanProduct.tagline}</p>
+                                                            <div className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10">
+                                                                {selectedProduct?.label}
+                                                            </div>
+                                                        </div>
+                                                        <h3 className="text-2xl font-bold">โปะงวดท้าย (One-Time)</h3>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-white/80 text-xs">วงเงินสูงสุด</p>
+                                                        <div className="flex items-baseline gap-1 justify-end">
+                                                            <span className="text-3xl font-bold">{maxLoan.toLocaleString()}</span>
+                                                            <span className="text-sm">บาท</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Key Stats Bar */}
+                                                <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/10">
+                                                    <div>
+                                                        <p className="text-white/70 text-xs">ดอกเบี้ย</p>
+                                                        <p className="font-bold">23.99% <span className="text-[10px] font-normal opacity-75">ต่อปี</span></p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white/70 text-xs">ราคาประเมิน</p>
+                                                        <p className="font-bold">{Number(formData.appraisalPrice || 0).toLocaleString()}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white/70 text-xs">LTV</p>
+                                                        <p className="font-bold">{formData.collateralType === 'land' ? '70%' : '90%'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Payment Method Details */}
+                                            <div className="p-6 bg-white">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors bg-amber-50">
+                                                        <Star className="w-5 h-5 text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-lg text-gray-800">โปะงวดท้าย (One-Time)</h4>
+                                                        <p className="text-xs text-gray-500">ผ่อนสบาย จ่ายเฉพาะดอกเบี้ย แล้วปิดงวดยอดสุดท้าย</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 space-y-3">
+                                                    <div className="flex justify-between items-center text-sm p-2 bg-white rounded-lg border border-amber-100 shadow-sm">
+                                                        <span className="text-gray-600">ผ่อนชำระต่อเดือน (เฉพาะดอกเบี้ย)</span>
+                                                        <span className="font-bold text-amber-700 text-lg">{calcBalloonMonthly(maxLoan).toLocaleString()} บาท</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm px-2">
+                                                        <span className="text-gray-500 text-xs">เงินต้นคงเหลือ (ชำระงวดสุดท้าย)</span>
+                                                        <span className="font-semibold text-gray-700">{maxLoan.toLocaleString()} บาท</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action Buttons for Balloon Plan */}
+                                                <div className="mt-6 grid grid-cols-2 gap-3">
+                                                    <Button
+                                                        onClick={handleCreateApplication}
+                                                        className="w-full h-12 gap-2 bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 text-white rounded-xl"
+                                                    >
+                                                        สร้างใบคำขอสินเชื่อ
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handlePrint}
+                                                        variant="outline"
+                                                        className="w-full h-12 gap-2 border-amber-500/20 text-amber-600 hover:bg-amber-50 hover:border-amber-500/40 rounded-xl"
+                                                    >
+                                                        <Printer className="w-4 h-4" /> พิมพ์ Salesheets
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Payment Methods — 2 Options */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <Briefcase className="w-5 h-5 text-chaiyo-blue" />
-                                <h3 className="text-lg font-bold text-gray-800">รูปแบบการชำระ</h3>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {/* Option 1: Monthly Installment */}
-                                <div className="bg-white rounded-2xl border-2 border-blue-200 p-6 space-y-4 hover:shadow-lg hover:border-chaiyo-blue/50 transition-all">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
-                                            <PiggyBank className="w-6 h-6 text-blue-600" />
+                                {/* Column 2: Document Checklist */}
+                                <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm animate-in fade-in duration-500 h-full">
+                                    <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+                                        <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                            <FileText className="w-5 h-5 text-emerald-600" />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-800">ชำระแบบผ่อนรายเดือน</h4>
-                                            <p className="text-xs text-gray-500">ผ่อนเท่ากันทุกงวด จนครบสัญญา</p>
+                                            <h3 className="font-bold text-gray-800">{documentChecklist.label}</h3>
+                                            <p className="text-xs text-gray-500">เอกสารที่ต้องใช้สำหรับ: <span className="font-semibold text-chaiyo-blue">{selectedPlan === 'monthly' ? 'แบบผ่อนรายเดือน' : 'แบบโปะงวดท้าย (One-Time)'}</span></p>
                                         </div>
                                     </div>
-                                    <div className="bg-blue-50/60 rounded-xl p-4 space-y-2">
-                                        <p className="text-xs font-medium text-gray-500 mb-2">ตัวอย่างค่างวด (วงเงิน {maxLoan.toLocaleString()} บาท)</p>
-                                        {exampleMonths.map((m) => (
-                                            <div key={m} className="flex justify-between items-center text-sm">
-                                                <span className="text-gray-600">{m} เดือน</span>
-                                                <span className="font-bold text-gray-800">{calcMonthly(maxLoan, m).toLocaleString()} บาท/เดือน</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <p className="text-[11px] text-gray-400">*คำนวณจากอัตราดอกเบี้ย 23.99% ต่อปี แบบลดต้นลดดอก</p>
-                                </div>
-
-                                {/* Option 2: Balloon Payment */}
-                                <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 space-y-4 hover:shadow-lg hover:border-amber-400/50 transition-all">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center">
-                                            <Star className="w-6 h-6 text-amber-600" />
+                                    {typeof documentChecklist.items[0] === 'string' ? (
+                                        <div className="grid grid-cols-1 gap-x-6 gap-y-2">
+                                            {(documentChecklist.items as string[]).map((item, idx) => (
+                                                <div key={idx} className="flex items-start gap-3 py-2 px-3">
+                                                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-chaiyo-blue shrink-0" />
+                                                    <span className="text-sm text-gray-700 leading-snug whitespace-pre-line">{item}</span>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-800">โปะงวดท้าย (Balloon)</h4>
-                                            <p className="text-xs text-gray-500">จ่ายเฉพาะดอกเบี้ยรายเดือน + เงินต้นงวดสุดท้าย</p>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            {(documentChecklist.items as SectionGroup[]).map((section, idx) => (
+                                                <div key={idx}>
+                                                    <h4 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-chaiyo-blue rounded-full"></div>
+                                                        {section.title}
+                                                    </h4>
+                                                    <div className="grid grid-cols-1 gap-x-6 gap-y-2 pl-2">
+                                                        {section.items.map((subItem, subIdx) => (
+                                                            <div key={subIdx} className="flex items-start gap-2.5 py-1">
+                                                                <div className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
+                                                                <span className="text-sm text-gray-600 leading-snug">{subItem}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    </div>
-                                    <div className="bg-amber-50/60 rounded-xl p-4 space-y-3">
-                                        <p className="text-xs font-medium text-gray-500 mb-2">ตัวอย่าง (วงเงิน {maxLoan.toLocaleString()} บาท)</p>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-600">ค่าดอกเบี้ยรายเดือน</span>
-                                            <span className="font-bold text-gray-800">{calcBalloonMonthly(maxLoan).toLocaleString()} บาท/เดือน</span>
-                                        </div>
-                                        <div className="border-t border-amber-200 pt-2 flex justify-between items-center text-sm">
-                                            <span className="text-gray-600">ชำระเงินต้นงวดสุดท้าย</span>
-                                            <span className="font-bold text-amber-700">{maxLoan.toLocaleString()} บาท</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-[11px] text-gray-400">*จ่ายเฉพาะดอกเบี้ยแต่ละเดือน แล้วคืนเงินต้นทั้งหมดในงวดท้าย</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Bundle Product: บัตรเงินไชโย */}
-                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 relative overflow-hidden">
-                            <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-200/30 rounded-full" />
-                            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-amber-200/20 rounded-full" />
-                            <div className="relative z-10 space-y-5">
-                                {/* Top row: Card visual + title */}
-                                <div className="flex items-center gap-6">
-                                    <div className="shrink-0">
-                                        <div className="w-44 h-28 bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 rounded-xl shadow-lg shadow-amber-200/50 p-4 flex flex-col justify-between relative overflow-hidden">
-                                            <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full" />
-                                            <div className="flex items-center gap-2">
-                                                <CreditCard className="w-5 h-5 text-white/80" />
-                                                <span className="text-white text-xs font-bold tracking-wider">CHAIYO CARD</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-white/70 text-[10px] font-mono">•••• •••• •••• ••••</p>
-                                                <p className="text-white text-xs font-medium mt-0.5">MEMBER SINCE 2026</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                                                <Gift className="w-3 h-3" />
-                                                Bundle Deal
-                                            </div>
-                                        </div>
-                                        <h4 className="text-xl font-bold text-gray-800">บัตรเงินไชโย</h4>
-                                        <p className="text-sm text-gray-600">
-                                            สมัครพร้อมสินเชื่อ — วงเงินหมุนเวียนพร้อมใช้ ผ่อนสบาย ค่างวดเท่าเดิม
+                                    )}
+                                    <div className="pt-3 border-t border-gray-100 mt-auto">
+                                        <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            เอกสารที่แนะนำนี้สร้างขึ้นจากข้อมูลที่ได้รับโดยอัตโนมัติ สามารถปรับเปลี่ยนได้ตามเงื่อนไขของสาขา
                                         </p>
                                     </div>
                                 </div>
-
-                                {/* Feature grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 pt-3 border-t border-amber-200/60">
-                                    {[
-                                        'จ่ายเงินต้นไปแล้วเท่าไร กดใช้เพิ่มได้เท่านั้น',
-                                        'ค่างวดเท่าเดิม',
-                                        'ไม่ต้องยื่นเอกสารเพิ่ม',
-                                        'ไม่มีค่าธรรมเนียม',
-                                        'กดฟรีทุกตู้ ATM ทั่วประเทศ',
-                                        'รับบัตรได้ทันที',
-                                        'ระบบความปลอดภัยสูง',
-                                    ].map((feat, i) => (
-                                        <div key={i} className="flex items-start gap-2.5 py-1">
-                                            <div className="mt-0.5 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
-                                                <Check className="w-3 h-3 text-white" />
-                                            </div>
-                                            <span className="text-sm text-gray-700">{feat}</span>
-                                        </div>
-                                    ))}
-                                </div>
                             </div>
-                        </div>
-
-                        {/* Document Checklist */}
-                        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
-                            <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-                                <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
-                                    <FileText className="w-5 h-5 text-emerald-600" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-800">{documentChecklist.label}</h3>
-                                    <p className="text-xs text-gray-500">กรุณาแจ้งลูกค้าเตรียมเอกสารต่อไปนี้</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                                {documentChecklist.items.map((item, idx) => (
-                                    <label key={idx} className="flex items-start gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group">
-                                        <div className="mt-0.5 w-5 h-5 rounded border-2 border-gray-300 group-hover:border-chaiyo-blue/50 flex items-center justify-center shrink-0 transition-colors">
-                                            {/* unchecked checkbox visual */}
-                                        </div>
-                                        <span className="text-sm text-gray-700 leading-snug">{item}</span>
-                                    </label>
-                                ))}
-                            </div>
-                            <div className="pt-3 border-t border-gray-100">
-                                <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                                    <Sparkles className="w-3.5 h-3.5" />
-                                    เอกสารที่แนะนำนี้สร้างขึ้นจากข้อมูลที่ได้รับโดยอัตโนมัติ สามารถปรับเปลี่ยนได้ตามเงื่อนไขของสาขา
-                                </p>
-                            </div>
-                        </div>
+                        </Tabs>
 
                         {/* Actions Bar */}
                         <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
@@ -1087,23 +1247,6 @@ export default function CalculatorPage() {
                                 <ChevronLeft className="w-4 h-4 mr-2" />
                                 กลับไปแก้ไขข้อมูล
                             </Button>
-
-                            <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                                <Button
-                                    onClick={handlePrint}
-                                    variant="outline"
-                                    className="w-full md:w-auto h-12 gap-2 bg-white border-chaiyo-blue/30 text-chaiyo-blue hover:bg-blue-50"
-                                >
-                                    <Printer className="w-4 h-4" /> พิมพ์ใบเสนอราคา
-                                </Button>
-                                <Button
-                                    onClick={handleCreateApplication}
-                                    className="w-full md:w-auto h-12 gap-2 bg-chaiyo-blue hover:bg-chaiyo-blue/90 shadow-lg shadow-chaiyo-blue/20 text-white px-8"
-                                >
-                                    <FileText className="w-4 h-4" /> สร้างใบคำขอจริง
-                                    <ArrowRight className="w-4 h-4" />
-                                </Button>
-                            </div>
                         </div>
                     </div>
                 );

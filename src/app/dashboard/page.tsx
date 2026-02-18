@@ -50,21 +50,17 @@ export default function DashboardPage() {
             {/* Top Action Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">แผงควบคุมระบบสินเชื่อ</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">ระบบสินเชื่อสาขา - เงินไชโย</h1>
                     <p className="text-sm text-muted mt-1">ยินดีต้อนรับกลับมา, คุณสมหญิง</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Link href="/dashboard/calculator">
-                        <Button variant="outline" className="border-border-subtle hover:bg-gray-50 font-semibold shadow-sm active:scale-95 transition-transform">
-                            <Calculator className="w-4 h-4 mr-2" />
-                            คำนวณเงินกู้
-                        </Button>
-                    </Link>
-                    <Link href="/dashboard/new-application">
                         <Button className="shadow-lg shadow-chaiyo-blue/20 font-semibold active:scale-95 transition-transform">
-                            ตรวจสอบสถานะลูกค้า
+                            <Calculator className="w-4 h-4 mr-2" />
+                            แนะนำผลิตภัณฑ์
                         </Button>
                     </Link>
+
                 </div>
             </div>
 

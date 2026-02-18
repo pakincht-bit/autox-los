@@ -319,8 +319,12 @@ export default function NewApplicationPage() {
             {/* Header - Always Visible */}
             <div className="flex justify-between items-center px-2">
                 <div>
-                    <Button variant="ghost" onClick={() => router.back()} className="pl-0 text-muted hover:text-foreground mb-2">
-                        <ArrowLeft className="w-4 h-4 mr-2" /> กลับไปหน้าแดชบอร์ด
+                    <Button
+                        variant="ghost"
+                        onClick={() => !isApplicationStarted ? router.push('/dashboard/calculator?step=5') : router.push('/dashboard')}
+                        className="pl-0 text-muted hover:text-foreground mb-2"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" /> {!isApplicationStarted ? "กลับไปหน้าเสนอผลิตภัณฑ์" : "กลับไปหน้าแดชบอร์ด"}
                     </Button>
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-chaiyo-blue to-blue-800">
                         {isApplicationStarted ? "สร้างใบคำขอ" : "ตรวจสอบสถานะลูกค้า"}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { Search, Filter, Calculator } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -96,10 +96,10 @@ export default function ApplicationsPage() {
                     <h1 className="text-2xl font-bold text-foreground font-sans">รายการคำขอ</h1>
                     <p className="text-sm text-muted">จัดการและติดตามสถานะคำขอสินเชื่อทั้งหมด</p>
                 </div>
-                <Link href="/dashboard/new-application">
+                <Link href="/dashboard/calculator">
                     <Button className="w-full sm:w-auto bg-chaiyo-blue hover:bg-chaiyo-blue/90 font-semibold shadow-md active:scale-95 transition-transform">
-                        <Plus className="w-4 h-4 mr-2" />
-                        สร้างคำขอใหม่
+                        <Calculator className="w-4 h-4 mr-2" />
+                        แนะนำผลิตภัณฑ์
                     </Button>
                 </Link>
             </div>

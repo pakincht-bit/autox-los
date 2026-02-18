@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Override Tailwind v4 default border color (currentColor → gray-200) */
+@layer base {
+
+  *,
+  ::after,
+  ::before {
+    border-color: #E5E7EB;
+  }
+}
+
 @theme {
   /* Brand Colors */
   --color-chaiyo-blue: #001275;
@@ -10,9 +20,33 @@
   --color-status-pending: #F59E0B;
   --color-status-rejected: #EF4444;
 
+  /* Shadcn Semantic Colors (Tailwind v4 compatible) */
+  --color-primary: #001275;
+  --color-primary-foreground: #FFFFFF;
+
+  --color-secondary: #F3F4F6;
+  --color-secondary-foreground: #111827;
+
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-accent: #F3F4F6;
+  --color-accent-foreground: #111827;
+
+  --color-muted-foreground: #6B7280;
+
+  --color-card: #FFFFFF;
+  --color-card-foreground: #111827;
+
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #111827;
+
+  --color-border: #E0E2EC;
+  --color-input: #B4B9CC;
+  --color-ring: #001275;
+
   /* Structural Base */
   --color-background: #F9FAFB;
-  /* Subtle Gray */
   --color-panel-bg: #FFFFFF;
   --color-foreground: #111827;
   --color-muted: #6B7280;
@@ -23,11 +57,8 @@
 
   /* Borders */
   --color-border-color: #E5E7EB;
-  /* Gray 200 */
   --color-border-subtle: #F3F4F6;
-  /* Gray 100 */
   --color-border-strong: #D1D5DB;
-  /* Gray 300 */
 
   /* Typography */
   --font-sans: var(--font-ibm-plex-thai), ui-sans-serif, system-ui, -apple-system, sans-serif;

@@ -17,46 +17,69 @@ import {
     ShieldCheck,
     UserCircle,
     HelpCircle,
-    Calculator
+    Calculator,
+    ChevronsUpDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/Dialog";
+import { Label } from "@/components/ui/Label";
+
+type UserRole = 'Maker' | 'Checker' | 'Approver';
+
+const mockUser = {
+    name: 'สมหญิง จริงใจ',
+    role: 'Maker' as UserRole,
+    branch: 'สาขาลาดพร้าว'
+};
 
 const navigationGroups = [
     {
         title: "ทั่วไป",
         items: [
-            { name: "หน้าหลัก", href: "/dashboard", icon: LayoutGrid },
-            { name: "สินเชื่อใหม่", href: "/dashboard/new-application", icon: PlusSquare },
+            { name: "รายการคำขอ", href: "/dashboard/applications", icon: Files, allowedRoles: ['Maker', 'Checker', 'Approver'] as UserRole[] },
         ]
     },
     {
         title: "จัดการ",
         items: [
-            { name: "ลูกค้า", href: "/dashboard/customers", icon: Users },
-            { name: "รายการคำขอ", href: "/dashboard/applications", icon: Files },
-            { name: "งานของฉัน", href: "/dashboard/tasks", icon: CheckSquare },
-        ]
-    },
-    {
-        title: "บริการ",
-        items: [
-            { name: "ประเมินรถ", href: "/dashboard/collateral", icon: Car },
-            { name: "เครื่องคำนวณ", href: "/dashboard/calculator", icon: Calculator },
+            { name: "ลูกค้า", href: "/dashboard/customers", icon: Users, allowedRoles: ['Maker', 'Checker', 'Approver'] as UserRole[] },
         ]
     },
     {
         title: "ตั้งค่า",
         items: [
-            { name: "บัญชี", href: "/dashboard/profile", icon: UserCircle },
-            { name: "การตั้งค่า", href: "/dashboard/settings", icon: Settings },
+            { name: "บัญชี", href: "/dashboard/profile", icon: UserCircle, allowedRoles: ['Maker', 'Checker', 'Approver'] as UserRole[] },
+            { name: "การตั้งค่า", href: "/dashboard/settings", icon: Settings, allowedRoles: ['Approver'] as UserRole[] }, // Example restriction
         ]
     }
 ];
 
 export function Sidebar() {
+    // Main sidebar component
     const pathname = usePathname();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isAccountOpen, setIsAccountOpen] = useState(false);
+
+    const filteredGroups = navigationGroups.map(group => ({
+        ...group,
+        items: group.items.filter(item => !item.allowedRoles || item.allowedRoles.includes(mockUser.role))
+    })).filter(group => group.items.length > 0);
 
     return (
         <div className={cn(
@@ -86,7 +109,7 @@ export function Sidebar() {
 
             {/* Navigation */}
             <nav className="flex-1 py-6 px-3 space-y-6 overflow-y-auto no-scrollbar">
-                {navigationGroups.map((group) => (
+                {filteredGroups.map((group) => (
                     <div key={group.title} className="space-y-1">
                         {!isCollapsed && (
                             <p className="px-3 text-[10px] font-semibold text-muted/60 uppercase tracking-widest mb-2">
@@ -124,25 +147,83 @@ export function Sidebar() {
             </nav>
 
             {/* User Footer */}
-            <div className={cn("p-4 border-t border-border-subtle bg-white/50 backdrop-blur-sm", isCollapsed && "px-2")}>
-                <div className={cn(
-                    "flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group hover:bg-white border border-transparent hover:border-border-subtle",
-                    isCollapsed && "justify-center p-1"
-                )}>
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs border border-purple-200 shrink-0">
-                        JS
-                    </div>
-                    {!isCollapsed && (
-                        <>
-                            <div className="flex-1 overflow-hidden">
-                                <p className="text-xs font-semibold text-foreground truncate">สมหญิง จริงใจ</p>
-                                <p className="text-[10px] text-muted truncate">สาขาลาดพร้าว</p>
+            <div className={cn("p-4", isCollapsed && "px-2")}>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <div className={cn(
+                            "flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group hover:bg-white border border-transparent hover:border-border-subtle outline-none",
+                            isCollapsed && "justify-center p-1"
+                        )}>
+                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs border border-purple-200 shrink-0">
+                                JS
                             </div>
-                            <LogOut className="w-3.5 h-3.5 text-muted group-hover:text-red-500" />
-                        </>
-                    )}
-                </div>
+                            {!isCollapsed && (
+                                <>
+                                    <div className="flex-1 overflow-hidden text-left">
+                                        <p className="text-xs font-semibold text-foreground truncate">{mockUser.name}</p>
+                                        <p className="text-[10px] text-muted truncate">{mockUser.role}</p>
+                                    </div>
+                                    <ChevronsUpDown className="w-4 h-4 text-muted" />
+                                </>
+                            )}
+                        </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
+                        <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsAccountOpen(true)}>
+                            <UserCircle className="mr-2 h-4 w-4" />
+                            <span>ข้อมูลผู้ใช้</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => console.log("Logout")}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>ออกจากระบบ</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
+
+            <Dialog open={isAccountOpen} onOpenChange={setIsAccountOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>ข้อมูลผู้ใช้</DialogTitle>
+                        <DialogDescription>
+                            ข้อมูลส่วนตัวและข้อมูลสาขาของคุณ
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">รหัสสาขา</Label>
+                            <div className="col-span-3 font-medium">108</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">ชื่อสาขา</Label>
+                            <div className="col-span-3 font-medium">สาขาลาดพร้าว</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">สนง.เขต</Label>
+                            <div className="col-span-3 font-medium">สำนักงานเขตจตุจักร</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">ภาค</Label>
+                            <div className="col-span-3 font-medium">กรุงเทพมหานคร 2</div>
+                        </div>
+                        <div className="border-t border-border-subtle my-2" />
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">รหัสพนง.</Label>
+                            <div className="col-span-3 font-medium">1234567</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">ชื่อ-สกุล</Label>
+                            <div className="col-span-3 font-medium">นางสาวสมหญิง จริงใจ</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">ตำแหน่ง</Label>
+                            <div className="col-span-3 font-medium">เจ้าหน้าที่สินเชื่อสาขา</div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
