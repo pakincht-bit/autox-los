@@ -6,6 +6,11 @@ description: Design rules and conventions for the AutoX LOS project UI
 
 These are the design conventions that **must** be followed when implementing UI in this project.
 
+## Form Elements (Inputs, Selects, Comboboxes)
+- **Use `h-12` as the platform standard height.** All form elements should uniformly use `h-12` (48px) to provide a consistent, touch-friendly UI across the application. 
+- **Use white backgrounds.** Do not use `bg-gray-50` or `bg-gray-100` for default input backgrounds unless it is specifically disabled. Rely on the base `bg-white` from the default Shadcn component.
+- The default UI components (`Input`, `Select`, `Combobox`) have been preconfigured to use `h-12` and `bg-white` by default. Do not add redundant `className="h-12 border-gray-200 ..."` inline classes when rendering these fields.
+
 ## Border Colors
 
 - **Never use black borders.** All borders must use soft, neutral gray tones.

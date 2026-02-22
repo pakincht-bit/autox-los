@@ -1,9 +1,10 @@
-export type ApplicationStatus = 'Draft' | 'In Review' | 'Approved' | 'Rejected';
+export type ApplicationStatus = 'Draft' | 'In Review' | 'Approved' | 'Rejected' | 'Sent Back' | 'Cancelled';
 
 export interface Application {
     id: string;
     applicationNo: string;
     applicantName: string;
+    makerName: string;
     submissionDate: string;
     requestedAmount: number;
     status: ApplicationStatus;

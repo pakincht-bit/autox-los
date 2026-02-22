@@ -15,7 +15,11 @@ const getStatusColor = (status: ApplicationStatus) => {
             return 'success';
         case 'Rejected':
             return 'danger';
+        case 'Cancelled':
+            return 'neutral';
         case 'In Review':
+            return 'yellow';
+        case 'Sent Back':
             return 'warning';
         case 'Draft':
         default:
@@ -31,6 +35,10 @@ const getStatusLabel = (status: ApplicationStatus) => {
             return 'ถูกปฎิเสธ'; // Fixed typo from 'ถูกปฎิเสธ' if any, keeping simple 'ปฏิเสธ' as per previous code, or match user request 'ถูกปฎิเสธ'? User said 'ถูกปฎิเสธ', let's stick to existing simple if possible or update. The previous code was 'ปฏิเสธ'.
         case 'In Review':
             return 'รอพิจารณา';
+        case 'Sent Back':
+            return 'ส่งกลับ';
+        case 'Cancelled':
+            return 'ยกเลิก';
         case 'Draft':
             return 'แบบร่าง';
         default:
@@ -56,6 +64,7 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                     <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[150px]">รหัสคำขอ</TableHead>
                         <TableHead>ผู้ยื่นคำขอ</TableHead>
+                        <TableHead>ผู้บันทึก</TableHead>
                         <TableHead>ประเภทสินเชื่อ</TableHead>
                         <TableHead>วันที่ยื่น</TableHead>
                         <TableHead className="text-right">วงเงินที่ขอ</TableHead>
@@ -66,7 +75,7 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                 <TableBody>
                     {data.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={7} className="h-32 text-center text-muted">
+                            <TableCell colSpan={8} className="h-32 text-center text-muted">
                                 ไม่พบข้อมูลรายการคำขอ
                             </TableCell>
                         </TableRow>
@@ -81,6 +90,7 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                                 <TableCell>
                                     <span className="font-semibold text-foreground text-[13px]">{app.applicantName}</span>
                                 </TableCell>
+                                <TableCell className="text-muted text-[13px]">{app.makerName}</TableCell>
                                 <TableCell className="text-muted">{app.productType}</TableCell>
                                 <TableCell className="text-muted">{app.submissionDate}</TableCell>
                                 <TableCell className="text-right font-medium">

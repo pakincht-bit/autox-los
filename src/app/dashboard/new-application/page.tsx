@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { ArrowLeft, Check, ChevronRight, User, FileText, Banknote, ShieldCheck, ChevronLeft, Save, Car, CreditCard, MessageSquare, Calculator, Camera, CheckCircle, AlertCircle } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, User, Car, Calculator, Check, AlertCircle, CheckCircle, Loader2, ArrowLeft, Save } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
@@ -38,7 +38,7 @@ const ALL_STEPS = [
     { id: 5, title: 'ตรวจสอบ', description: 'Review', icon: Check },
 ];
 
-export default function NewApplicationPage() {
+function NewApplicationPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -317,7 +317,7 @@ export default function NewApplicationPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6 pt-8 pb-32 px-4 shadow-none">
+        <div className="max-w-7xl mx-auto space-y-6 p-6 lg:px-8 lg:py-6 pb-32 shadow-none">
             {/* Header - Always Visible */}
             <div className="flex justify-between items-center px-2">
                 <div>
@@ -551,5 +551,13 @@ export default function NewApplicationPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+    );
+}
+
+export default function NewApplicationPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center flex-col items-center h-full min-h-[50vh]"><Loader2 className="w-8 h-8 animate-spin text-chaiyo-blue mb-4" /><p className="text-gray-500">กำลังโหลด...</p></div>}>
+            <NewApplicationPageContent />
+        </Suspense>
     );
 }

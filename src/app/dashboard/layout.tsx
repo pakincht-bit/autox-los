@@ -1,5 +1,7 @@
+"use client";
+
 import { Sidebar } from "@/components/layout/Sidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
 
 export default function DashboardLayout({
     children,
@@ -7,24 +9,20 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex h-screen bg-background overflow-hidden font-sans">
-            <div className="print:hidden">
-                <Sidebar />
-            </div>
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-                {/* Top Header - Now outside the white panel */}
-                <DashboardHeader />
-
-                {/* Main Content Area - Housing the Floating Panel */}
-                <div className="flex-1 overflow-y-auto no-scrollbar p-4 pt-0 lg:p-6 lg:pt-0">
-                    <div className="min-h-full bg-white rounded-3xl border border-border-subtle shadow-[0_1px_2px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03)] overflow-hidden">
-                        <div className="p-6 lg:p-10">
+        <SidebarProvider>
+            <div className="flex h-screen bg-background overflow-hidden font-sans">
+                <div className="print:hidden">
+                    <Sidebar />
+                </div>
+                <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#000A44]">
+                    {/* Main Content Area - Inset Workspace */}
+                    <div className="flex-1 relative p-2 overflow-hidden">
+                        <div className="bg-white rounded-md h-full shadow-sm overflow-y-auto no-scrollbar border border-white/5">
                             {children}
                         </div>
                     </div>
-                </div>
-            </main>
-        </div>
+                </main>
+            </div>
+        </SidebarProvider>
     );
 }

@@ -282,7 +282,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                 let y = parseInt(val);
                 let realYearAD = y;
                 if (y > 2400) realYearAD = y - 543;
-                setNewCoBorrower(prev => ({ ...prev, birthDate: `${realYearAD}-01-01` }));
+                setNewCoBorrower((prev: any) => ({ ...prev, birthDate: `${realYearAD}-01-01` }));
             }
         } else {
             if (val.length > 8) val = val.slice(0, 8);
@@ -299,7 +299,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                 if (y > 2400) realYearAD = y - 543;
                 const dateObj = new Date(realYearAD, m - 1, d);
                 if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
-                    setNewCoBorrower(prev => ({ ...prev, birthDate: format(dateObj, "yyyy-MM-dd") }));
+                    setNewCoBorrower((prev: any) => ({ ...prev, birthDate: format(dateObj, "yyyy-MM-dd") }));
                 }
             }
         }
@@ -349,7 +349,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                 let y = parseInt(val);
                 let realYearAD = y;
                 if (y > 2400) realYearAD = y - 543;
-                setNewGuarantor(prev => ({ ...prev, birthDate: `${realYearAD}-01-01` }));
+                setNewGuarantor((prev: any) => ({ ...prev, birthDate: `${realYearAD}-01-01` }));
             }
         } else {
             if (val.length > 8) val = val.slice(0, 8);
@@ -366,7 +366,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                 if (y > 2400) realYearAD = y - 543;
                 const dateObj = new Date(realYearAD, m - 1, d);
                 if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
-                    setNewGuarantor(prev => ({ ...prev, birthDate: format(dateObj, "yyyy-MM-dd") }));
+                    setNewGuarantor((prev: any) => ({ ...prev, birthDate: format(dateObj, "yyyy-MM-dd") }));
                 }
             }
         }

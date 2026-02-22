@@ -119,3 +119,14 @@ We follow a 4px grid system but lean towards tighter spacing:
 -   `gap-4` (16px): Between form fields.
 -   `p-4` (16px): Standard Card padding.
 -   `p-6` (24px): Page container padding.
+
+---
+
+## 8. Date & Time Convention
+
+The platform strictly uses the **Buddhist Era (พุทธศักราช - พ.ศ.)** for all date displays across the LOS.
+
+-   **Year Format**: Always use the 4-digit B.E. year (e.g., 2566 instead of 2023).
+-   **Separators**: Standard date separators (e.g., `/`) or Thai full month names are preferred depending on context.
+-   **Consistency**: No Western (A.D.) years should be displayed anywhere in the user interface.
+

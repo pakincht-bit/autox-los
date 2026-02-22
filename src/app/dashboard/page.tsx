@@ -46,7 +46,7 @@ export default function DashboardPage() {
     const router = useRouter();
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 p-6 lg:px-8 lg:py-6">
             {/* Top Action Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>

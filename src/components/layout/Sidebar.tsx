@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+// Sync: Move sidebar button
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnnouncementModal } from "@/components/layout/AnnouncementModal";
 import {
     LayoutGrid,
     PlusSquare,
@@ -18,10 +20,15 @@ import {
     UserCircle,
     HelpCircle,
     Calculator,
-    ChevronsUpDown
+    ChevronsUpDown,
+    Search,
+    Megaphone,
+    Info,
+    PanelLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -48,16 +55,18 @@ const mockUser = {
     branch: 'สาขาลาดพร้าว'
 };
 
+const branchInfo = {
+    code: '108',
+    name: 'สาขาลาดพร้าว',
+    district: 'สำนักงานเขตจตุจักร',
+    region: 'กรุงเทพมหานคร 2'
+};
+
 const navigationGroups = [
-    {
-        title: "ทั่วไป",
-        items: [
-            { name: "รายการคำขอ", href: "/dashboard/applications", icon: Files, allowedRoles: ['Maker', 'Checker', 'Approver'] as UserRole[] },
-        ]
-    },
     {
         title: "จัดการ",
         items: [
+            { name: "รายการคำขอ", href: "/dashboard/applications", icon: Files, allowedRoles: ['Maker', 'Checker', 'Approver'] as UserRole[] },
             { name: "ลูกค้า", href: "/dashboard/customers", icon: Users, allowedRoles: ['Maker', 'Checker', 'Approver'] as UserRole[] },
         ]
     },
@@ -65,7 +74,7 @@ const navigationGroups = [
         title: "ตั้งค่า",
         items: [
             { name: "บัญชี", href: "/dashboard/profile", icon: UserCircle, allowedRoles: ['Maker', 'Checker', 'Approver'] as UserRole[] },
-            { name: "การตั้งค่า", href: "/dashboard/settings", icon: Settings, allowedRoles: ['Approver'] as UserRole[] }, // Example restriction
+            { name: "การตั้งค่า", href: "/dashboard/settings", icon: Settings, allowedRoles: ['Approver'] as UserRole[] },
         ]
     }
 ];
@@ -73,46 +82,104 @@ const navigationGroups = [
 export function Sidebar() {
     // Main sidebar component
     const pathname = usePathname();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const { isCollapsed, toggleCollapsed } = useSidebar();
     const [isAccountOpen, setIsAccountOpen] = useState(false);
+    const [isBranchInfoOpen, setIsBranchInfoOpen] = useState(false);
+    const [showAnnouncement, setShowAnnouncement] = useState(false);
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        const hasSeenSession = sessionStorage.getItem("announcementSeen");
+        const hideForever = localStorage.getItem("hideAnnouncement");
+
+        if (!hasSeenSession && !hideForever) {
+            setShowAnnouncement(true);
+        }
+    }, []);
 
     const filteredGroups = navigationGroups.map(group => ({
         ...group,
         items: group.items.filter(item => !item.allowedRoles || item.allowedRoles.includes(mockUser.role))
     })).filter(group => group.items.length > 0);
 
+    // Initial render on server and client MUST match perfect.
+    // We render the expanded state by default to fill the space.
+    if (!mounted) {
+        return (
+            <div className="relative flex flex-col h-full bg-[#000A44] w-64 text-white">
+                <div className="p-5 border-b border-white/10 flex items-center justify-between h-[73px]">
+                    <div className="flex items-center gap-3">
+                        <div className="min-w-8 w-8 h-8 rounded bg-white flex items-center justify-center text-chaiyo-blue font-bold text-lg">ช</div>
+                        <div className="font-semibold text-base text-white/90">LOS - AutoX</div>
+                    </div>
+                    <div className="h-8 w-8 rounded-md bg-white/10 flex items-center justify-center text-white/80">
+                        <PanelLeft className="w-5 h-5" />
+                    </div>
+                </div>
+                <div className="flex-1" />
+            </div>
+        );
+    }
+
     return (
         <div className={cn(
-            "relative flex flex-col h-full bg-background border-r border-border-subtle transition-all duration-300",
+            "relative flex flex-col h-full bg-[#000A44] transition-all duration-300 text-white",
             isCollapsed ? "w-16" : "w-64"
         )}>
             {/* Brand Header */}
-            <div className={cn("p-5 border-b border-border-subtle flex items-center gap-3 h-20", isCollapsed && "justify-center px-0")}>
-                <div className="min-w-8 w-8 h-8 rounded bg-chaiyo-blue flex items-center justify-center text-white font-bold text-lg shrink-0">
-                    ช
-                </div>
+            <div className={cn(
+                "p-5 border-b border-white/10 flex items-center h-[73px]",
+                isCollapsed ? "justify-center" : "justify-between"
+            )}>
                 {!isCollapsed && (
-                    <div className="overflow-hidden">
-                        <h1 className="font-semibold text-base leading-none truncate underline decoration-chaiyo-blue decoration-2 underline-offset-4">เงินไชโย</h1>
-                        <span className="text-[10px] text-muted tracking-widest uppercase mt-1 block truncate">Branch Portal</span>
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="min-w-8 w-8 h-8 rounded bg-white flex items-center justify-center text-chaiyo-blue font-bold text-lg shrink-0">
+                            ช
+                        </div>
+                        <div className="overflow-hidden">
+                            <h1 className="font-semibold text-base leading-none truncate text-white/90 tracking-wide">LOS - AutoX</h1>
+                            <div
+                                className="flex items-center gap-1.5 cursor-pointer group mt-1"
+                                onClick={() => setIsBranchInfoOpen(true)}
+                            >
+                                <div className="text-[11px] font-medium text-white/60 group-hover:text-white/90 transition-colors truncate">
+                                    {branchInfo.name} ({branchInfo.code})
+                                </div>
+                                <Info className="w-3 h-3 text-white/40 group-hover:text-white/80 transition-colors shrink-0" />
+                            </div>
+                        </div>
                     </div>
                 )}
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "text-white/70 hover:text-white hover:bg-white/20 shrink-0",
+                        isCollapsed ? "h-10 w-10 bg-white/5" : "h-8 w-8"
+                    )}
+                    onClick={toggleCollapsed}
+                    title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                >
+                    <PanelLeft className="w-5 h-5" />
+                </Button>
             </div>
 
-            {/* Collapse Toggle */}
-            <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -right-3 top-17 w-6 h-6 rounded-full bg-white border border-border-color flex items-center justify-center hover:bg-gray-50 transition-colors z-50 shadow-sm"
-            >
-                {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-            </button>
+
 
             {/* Navigation */}
             <nav className="flex-1 py-6 px-3 space-y-6 overflow-y-auto no-scrollbar">
+
+
                 {filteredGroups.map((group) => (
                     <div key={group.title} className="space-y-1">
                         {!isCollapsed && (
-                            <p className="px-3 text-[10px] font-semibold text-muted/60 uppercase tracking-widest mb-2">
+                            <p className="px-3 text-[10px] font-semibold text-white/50 uppercase tracking-widest mb-2">
                                 {group.title}
                             </p>
                         )}
@@ -128,13 +195,13 @@ export function Sidebar() {
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-2 rounded-md transition-all group border border-transparent",
                                             isActive
-                                                ? "bg-white border-border-subtle text-foreground font-medium shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-                                                : "text-muted hover:text-foreground hover:bg-white/50",
+                                                ? "bg-white/15 border-white/10 text-white font-medium shadow-none"
+                                                : "text-white/70 hover:text-white hover:bg-white/10",
                                             isCollapsed && "justify-center px-0"
                                         )}
                                         title={isCollapsed ? item.name : ""}
                                     >
-                                        <Icon className={cn("w-4.5 h-4.5 shrink-0", isActive ? "text-chaiyo-blue" : "text-muted group-hover:text-foreground")} />
+                                        <Icon className={cn("w-4.5 h-4.5 shrink-0", isActive ? "text-white" : "text-white/70 group-hover:text-white")} />
                                         {!isCollapsed && (
                                             <span className="text-[13px]">{item.name}</span>
                                         )}
@@ -146,24 +213,76 @@ export function Sidebar() {
                 ))}
             </nav>
 
-            {/* User Footer */}
-            <div className={cn("p-4", isCollapsed && "px-2")}>
+            {/* Announcement & User Footer */}
+            <div className={cn("p-4 border-t border-white/10 space-y-2", isCollapsed && "px-2")}>
+
+                {/* Announcements */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <div className={cn(
-                            "flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group hover:bg-white border border-transparent hover:border-border-subtle outline-none",
+                            "flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group hover:bg-white/10 border border-transparent outline-none",
+                            isCollapsed && "justify-center p-1 py-2"
+                        )}>
+                            <div className="relative shrink-0">
+                                <Megaphone className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-chaiyo-blue"></span>
+                            </div>
+                            {!isCollapsed && (
+                                <div className="flex-1 overflow-hidden text-left">
+                                    <p className="text-sm font-medium text-white/80 group-hover:text-white transition-colors truncate">ประกาศแจ้งเตือน</p>
+                                </div>
+                            )}
+                        </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align={isCollapsed ? "center" : "end"} side="right" className="w-80 ml-2 border-border-subtle shadow-lg bg-white/95 backdrop-blur-sm">
+                        <DropdownMenuLabel className="font-semibold text-foreground">ประกาศ</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-gray-100" />
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <DropdownMenuItem
+                                className="flex flex-col items-start gap-1 p-3 cursor-pointer focus:bg-gray-50"
+                                onClick={() => setShowAnnouncement(true)}
+                            >
+                                <span className="font-medium text-sm text-chaiyo-blue">ประกาศสำคัญจากสำนักงานใหญ่</span>
+                                <span className="text-xs text-muted line-clamp-2">
+                                    แจ้งเปลี่ยนแปลงนโยบายการอนุมัติสินเชื่อและปรับอัตราดอกเบี้ย มีผล 1 มี.ค. 67
+                                </span>
+                                <span className="text-[10px] text-gray-400 mt-1">วันนี้, 09:00</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-gray-100" />
+                            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer focus:bg-gray-50 opacity-70">
+                                <span className="font-medium text-sm text-foreground">แจ้งปิดปรับปรุงระบบ</span>
+                                <span className="text-xs text-muted line-clamp-2">
+                                    ระบบจะปิดปรับปรุงชั่วคราวในวันที่ 20 ก.พ. เวลา 02:00 - 04:00 น.
+                                </span>
+                                <span className="text-[10px] text-gray-400 mt-1">เมื่อวาน</span>
+                            </DropdownMenuItem>
+                        </div>
+                        <DropdownMenuSeparator className="bg-gray-100" />
+                        <div className="p-2 text-center">
+                            <Button variant="link" className="text-xs text-muted h-auto p-0 hover:text-chaiyo-blue">
+                                ดูประกาศทั้งหมด
+                            </Button>
+                        </div>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Account Details */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <div className={cn(
+                            "flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group hover:bg-white/10 border border-transparent outline-none",
                             isCollapsed && "justify-center p-1"
                         )}>
-                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs border border-purple-200 shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xs shrink-0">
                                 JS
                             </div>
                             {!isCollapsed && (
                                 <>
                                     <div className="flex-1 overflow-hidden text-left">
-                                        <p className="text-xs font-semibold text-foreground truncate">{mockUser.name}</p>
-                                        <p className="text-[10px] text-muted truncate">{mockUser.role}</p>
+                                        <p className="text-xs font-semibold text-white truncate">{mockUser.name}</p>
+                                        <p className="text-[10px] text-white/60 truncate">{mockUser.role}</p>
                                     </div>
-                                    <ChevronsUpDown className="w-4 h-4 text-muted" />
+                                    <ChevronsUpDown className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
                                 </>
                             )}
                         </div>
@@ -224,6 +343,35 @@ export function Sidebar() {
                     </div>
                 </DialogContent>
             </Dialog>
+            <Dialog open={isBranchInfoOpen} onOpenChange={setIsBranchInfoOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>ข้อมูลสาขา</DialogTitle>
+                        <DialogDescription>
+                            รายละเอียดข้อมูลสาขาของคุณ
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 px-6">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground font-medium">รหัสสาขา</Label>
+                            <div className="col-span-3 font-semibold text-gray-900">{branchInfo.code}</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground font-medium">ชื่อสาขา</Label>
+                            <div className="col-span-3 font-semibold text-gray-900">{branchInfo.name}</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground font-medium whitespace-nowrap">สนง.เขต</Label>
+                            <div className="col-span-3 font-semibold text-gray-900">{branchInfo.district}</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground font-medium">ภาค</Label>
+                            <div className="col-span-3 font-semibold text-gray-900">{branchInfo.region}</div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            <AnnouncementModal open={showAnnouncement} onOpenChange={setShowAnnouncement} />
         </div>
     );
 }
