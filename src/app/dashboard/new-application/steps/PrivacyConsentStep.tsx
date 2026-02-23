@@ -4,15 +4,18 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { CheckCircle, Shield, FileText, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExternalLink, Printer } from "lucide-react";
 
 interface PrivacyConsentStepProps {
     onAccept: () => void;
+    onBack?: () => void;
+    collateralType?: string;
 }
 
-export const PrivacyConsentStep = ({ onAccept }: PrivacyConsentStepProps) => {
+export const PrivacyConsentStep = ({ onAccept, onBack, collateralType }: PrivacyConsentStepProps) => {
     const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
     const [isPrivacyAccepted, setIsPrivacyAccepted] = useState(false);
-    const [hasReadSalesSheet, setHasReadSalesSheet] = useState(false);
+    const [hasReadSalesSheet, setHasReadSalesSheet] = useState(true);
     const [isSalesSheetAccepted, setIsSalesSheetAccepted] = useState(false);
 
     const privacyScrollRef = useRef<HTMLDivElement | null>(null);
@@ -25,6 +28,13 @@ export const PrivacyConsentStep = ({ onAccept }: PrivacyConsentStepProps) => {
                 setReadState(true);
             }
         }
+    };
+
+    const handleOpenSalesSheet = () => {
+        const pdfPath = collateralType === 'land'
+            ? "/salesheets/Sales Sheet_ที่ดิน_บุคคลทั่วไปV7_ปกค231.2568.pdf"
+            : "/salesheets/Sale Sheet_รถ บุคคลทั่วไป V8.0 2.pdf";
+        window.open(pdfPath, '_blank');
     };
 
     return (
@@ -44,66 +54,19 @@ export const PrivacyConsentStep = ({ onAccept }: PrivacyConsentStepProps) => {
                         <FileText className="w-4 h-4 text-chaiyo-blue" />
                         1. เอกสารประกอบการขาย (Sales Sheet)
                     </div>
-                    {!hasReadSalesSheet && (
-                        <div className="text-xs text-orange-500 flex items-center gap-1 animate-pulse">
-                            <ChevronDown className="w-3 h-3" />
-                            กรุณาเลื่อนอ่านจนจบ
-                        </div>
-                    )}
-                </div>
-
-                <div
-                    ref={salesScrollRef}
-                    onScroll={() => handleScroll(salesScrollRef, setHasReadSalesSheet)}
-                    className="h-[300px] overflow-y-auto p-6 text-sm text-gray-600 space-y-4 leading-relaxed scroll-smooth"
-                >
-                    <p>
-                        <strong>รายละเอียดผลิตภัณฑ์สินเชื่อ (Sales Sheet)</strong><br />
-                        กรุณาตรวจสอบรายละเอียดผลิตภัณฑ์ที่ท่านเลือก:
-                    </p>
-                    <ul className="list-disc pl-5 space-y-2">
-                        <li><strong>อัตราดอกเบี้ย:</strong> แบบลดต้นลดดอก (Effective Rate) สูงสุดไม่เกิน 24% ต่อปี หรือตามที่กฎหมายกำหนด</li>
-                        <li><strong>ระยะเวลาผ่อนชำระ:</strong> สามารถเลือกผ่อนชำระได้ตั้งแต่ 12 - 60 งวด</li>
-                        <li><strong>ค่าธรรมเนียม:</strong>
-                            <ul className="list-disc pl-5 mt-1">
-                                <li>ค่าอากรแสตมป์ 0.05% ของวงเงินกู้</li>
-                                <li>ค่าติดตามทวงถามหนี้ (กรณีผิดนัดชำระ) ตามอัตราที่กฎหมายกำหนด</li>
-                                <li>ไม่มีค่าธรรมเนียมจัดการเงินกู้ (Front-end Fee)</li>
-                            </ul>
-                        </li>
-                        <li><strong>การโปะปิดบัญชี:</strong> สามารถปิดบัญชีได้ก่อนกำหนด โดยไม่มีค่าปรับ (ลดดอกเบี้ยส่วนที่เหลือทั้งหมด)</li>
-                        <li><strong>ผลกระทบกรณีผิดนัดชำระ:</strong> อาจมีค่าปรับล่าช้าและผลกระทบต่อประวัติเครดิตบูโร</li>
-                    </ul>
-                    <p>
-                        -------------------------------------------------<br />
-                        ข้าพเจ้าได้รับทราบรายละเอียดผลิตภัณฑ์สินเชื่อ อัตราดอกเบี้ย ค่าธรรมเนียม และเงื่อนไขต่างๆ อย่างครบถ้วนแล้ว
-                    </p>
-                    <div className="h-10"></div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleOpenSalesSheet}
+                        className="text-chaiyo-blue hover:text-blue-700 hover:bg-blue-50 gap-2 h-8"
+                    >
+                        <Printer className="w-3.5 h-3.5" />
+                        พิมพ์ Salesheets
+                    </Button>
                 </div>
             </div>
 
-            {/* Checkbox 1: Sales Sheet */}
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start gap-3">
-                <Checkbox
-                    id="accept-sales-sheet"
-                    className="mt-1"
-                    checked={isSalesSheetAccepted}
-                    onCheckedChange={(checked) => setIsSalesSheetAccepted(checked as boolean)}
-                    disabled={!hasReadSalesSheet}
-                />
-                <label
-                    htmlFor="accept-sales-sheet"
-                    className={cn(
-                        "text-sm cursor-pointer select-none",
-                        !hasReadSalesSheet ? "text-gray-400" : "text-gray-700"
-                    )}
-                >
-                    <span className="font-bold">ข้าพเจ้าได้รับทราบและเข้าใจรายละเอียดในเอกสารประกอบการขาย (Sales Sheet)</span>
-                    {!hasReadSalesSheet && (
-                        <p className="text-xs text-orange-500 mt-1">* กรุณาเลื่อนอ่านรายละเอียดด้านบนให้ครบถ้วนก่อนยอมรับ</p>
-                    )}
-                </label>
-            </div>
+
 
             {/* 2. PDPA & NCB Consent (Moved to Bottom) */}
             <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden mt-6">
@@ -157,6 +120,29 @@ export const PrivacyConsentStep = ({ onAccept }: PrivacyConsentStepProps) => {
                 </div>
             </div>
 
+            {/* Checkbox 1: Sales Sheet */}
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start gap-3">
+                <Checkbox
+                    id="accept-sales-sheet"
+                    className="mt-1"
+                    checked={isSalesSheetAccepted}
+                    onCheckedChange={(checked) => setIsSalesSheetAccepted(checked as boolean)}
+                    disabled={!hasReadSalesSheet}
+                />
+                <label
+                    htmlFor="accept-sales-sheet"
+                    className={cn(
+                        "text-sm cursor-pointer select-none",
+                        !hasReadSalesSheet ? "text-gray-400" : "text-gray-700"
+                    )}
+                >
+                    <span className="font-bold">ข้าพเจ้าได้รับทราบและเข้าใจรายละเอียดในเอกสารประกอบการขาย (Sales Sheet)</span>
+                    {!hasReadSalesSheet && (
+                        <p className="text-xs text-orange-500 mt-1">* กรุณาเลื่อนอ่านรายละเอียดด้านบนให้ครบถ้วนก่อนยอมรับ</p>
+                    )}
+                </label>
+            </div>
+
             {/* Checkbox 2: Privacy & NCB */}
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start gap-3">
                 <Checkbox
@@ -184,12 +170,21 @@ export const PrivacyConsentStep = ({ onAccept }: PrivacyConsentStepProps) => {
                 </label>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className={cn("flex pt-4", onBack ? "justify-between" : "justify-end")}>
+                {onBack && (
+                    <Button
+                        variant="outline"
+                        onClick={onBack}
+                        className="min-w-[200px] h-12 rounded-xl text-gray-500 hover:text-gray-900 border-gray-300 bg-white font-bold"
+                    >
+                        ย้อนกลับ
+                    </Button>
+                )}
                 <Button
                     onClick={onAccept}
                     disabled={!isPrivacyAccepted || !isSalesSheetAccepted}
                     className={cn(
-                        "min-w-[200px] h-12 shadow-lg transition-all",
+                        "min-w-[200px] h-12 shadow-lg transition-all rounded-xl font-bold",
                         isPrivacyAccepted && isSalesSheetAccepted
                             ? "bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white shadow-blue-200"
                             : "bg-gray-200 text-gray-400 shadow-none hover:bg-gray-200 cursor-not-allowed"

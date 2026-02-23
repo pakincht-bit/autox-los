@@ -63,7 +63,7 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                 <TableHeader className="bg-gray-50/50 border-b border-border-subtle">
                     <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[150px]">รหัสคำขอ</TableHead>
-                        <TableHead>ผู้ยื่นคำขอ</TableHead>
+                        <TableHead>ผู้กู้</TableHead>
                         <TableHead>ผู้บันทึก</TableHead>
                         <TableHead>ประเภทสินเชื่อ</TableHead>
                         <TableHead>วันที่ยื่น</TableHead>

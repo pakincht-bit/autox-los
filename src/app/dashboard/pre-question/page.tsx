@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft, Printer, FileText, PiggyBank, Briefcase, Car, Camera, Check, Sparkles, Bike, Truck, Tractor, Map, Upload, Eye, X, ChevronRight, Plus, CreditCard, Gift, Shield, Percent, ArrowRight, Star, User, Banknote, ShieldCheck } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { DashboardPageHeader } from "@/components/layout/DashboardPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import {
@@ -21,6 +22,7 @@ import {
     MODELS_BY_BRAND,
     YEARS
 } from "@/data/vehicle-data";
+import { PrivacyConsentStep } from "../new-application/steps/PrivacyConsentStep";
 
 function PreQuestionPageContent() {
     const router = useRouter();
@@ -41,6 +43,7 @@ function PreQuestionPageContent() {
         jobTitle: '',
         salary: '',
         otherIncome: '',
+        monthlyDebt: '',
         specialProject: '',
         borrowerAge: '',
         collateralCondition: 'yes',
@@ -189,8 +192,14 @@ function PreQuestionPageContent() {
     };
 
     const handleCreateApplication = () => {
+        // Just move to the consent step within this page
+        setCurrentStep(4);
+    };
+
+    const handleConfirmConsent = () => {
         // Save current sales talk data to localStorage for prefilling the application form
         localStorage.setItem('salesTalkData', JSON.stringify(formData));
+        localStorage.setItem('isConsentAccepted', 'true');
         router.push("/dashboard/new-application");
     };
 
@@ -238,15 +247,16 @@ function PreQuestionPageContent() {
                             <div
                                 className="h-full bg-chaiyo-blue transition-all duration-500 ease-in-out"
                                 style={{
-                                    width: `${((currentStep - 1) / 2) * 100}%`
+                                    width: `${((currentStep - 1) / 3) * 100}%`
                                 }}
                             ></div>
                         </div>
 
                         {[
                             { id: 1, label: "แบบสอบถามเบื้องต้น", icon: FileText },
-                            { id: 2, label: "ข้อมูลหลักประกัน", icon: Briefcase },
-                            { id: 3, label: "แนะนำสินค้า", icon: Sparkles }
+                            { id: 2, label: "สรุปวงเงินประเมิน", icon: Briefcase },
+                            { id: 3, label: "แนะนำสินค้า", icon: Sparkles },
+                            { id: 4, label: "เอกสารและความยินยอม", icon: ShieldCheck }
                         ].map((step) => {
                             const isActive = currentStep === step.id;
                             const isCompleted = currentStep > step.id;
@@ -526,6 +536,22 @@ function PreQuestionPageContent() {
                                         </div>
 
                                         <div className="space-y-2">
+                                            <Label>ภาระหนี้ต่อเดือน (บาท)</Label>
+                                            <Input
+                                                type="text"
+                                                placeholder="ระบุภาระหนี้"
+                                                value={formData.monthlyDebt ? Number(formData.monthlyDebt).toLocaleString() : ''}
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/,/g, '');
+                                                    if (!isNaN(Number(value))) {
+                                                        setFormData({ ...formData, monthlyDebt: value });
+                                                    }
+                                                }}
+                                                className="text-right font-mono"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2 md:col-span-2">
                                             <Label>วงเงินที่ต้องการ (บาท)</Label>
                                             <Input
                                                 type="text"
@@ -537,7 +563,7 @@ function PreQuestionPageContent() {
                                                         setFormData({ ...formData, requestedAmount: value });
                                                     }
                                                 }}
-                                                className="text-right font-mono font-bold text-chaiyo-blue"
+                                                className="text-right font-mono"
                                             />
                                         </div>
                                     </div>
@@ -553,7 +579,7 @@ function PreQuestionPageContent() {
                             <div className="pt-0 flex flex-col items-start -mt-1 space-y-4">
                                 <Button
                                     onClick={nextStep}
-                                    className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white min-w-[200px] h-12 shadow-md rounded-xl text-base font-bold"
+                                    className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white min-w-[200px] h-12 shadow-lg shadow-chaiyo-blue/20 rounded-xl text-base font-bold transition-all"
                                     disabled={!formData.collateralType || !formData.nationality || !formData.specialProject}
                                 >
                                     ถัดไป <ChevronRight className="w-5 h-5 ml-2" />
@@ -609,13 +635,10 @@ function PreQuestionPageContent() {
                                 <div className="mb-8 flex items-start justify-between">
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <h2 className="text-2xl font-bold text-gray-800">ข้อมูลหลักประกัน</h2>
+                                            <h2 className="text-2xl font-bold text-gray-800">สรุปวงเงินประเมินเบื้องต้น</h2>
                                         </div>
-                                        <p className="text-gray-500">ตรวจสอบความถูกต้องของข้อมูลเบื้องต้น</p>
+                                        <p className="text-gray-500">ตรวจสอบความถูกต้องและวงเงินประเมินสูงสุด</p>
                                     </div>
-                                    <Button variant="outline" onClick={() => setCurrentStep(1)} className="text-chaiyo-blue border-chaiyo-blue bg-white hover:bg-blue-50">
-                                        แก้ไขข้อมูล / รถคนละคัน
-                                    </Button>
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -625,119 +648,82 @@ function PreQuestionPageContent() {
 
 
 
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                                             {/* Display Info Section */}
-                                            <div className="space-y-6">
-                                                {/* Vehicle Collateral Details */}
-                                                {(formData.collateralType === 'car' || formData.collateralType === 'moto' || formData.collateralType === 'truck' || formData.collateralType === 'agri') && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6 bg-white border border-gray-200 p-6 rounded-xl">
-                                                        {formData.collateralType !== 'agri' && (
-                                                            <>
-                                                                <div className="space-y-1">
-                                                                    <p className="text-gray-500 text-sm">ทะเบียนรถ</p>
-                                                                    <p className="font-semibold text-gray-900">{formData.licensePlate || '-'}</p>
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <p className="text-gray-500 text-sm">จังหวัด</p>
-                                                                    <p className="font-semibold text-gray-900">{formData.province || '-'}</p>
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">ยี่ห้อ</p>
-                                                            <p className="font-semibold text-gray-900">{formData.brand || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">รุ่น</p>
-                                                            <p className="font-semibold text-gray-900">{formData.model || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">ปี</p>
-                                                            <p className="font-semibold text-gray-900">{formData.year || '-'}</p>
-                                                        </div>
+                                            <div className="lg:col-span-2 space-y-6">
+                                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                                    <div className="p-6 space-y-6">
+                                                        <h4 className="font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
+                                                            <User className="w-5 h-5 text-chaiyo-blue" /> ปัจจัยที่มีผลต่อการคำนวณ LTV
+                                                        </h4>
 
-                                                        {formData.collateralType === 'agri' && (
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
                                                             <div className="space-y-1">
-                                                                <p className="text-gray-500 text-sm">หมายเลขเครื่อง/Serial Number</p>
-                                                                <p className="font-semibold text-gray-900">{formData.serialNumber || '-'}</p>
+                                                                <p className="text-gray-500 text-sm">ประเภทหลักประกัน</p>
+                                                                <p className="font-semibold text-gray-900">
+                                                                    {PRODUCTS.find(p => p.id === formData.collateralType)?.label || '-'}
+                                                                </p>
                                                             </div>
-                                                        )}
 
-                                                        {formData.collateralType !== 'agri' && (
                                                             <div className="space-y-1">
-                                                                <p className="text-gray-500 text-sm">สี</p>
-                                                                <p className="font-semibold text-gray-900">{formData.color || '-'}</p>
+                                                                <p className="text-gray-500 text-sm">กลุ่มอาชีพ</p>
+                                                                <p className="font-semibold text-gray-900">
+                                                                    {formData.occupationGroup === 'employee' ? 'พนักงานประจำ' :
+                                                                        formData.occupationGroup === 'business_owner' ? 'เจ้าของกิจการ' :
+                                                                            formData.occupationGroup === 'farmer' ? 'เกษตรกร' : '-'}
+                                                                </p>
                                                             </div>
-                                                        )}
 
-                                                        {formData.collateralType !== 'agri' && (
-                                                            <>
-                                                                <div className="space-y-1">
-                                                                    <p className="text-gray-500 text-sm">เลขเครื่องยนต์</p>
-                                                                    <p className="font-semibold text-gray-900 font-mono">{formData.engineNumber || '-'}</p>
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <p className="text-gray-500 text-sm">เลขตัวถัง</p>
-                                                                    <p className="font-semibold text-gray-900 font-mono">{formData.chassisNumber || '-'}</p>
-                                                                </div>
-                                                            </>
-                                                        )}
+                                                            <div className="space-y-1">
+                                                                <p className="text-gray-500 text-sm">โครงการพิเศษ</p>
+                                                                <p className="font-semibold text-gray-900">
+                                                                    {formData.specialProject === 'b2b_payroll' ? 'B2B Payroll' : 'ทั่วไป'}
+                                                                </p>
+                                                            </div>
 
-                                                        <div className="col-span-2 md:col-span-3 pt-4 border-t border-gray-100">
-                                                            <p className="text-gray-500 text-sm mb-1">สถานะทางกฎหมาย</p>
-                                                            <p className="font-semibold text-gray-900">
-                                                                {formData.legalStatus === 'pledge' ? 'จำนำ' : formData.legalStatus === 'hire_purchase' ? 'เช่าซื้อ' : 'ปลอดภาระ'}
-                                                            </p>
+                                                            <div className="space-y-1">
+                                                                <p className="text-gray-500 text-sm">อายุผู้กู้</p>
+                                                                <p className="font-semibold text-gray-900">{formData.borrowerAge ? `${formData.borrowerAge} ปี` : '-'}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Visual context for the asset choice */}
+                                                        <div className="mt-4 pt-6 border-t border-gray-50">
+                                                            <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-4">
+                                                                <div className={cn(
+                                                                    "p-3 rounded-full",
+                                                                    PRODUCTS.find(p => p.id === formData.collateralType)?.color || "bg-gray-100 text-gray-400"
+                                                                )}>
+                                                                    {(() => {
+                                                                        const Icon = PRODUCTS.find(p => p.id === formData.collateralType)?.icon || Briefcase;
+                                                                        return <Icon className="w-6 h-6" />;
+                                                                    })()}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">หลักประกันที่ประเมิน</p>
+                                                                    <p className="font-bold text-gray-900">
+                                                                        {formData.brand} {formData.model} {formData.year}
+                                                                        {formData.collateralType === 'land' && `${formData.province} (${formData.area || '-'})`}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-8 pt-4 border-t border-gray-100">
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() => setCurrentStep(1)}
+                                                                className="w-full text-chaiyo-blue border-chaiyo-blue bg-white hover:bg-blue-50 h-12 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                                                            >
+                                                                <ChevronLeft className="w-4 h-4" /> แก้ไขข้อมูล
+                                                            </Button>
                                                         </div>
                                                     </div>
-                                                )}
-
-                                                {/* Land Collateral Details */}
-                                                {formData.collateralType === 'land' && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6 bg-white border border-gray-200 p-6 rounded-xl">
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">เลขที่โฉนด</p>
-                                                            <p className="font-semibold text-gray-900 font-mono">{formData.deedNumber || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">เลขที่ดิน</p>
-                                                            <p className="font-semibold text-gray-900">{formData.landNumber || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">หน้าสำรวจ</p>
-                                                            <p className="font-semibold text-gray-900">{formData.surveyNumber || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">ตำบล/แขวง</p>
-                                                            <p className="font-semibold text-gray-900">{formData.tambon || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">อำเภอ/เขต</p>
-                                                            <p className="font-semibold text-gray-900">{formData.amphoe || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-500 text-sm">จังหวัด</p>
-                                                            <p className="font-semibold text-gray-900">{formData.province || '-'}</p>
-                                                        </div>
-                                                        <div className="space-y-1 col-span-2 md:col-span-3">
-                                                            <p className="text-gray-500 text-sm">เนื้อที่ (ไร่-งาน-ตารางวา)</p>
-                                                            <p className="font-semibold text-gray-900 font-mono">{formData.area || '-'}</p>
-                                                        </div>
-                                                        <div className="col-span-2 md:col-span-3 pt-4 border-t border-gray-100">
-                                                            <p className="text-gray-500 text-sm mb-1">สถานะทางกฎหมาย</p>
-                                                            <p className="font-semibold text-gray-900">
-                                                                {formData.legalStatus === 'pledge_refinance' ? 'จำนำ (Refinance)' :
-                                                                    formData.legalStatus === 'mortgage_clear' ? 'จำนอง (ปลอดภาระ)' :
-                                                                        formData.legalStatus === 'mortgage_refinance' ? 'จำนอง (Refinance)' :
-                                                                            'จำนำ (ปลอดภาระ)'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
 
                                             {/* Loan Summary Limit Card Breakdown */}
-                                            <div className="space-y-6">
+                                            <div className="lg:col-span-3 space-y-6">
                                                 <div className="bg-white border-2 border-chaiyo-blue rounded-2xl overflow-hidden shadow-lg shadow-blue-900/5">
                                                     <div className="bg-gradient-to-r from-chaiyo-blue to-blue-700 p-6 text-white flex items-center gap-3">
                                                         <Briefcase className="w-6 h-6 text-yellow-300" />
@@ -754,15 +740,10 @@ function PreQuestionPageContent() {
                                                                 </p>
                                                             </div>
                                                             <div className="text-right">
-                                                                <div className="relative">
-                                                                    <Input
-                                                                        type="text"
-                                                                        value={formData.appraisalPrice ? Number(formData.appraisalPrice).toLocaleString() : ''}
-                                                                        readOnly
-                                                                        disabled
-                                                                        className="w-32 text-right h-10 font-bold border-gray-200 cursor-not-allowed text-gray-700"
-                                                                    />
-                                                                </div>
+                                                                <span className="text-xl font-bold text-gray-900">
+                                                                    {formData.appraisalPrice ? Number(formData.appraisalPrice).toLocaleString() : '0'}
+                                                                </span>
+                                                                <span className="text-gray-500 ml-2">บาท</span>
                                                             </div>
                                                         </div>
 
@@ -797,24 +778,26 @@ function PreQuestionPageContent() {
                                                         <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-100 mt-2">
                                                             <div className="flex justify-between items-center mb-2">
                                                                 <span className="text-blue-900 font-bold text-lg">วงเงินประเมินสูงสุดที่ได้</span>
+                                                                <div className="text-right">
+                                                                    <span className="text-4xl font-black text-chaiyo-blue tracking-tight">
+                                                                        {finalLimit.toLocaleString()}
+                                                                    </span>
+                                                                    <span className="text-gray-500 font-medium ml-2">บาท</span>
+                                                                </div>
                                                             </div>
-                                                            <div className="text-right">
-                                                                <span className="text-4xl font-black text-chaiyo-blue tracking-tight">
-                                                                    {finalLimit.toLocaleString()}
-                                                                </span>
-                                                                <span className="text-gray-500 font-medium ml-2">บาท</span>
-                                                            </div>
+
                                                             <p className="text-xs text-blue-600/80 mt-3 text-right">
                                                                 *คำนวณจาก {Number(appraisalPrice).toLocaleString()} × {(finalLTV * 100).toFixed(0)}%
                                                             </p>
                                                         </div>
 
                                                         {/* Action Buttons */}
-                                                        <div className="flex justify-between pt-4 gap-4">
-                                                            <Button variant="outline" onClick={prevStep} className="text-gray-500 h-12 border-gray-200">
-                                                                <ChevronLeft className="w-4 h-4 mr-2" /> ย้อนกลับ
-                                                            </Button>
-                                                            <Button onClick={() => setCurrentStep(3)} className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white min-w-[150px] h-12 shadow-lg shadow-chaiyo-blue/20">
+                                                        <div className="flex justify-end pt-4 gap-4">
+
+                                                            <Button
+                                                                onClick={() => setCurrentStep(3)}
+                                                                className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white min-w-[200px] h-12 shadow-lg shadow-chaiyo-blue/20 rounded-xl text-base font-bold transition-all"
+                                                            >
                                                                 ถัดไป <ChevronRight className="w-5 h-5 ml-2" />
                                                             </Button>
                                                         </div>
@@ -1126,14 +1109,14 @@ function PreQuestionPageContent() {
                                                     <div className="mt-6 grid grid-cols-2 gap-3">
                                                         <Button
                                                             onClick={handleCreateApplication}
-                                                            className="w-full h-12 gap-2 bg-chaiyo-blue hover:bg-chaiyo-blue/90 shadow-lg shadow-chaiyo-blue/20 text-white rounded-xl"
+                                                            className="w-full h-12 gap-2 bg-chaiyo-blue hover:bg-chaiyo-blue/90 shadow-lg shadow-chaiyo-blue/20 text-white rounded-xl font-bold"
                                                         >
                                                             สร้างใบคำขอสินเชื่อ
                                                         </Button>
                                                         <Button
                                                             onClick={handlePrint}
                                                             variant="outline"
-                                                            className="w-full h-12 gap-2 border-chaiyo-blue/20 text-chaiyo-blue hover:bg-blue-50 hover:border-chaiyo-blue/40 rounded-xl"
+                                                            className="w-full h-12 gap-2 border-chaiyo-blue/20 text-chaiyo-blue hover:bg-blue-50 hover:border-chaiyo-blue/40 rounded-xl font-bold"
                                                         >
                                                             <Printer className="w-4 h-4" /> พิมพ์ Salesheets
                                                         </Button>
@@ -1285,7 +1268,7 @@ function PreQuestionPageContent() {
                                 <Button
                                     variant="outline"
                                     onClick={prevStep}
-                                    className="w-full md:w-auto px-6 h-12 text-gray-500 hover:text-gray-900 border-gray-300 bg-white"
+                                    className="w-full md:w-auto px-6 h-12 text-gray-500 hover:text-gray-900 border-gray-300 bg-white rounded-xl font-bold"
                                 >
                                     <ChevronLeft className="w-4 h-4 mr-2" />
                                     กลับไปแก้ไขข้อมูล
@@ -1294,6 +1277,21 @@ function PreQuestionPageContent() {
                         </div>
                     );
                 })()}
+
+                {/* STEP 4: Privacy & Consent */}
+                {currentStep === 4 && (
+                    <div className="max-w-4xl mx-auto py-8">
+                        <Card className="border border-border-subtle shadow-xl rounded-[2rem] bg-white overflow-hidden">
+                            <CardContent className="p-10">
+                                <PrivacyConsentStep
+                                    onAccept={handleConfirmConsent}
+                                    onBack={() => setCurrentStep(3)}
+                                    collateralType={formData.collateralType}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Hidden Print Component */}
                 <QuotationPrint

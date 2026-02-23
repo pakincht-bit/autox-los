@@ -10,6 +10,7 @@ export interface BreadcrumbItem {
     label: string;
     href?: string;
     isActive?: boolean;
+    onClick?: () => void;
 }
 
 export interface DashboardPageHeaderProps {
@@ -28,7 +29,14 @@ export function DashboardPageHeader({ breadcrumbs, rightContent }: DashboardPage
                             const isLast = index === breadcrumbs.length - 1;
                             return (
                                 <React.Fragment key={index}>
-                                    {bc.href ? (
+                                    {bc.onClick ? (
+                                        <button
+                                            onClick={bc.onClick}
+                                            className="hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-gray-50 flex items-center gap-1.5 font-medium"
+                                        >
+                                            <span className="truncate">{bc.label}</span>
+                                        </button>
+                                    ) : bc.href ? (
                                         <Link href={bc.href} className="hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-gray-50 flex items-center gap-1.5 font-medium">
                                             <span className="truncate">{bc.label}</span>
                                         </Link>

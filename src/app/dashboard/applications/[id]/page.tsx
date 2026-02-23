@@ -25,7 +25,7 @@ import {
 // Mock Data
 const MOCK_DETAIL_DATA: ApplicationDetail = {
     id: "1",
-    applicationNo: "APP-2023001",
+    applicationNo: "app-256700001",
     applicantName: "สมชาย ใจดี",
     makerName: "สมหญิง ใจดี",
     submissionDate: "01/10/2023",
@@ -153,7 +153,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                     </Dialog>
                                     <Button
                                         className="h-9 bg-chaiyo-blue hover:bg-chaiyo-blue/90 font-medium shadow-sm transition-all"
-                                        onClick={() => router.push('/dashboard/pre-question')} // or actual edit URL
+                                        onClick={() => router.push(`/dashboard/new-application?state=draft&id=${app.applicationNo}`)}
                                     >
                                         <Pencil className="w-4 h-4 mr-1.5" />
                                         แก้ไขคำขอ

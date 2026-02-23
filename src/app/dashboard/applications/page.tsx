@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 const MOCK_DATA: Application[] = [
     {
         id: "1",
-        applicationNo: "APP-2023001",
+        applicationNo: "app-256700001",
         applicantName: "สมชาย ใจดี",
         makerName: "สมหญิง ใจดี",
         submissionDate: "01/10/2023",
@@ -24,7 +24,7 @@ const MOCK_DATA: Application[] = [
     },
     {
         id: "2",
-        applicationNo: "APP-2023002",
+        applicationNo: "app-256700002",
         applicantName: "วิภาวดี รักษ์ไทย",
         makerName: "กานต์ สว่างใจ",
         submissionDate: "02/10/2023",
@@ -34,7 +34,7 @@ const MOCK_DATA: Application[] = [
     },
     {
         id: "3",
-        applicationNo: "APP-2023003",
+        applicationNo: "app-256700003",
         applicantName: "กมล คนขยัน",
         makerName: "สมหญิง ใจดี",
         submissionDate: "03/10/2023",
@@ -44,7 +44,7 @@ const MOCK_DATA: Application[] = [
     },
     {
         id: "4",
-        applicationNo: "APP-2023004",
+        applicationNo: "app-256700004",
         applicantName: "ดาริน สวยงาม",
         makerName: "กานต์ สว่างใจ",
         submissionDate: "04/10/2023",
@@ -54,7 +54,7 @@ const MOCK_DATA: Application[] = [
     },
     {
         id: "5",
-        applicationNo: "APP-2023005",
+        applicationNo: "app-256700005",
         applicantName: "เอกชัย มั่นคง",
         makerName: "สมหญิง ใจดี",
         submissionDate: "05/10/2023",
@@ -64,7 +64,7 @@ const MOCK_DATA: Application[] = [
     },
     {
         id: "6",
-        applicationNo: "APP-2023006",
+        applicationNo: "app-256700006",
         applicantName: "มานะ อดทน",
         makerName: "กานต์ สว่างใจ",
         submissionDate: "06/10/2023",
@@ -74,7 +74,7 @@ const MOCK_DATA: Application[] = [
     },
     {
         id: "7",
-        applicationNo: "APP-2023007",
+        applicationNo: "app-256700007",
         applicantName: "ประภาส เจริญดี",
         makerName: "สมหญิง ใจดี",
         submissionDate: "07/10/2023",
@@ -84,7 +84,7 @@ const MOCK_DATA: Application[] = [
     },
     {
         id: "8",
-        applicationNo: "APP-2023008",
+        applicationNo: "app-256700008",
         applicantName: "สุนีย์ แสงทอง",
         makerName: "กานต์ สว่างใจ",
         submissionDate: "08/10/2023",
