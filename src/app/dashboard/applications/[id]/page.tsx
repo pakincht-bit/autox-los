@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ApplicationDetailSummary, ApplicationActivitySidebar } from "./ApplicationHeader";
-import { DashboardPageHeader } from "@/components/layout/DashboardPageHeader";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import { ApplicationDetail, ApplicationStatus } from "@/components/applications/types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/Card";
@@ -92,16 +92,21 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
     // In real app, fetch data using params.id
     const app = MOCK_DETAIL_DATA;
     const [currentStatus, setCurrentStatus] = useState<ApplicationStatus>(app.status);
+    const { setBreadcrumbs, setRightContent } = useSidebar();
+
+    useEffect(() => {
+        setBreadcrumbs([
+            { label: "รายการคำขอ", href: "/dashboard/applications" },
+            { label: app.applicationNo, isActive: true }
+        ]);
+        return () => {
+            setBreadcrumbs([]);
+            setRightContent(null);
+        };
+    }, [app.applicationNo, setBreadcrumbs, setRightContent]);
 
     return (
         <div className="">
-            <DashboardPageHeader
-                breadcrumbs={[
-                    { label: "รายการคำขอ", href: "/dashboard/applications" },
-                    { label: app.applicationNo, isActive: true }
-                ]}
-            />
-
             {/* APP DETAIL INFO & ACTIONS LAYOUT */}
             <div className="flex flex-col lg:flex-row justify-between items-start w-full">
 
@@ -386,7 +391,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                 </div>
 
                 {/* RIGHT: Application Properties & Actions */}
-                <div className="flex flex-col w-full lg:w-[25%] bg-gray-50/50 p-6 border-l border-gray-100 sticky top-12 h-[calc(100vh-48px)] overflow-y-auto no-scrollbar">
+                <div className="flex flex-col w-full lg:w-[25%] bg-gray-50/50 p-6 border-l border-gray-100 sticky top-0 h-full overflow-y-auto no-scrollbar">
                     <ApplicationActivitySidebar
                         status={currentStatus}
                         onApprove={() => {

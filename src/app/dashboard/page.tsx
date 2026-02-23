@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import {
     Plus,
     Files,
@@ -44,6 +45,16 @@ const recentApps = [
 export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState("วันนี้");
     const router = useRouter();
+
+    const { setBreadcrumbs, setRightContent } = useSidebar();
+
+    useEffect(() => {
+        setBreadcrumbs([]);
+        return () => {
+            setBreadcrumbs([]);
+            setRightContent(null);
+        };
+    }, [setBreadcrumbs, setRightContent]);
 
     return (
         <div className="space-y-8 p-6 lg:px-8 lg:py-6">

@@ -29,7 +29,7 @@ import { DocumentUploadStep } from "./steps/DocumentUploadStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { ExistingCustomerView } from "./components/ExistingCustomerView";
 
-import { DashboardPageHeader } from "@/components/layout/DashboardPageHeader";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import {
     Dialog,
     DialogContent,
@@ -333,6 +333,50 @@ function NewApplicationPageContent() {
         setCurrentStep(3); // Jump to Calculator (Step 3 now)
     };
 
+    const { setBreadcrumbs, setRightContent } = useSidebar();
+
+    useEffect(() => {
+        setBreadcrumbs([
+            {
+                label: "รายการคำขอ",
+                onClick: () => {
+                    setConfirmLeaveDialog(true);
+                }
+            },
+            { label: isApplicationStarted && appId ? appId : "สร้างใบคำขอ", isActive: true }
+        ]);
+
+        if (isApplicationStarted) {
+            setRightContent(
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => toast.success("บันทึกแบบร่างสำเร็จ", {
+                            description: "ข้อมูลใบคำขอของคุณถูกบันทึกเรียบร้อยแล้ว",
+                            duration: 3000,
+                        })}
+                        className="bg-white border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50 h-9 px-4 rounded-lg font-bold"
+                    >
+                        <Save className="w-4 h-4 mr-2" /> บันทึกแบบร่าง
+                    </Button>
+                    <Button
+                        onClick={() => setIsSubmitDialogOpen(true)}
+                        className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-9 px-4 rounded-lg font-bold shadow-sm"
+                    >
+                        <Send className="w-4 h-4 mr-2" /> ส่งใบคำขอ
+                    </Button>
+                </div>
+            );
+        } else {
+            setRightContent(null);
+        }
+
+        return () => {
+            setBreadcrumbs([]);
+            setRightContent(null);
+        };
+    }, [isApplicationStarted, appId, setBreadcrumbs, setRightContent]);
+
     const isStepValid = () => {
         return true;
     };
@@ -349,39 +393,6 @@ function NewApplicationPageContent() {
 
     return (
         <div className="h-full bg-sidebar">
-            <DashboardPageHeader
-                breadcrumbs={[
-                    {
-                        label: "รายการคำขอ",
-                        onClick: () => {
-                            setConfirmLeaveDialog(true);
-                        }
-                    },
-                    { label: isApplicationStarted && appId ? appId : "สร้างใบคำขอ", isActive: true }
-                ]}
-                rightContent={
-                    isApplicationStarted && (
-                        <div className="flex items-center gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => toast.success("บันทึกแบบร่างสำเร็จ", {
-                                    description: "ข้อมูลใบคำขอของคุณถูกบันทึกเรียบร้อยแล้ว",
-                                    duration: 3000,
-                                })}
-                                className="bg-white border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50 h-9 px-4 rounded-lg font-bold"
-                            >
-                                <Save className="w-4 h-4 mr-2" /> บันทึกแบบร่าง
-                            </Button>
-                            <Button
-                                onClick={() => setIsSubmitDialogOpen(true)}
-                                className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-9 px-4 rounded-lg font-bold shadow-sm"
-                            >
-                                <Send className="w-4 h-4 mr-2" /> ส่งใบคำขอ
-                            </Button>
-                        </div>
-                    )
-                }
-            />
             <div className="max-w-7xl mx-auto space-y-6 p-6 lg:px-8 lg:py-6 pb-32">
                 {/* Header Title Section */}
                 <div className="px-2">

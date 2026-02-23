@@ -12,7 +12,7 @@ import { ChevronLeft, Printer, FileText, PiggyBank, Briefcase, Car, Camera, Chec
 import { Combobox } from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { DashboardPageHeader } from "@/components/layout/DashboardPageHeader";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import {
     CAR_BRANDS,
@@ -229,14 +229,21 @@ function PreQuestionPageContent() {
         }, 2000);
     };
 
+    const { setBreadcrumbs, setRightContent } = useSidebar();
+
+    useEffect(() => {
+        setBreadcrumbs([
+            { label: "รายการคำขอ", href: "/dashboard/applications" },
+            { label: "แนะนำผลิตภัณฑ์", isActive: true }
+        ]);
+        return () => {
+            setBreadcrumbs([]);
+            setRightContent(null);
+        };
+    }, [setBreadcrumbs, setRightContent]);
+
     return (
         <div className="h-full">
-            <DashboardPageHeader
-                breadcrumbs={[
-                    { label: "รายการคำขอ", href: "/dashboard/applications" },
-                    { label: "แนะนำผลิตภัณฑ์", isActive: true }
-                ]}
-            />
             <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20 px-4 sm:px-6 lg:px-8 pt-6">
 
                 {/* Stepper Indicator (Matching Application Flow) */}

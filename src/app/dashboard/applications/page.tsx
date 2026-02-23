@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Filter, Calculator } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { ApplicationTable } from "@/components/applications/ApplicationTable";
 import { Application, ApplicationStatus } from "@/components/applications/types";
-import { DashboardPageHeader } from "@/components/layout/DashboardPageHeader";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
 // Mock Data
@@ -123,6 +123,13 @@ export default function ApplicationsPage() {
     const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
     const startIndex = (currentPage - 1) * rowsPerPage;
     const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
+
+    const { setBreadcrumbs, setRightContent } = useSidebar();
+
+    useEffect(() => {
+        setBreadcrumbs([]);
+        setRightContent(null);
+    }, [setBreadcrumbs, setRightContent]);
 
     return (
         <div className="flex flex-col h-full">

@@ -20,7 +20,7 @@ export interface DashboardPageHeaderProps {
 
 export function DashboardPageHeader({ breadcrumbs, rightContent }: DashboardPageHeaderProps) {
     return (
-        <div className="w-full border-b border-gray-100 bg-white sticky top-0 z-40 h-12">
+        <div className="w-full border-b border-gray-100 bg-white relative h-12 shrink-0 z-10">
             <div className="flex items-center justify-between w-full h-full px-6 lg:px-8">
                 {/* LEFT: Toggle + Breadcrumb */}
                 <div className="flex-1 flex items-center justify-start text-sm text-gray-500 gap-1">
