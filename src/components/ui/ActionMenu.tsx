@@ -85,7 +85,6 @@ export function ActionMenu({ onView, onEdit, onNewApplication, onDelete, items }
                 variant="ghost"
                 size="icon"
                 type="button"
-                className="h-8 w-8 hover:bg-gray-100"
                 onClick={(e) => {
                     e.stopPropagation();
                     setIsOpen(!isOpen);

@@ -139,7 +139,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                     {/* CASE A: Existing Customer List View */}
                     {isExistingCustomer && existingCollaterals.length > 0 && !selectedAssetId && (
                         <div className="space-y-4">
-                            <Label className="text-base font-bold text-foreground block mb-2">เลือกทรัพย์สิน</Label>
+                            <Label className="text-base text-foreground block mb-2">เลือกทรัพย์สิน</Label>
                             <div className="space-y-3">
                                 {existingCollaterals.map((asset) => (
                                     <div
@@ -183,7 +183,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                     {(!isExistingCustomer || selectedAssetId) && (
                         <div className="space-y-6 sticky top-6">
                             {/* Summary & Breakdown Card */}
-                            <div className="bg-[#001080] text-white p-6 rounded-[2.5rem] shadow-xl space-y-8 relative overflow-hidden">
+                            <div className="bg-[#000F9F] text-white p-6 rounded-[2.5rem] shadow-xl space-y-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full -mr-16 -mt-16 pointer-events-none"></div>
 
                                 {/* 1. Asset Recap */}
@@ -286,7 +286,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                 <div className="lg:col-span-8 space-y-6">
 
                     <div className="flex justify-between items-center mb-2">
-                        <Label className="text-base font-bold text-foreground">รายละเอียดหลักประกัน</Label>
+                        <Label className="text-base text-foreground">รายละเอียดหลักประกัน</Label>
                     </div>
 
                     {/* Leftover Tabs for existing customers adding new assets */}
@@ -322,7 +322,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                         {!isLand && (
                             <div className="grid gap-x-10 gap-y-6 md:grid-cols-2 animate-in fade-in duration-500">
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">ยี่ห้อ</Label>
+                                    <Label className="text-[13px] text-muted ml-1">ยี่ห้อ</Label>
                                     <Input
                                         placeholder={selectedType === 'agri' ? "Kubota, Yanmar..." : "Toyota, Honda..."}
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -331,7 +331,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">รุ่น</Label>
+                                    <Label className="text-[13px] text-muted ml-1">รุ่น</Label>
                                     <Input
                                         placeholder="Standard..."
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -343,7 +343,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 {/* Car/Moto Specific: Sub-model */}
                                 {['car', 'moto'].includes(selectedType) && (
                                     <div className="space-y-2">
-                                        <Label className="text-[13px] font-bold text-muted ml-1">รุ่นย่อย</Label>
+                                        <Label className="text-[13px] text-muted ml-1">รุ่นย่อย</Label>
                                         <Input
                                             placeholder="E / G / Sport..."
                                             className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -354,7 +354,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 )}
 
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">ปีจดทะเบียน</Label>
+                                    <Label className="text-[13px] text-muted ml-1">ปีจดทะเบียน</Label>
                                     <Input
                                         placeholder="เช่น 2020"
                                         className="font-mono h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -364,7 +364,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">สี</Label>
+                                    <Label className="text-[13px] text-muted ml-1">สี</Label>
                                     <Input
                                         placeholder="ขาว, ดำ..."
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -377,7 +377,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 {selectedType === 'truck' && (
                                     <>
                                         <div className="space-y-2">
-                                            <Label className="text-[13px] font-bold text-muted ml-1">จำนวนล้อ</Label>
+                                            <Label className="text-[13px] text-muted ml-1">จำนวนล้อ</Label>
                                             <div className="grid grid-cols-4 gap-2">
                                                 {['4', '6', '10', '18'].map((w) => (
                                                     <div
@@ -396,7 +396,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[13px] font-bold text-muted ml-1">ลักษณะตัวถัง</Label>
+                                            <Label className="text-[13px] text-muted ml-1">ลักษณะตัวถัง</Label>
                                             <Input
                                                 placeholder="ตู้ทึบ, กระบะ..."
                                                 className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -405,7 +405,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[13px] font-bold text-muted ml-1">น้ำหนักบรรทุก (ตัน)</Label>
+                                            <Label className="text-[13px] text-muted ml-1">น้ำหนักบรรทุก (ตัน)</Label>
                                             <Input
                                                 type="number"
                                                 placeholder="0"
@@ -421,7 +421,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 {selectedType === 'agri' && (
                                     <>
                                         <div className="space-y-2">
-                                            <Label className="text-[13px] font-bold text-muted ml-1">แรงม้า</Label>
+                                            <Label className="text-[13px] text-muted ml-1">แรงม้า</Label>
                                             <Input
                                                 type="number"
                                                 placeholder="50 HP"
@@ -431,7 +431,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[13px] font-bold text-muted ml-1">อุปกรณ์ต่อพ่วง</Label>
+                                            <Label className="text-[13px] text-muted ml-1">อุปกรณ์ต่อพ่วง</Label>
                                             <Input
                                                 placeholder="ผานไถ, โรตารี่..."
                                                 className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -440,7 +440,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[13px] font-bold text-muted ml-1">ชั่วโมงการทำงาน</Label>
+                                            <Label className="text-[13px] text-muted ml-1">ชั่วโมงการทำงาน</Label>
                                             <Input
                                                 type="number"
                                                 placeholder="0"
@@ -453,7 +453,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 )}
 
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">เลขทะเบียน</Label>
+                                    <Label className="text-[13px] text-muted ml-1">เลขทะเบียน</Label>
                                     <Input
                                         placeholder="1กข 1234"
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -462,7 +462,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">จังหวัดที่จดทะเบียน</Label>
+                                    <Label className="text-[13px] text-muted ml-1">จังหวัดที่จดทะเบียน</Label>
                                     <Input
                                         placeholder="กรุงเทพมหานคร"
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -473,7 +473,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
 
                                 {selectedType !== 'agri' && (
                                     <div className="space-y-2">
-                                        <Label className="text-[13px] font-bold text-muted ml-1">เลขไมล์</Label>
+                                        <Label className="text-[13px] text-muted ml-1">เลขไมล์</Label>
                                         <div className="relative">
                                             <Input
                                                 placeholder="0"
@@ -492,7 +492,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 )}
 
                                 <div className="md:col-span-2 space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">เลขตัวถัง (VIN)</Label>
+                                    <Label className="text-[13px] text-muted ml-1">เลขตัวถัง (VIN)</Label>
                                     <Input
                                         placeholder="ระบุเลขตัวถัง..."
                                         className="font-mono uppercase h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -507,7 +507,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                         {isLand && (
                             <div className="grid gap-x-10 gap-y-8 md:grid-cols-2 animate-in fade-in duration-500">
                                 <div className="md:col-span-2 space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">พิกัด (Lat, Long)</Label>
+                                    <Label className="text-[13px] text-muted ml-1">พิกัด (Lat, Long)</Label>
                                     <Input
                                         placeholder="13.7563, 100.5018"
                                         className="h-14 rounded-xl text-lg font-mono disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -516,7 +516,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">เลขที่โฉนด</Label>
+                                    <Label className="text-[13px] text-muted ml-1">เลขที่โฉนด</Label>
                                     <Input
                                         placeholder="ระบุเลขที่โฉนด"
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -525,7 +525,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">เลขที่ดิน</Label>
+                                    <Label className="text-[13px] text-muted ml-1">เลขที่ดิน</Label>
                                     <Input
                                         placeholder="ระบุเลขที่ดิน"
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -534,7 +534,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">ระวาง</Label>
+                                    <Label className="text-[13px] text-muted ml-1">ระวาง</Label>
                                     <Input
                                         placeholder="ระบุระวาง"
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -543,7 +543,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-[13px] font-bold text-muted ml-1">หน้าสำรวจ</Label>
+                                    <Label className="text-[13px] text-muted ml-1">หน้าสำรวจ</Label>
                                     <Input
                                         placeholder="ระบุหน้าสำรวจ"
                                         className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -553,7 +553,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 </div>
                                 <div className="md:col-span-2 grid grid-cols-3 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-[13px] font-bold text-muted ml-1">ไร่</Label>
+                                        <Label className="text-[13px] text-muted ml-1">ไร่</Label>
                                         <Input
                                             type="number" placeholder="0"
                                             className="h-14 rounded-xl text-lg text-center disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -562,7 +562,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[13px] font-bold text-muted ml-1">งาน</Label>
+                                        <Label className="text-[13px] text-muted ml-1">งาน</Label>
                                         <Input
                                             type="number" placeholder="0"
                                             className="h-14 rounded-xl text-lg text-center disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -571,7 +571,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[13px] font-bold text-muted ml-1">ตร.ว.</Label>
+                                        <Label className="text-[13px] text-muted ml-1">ตร.ว.</Label>
                                         <Input
                                             type="number" placeholder="0"
                                             className="h-14 rounded-xl text-lg text-center disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
@@ -585,7 +585,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
 
                         {/* 2.5 Appraisal Price Section */}
                         <div className="mt-8 pt-8 border-t border-gray-100 space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
-                            <Label className="text-base font-bold text-foreground">ราคาประเมินทรัพย์สิน</Label>
+                            <Label className="text-base text-foreground">ราคาประเมินทรัพย์สิน</Label>
                             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                                 <div className="relative flex-1 w-full max-w-md group">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-700 font-bold text-xl transition-transform group-focus-within:scale-110">฿</span>
@@ -630,7 +630,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
 
                         {/* 3. Legal Status Section */}
                         <div className="mt-10 pt-8 border-t border-gray-100 space-y-6">
-                            <Label className="text-base font-bold text-foreground">สถานะทางกฎหมายของทรัพย์สิน</Label>
+                            <Label className="text-base text-foreground">สถานะทางกฎหมายของทรัพย์สิน</Label>
 
                             <div className="grid grid-cols-3 gap-3">
                                 {[
@@ -658,7 +658,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                                 {formData.legalStatus === 'pawned' && (
                                     <div className="space-y-2 max-w-md">
-                                        <Label className="text-[13px] font-bold text-muted ml-1 text-red-600">ยอดหนี้คงเหลือจากที่เดิม (บาท)</Label>
+                                        <Label className="text-[13px] text-muted ml-1 text-red-600">ยอดหนี้คงเหลือจากที่เดิม (บาท)</Label>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-bold">฿</span>
                                             <Input
@@ -679,7 +679,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
 
                                 {formData.legalStatus === 'lease' && (
                                     <div className="space-y-2 max-w-md">
-                                        <Label className="text-[13px] font-bold text-muted ml-1 text-red-600">ยอดหนี้ปิดบัญชี (Payoff Balance) (บาท)</Label>
+                                        <Label className="text-[13px] text-muted ml-1 text-red-600">ยอดหนี้ปิดบัญชี (Payoff Balance) (บาท)</Label>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-bold">฿</span>
                                             <Input

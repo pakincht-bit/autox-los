@@ -20,8 +20,8 @@ The primary brand colors establish the identity of the application.
 
 | Color Name | Hex Code | Variable | Usage | Meaning |
 | :--- | :--- | :--- | :--- | :--- |
-| **Chaiyo Blue** | `#001275` | `--color-chaiyo-blue` | Primary buttons, active states, key headers, focus rings. | **Trust, Stability, Authority.** This is the main action color. |
-| **Chaiyo Gold** | `#FFB909` | `--color-chaiyo-gold` | Accent highlights, "recommended" tags, focus indicators. | **Value, Opportunity.** Used sparingly to draw eye to high-value items. |
+| **Chaiyo Blue** | `#000F9F` | `--color-chaiyo-blue` | Primary buttons, active states, key headers, focus rings. | **Trust, Stability, Authority.** This is the main action color. |
+| **Chaiyo Gold** | `#FFD100` | `--color-chaiyo-gold` | Accent highlights, "recommended" tags, focus indicators. | **Value, Opportunity.** Used sparingly to draw eye to high-value items. |
 
 ### Status Colors
 Used to convey the state of applications, alerts, and system feedback.

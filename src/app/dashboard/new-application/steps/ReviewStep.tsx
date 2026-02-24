@@ -216,7 +216,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2">
 
             <div className="text-center space-y-3 mb-6">
-                <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-yellow-100">
+                <div className="w-20 h-20 bg-chaiyo-gold/10 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-chaiyo-gold/20">
                     <ShieldCheck className="w-10 h-10 text-chaiyo-gold" />
                 </div>
                 <h3 className="text-2xl font-bold">ตรวจสอบข้อมูลและยืนยัน</h3>
@@ -861,7 +861,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
             <div className="pt-4 pb-8 flex justify-center">
                 <Button
                     size="lg"
-                    className="w-full max-w-sm h-14 text-lg font-bold bg-chaiyo-gold hover:bg-chaiyo-gold/90 text-[#001080] shadow-xl"
+                    className="w-full max-w-sm h-14 text-lg font-bold bg-chaiyo-gold hover:bg-chaiyo-gold/90 text-[#000F9F] shadow-xl"
                     disabled={!acceptedTerms}
                     onClick={handleConfirmSubmission}
                 >
@@ -875,7 +875,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
             {
                 showOTP && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-[#001080]/80 backdrop-blur-md" />
+                        <div className="absolute inset-0 bg-[#000F9F]/80 backdrop-blur-md" />
                         <Card className="relative w-full max-w-md bg-white shadow-2xl rounded-[2.5rem] border-none overflow-hidden animate-in zoom-in-95 duration-200">
                             <div className="p-10 space-y-8">
                                 <div className="flex justify-center">

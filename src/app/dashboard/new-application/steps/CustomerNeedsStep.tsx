@@ -49,7 +49,7 @@ export function CustomerNeedsStep({ formData, setFormData, isExistingCustomer, e
                                 <Target className="w-5 h-5" />
                             </div>
                             <div>
-                                <Label className="text-base font-bold text-foreground">วัตถุประสงค์การใช้เงิน</Label>
+                                <Label className="text-base text-foreground">วัตถุประสงค์การใช้เงิน</Label>
                                 <p className="text-xs text-muted">ลูกค้าต้องการนำเงินไปใช้ทำอะไร?</p>
                             </div>
                         </div>
@@ -86,7 +86,7 @@ export function CustomerNeedsStep({ formData, setFormData, isExistingCustomer, e
                                 <Banknote className="w-5 h-5" />
                             </div>
                             <div>
-                                <Label className="text-base font-bold text-foreground">จำนวนสินเชื่อที่ต้องการ</Label>
+                                <Label className="text-base text-foreground">จำนวนสินเชื่อที่ต้องการ</Label>
                                 <p className="text-xs text-muted">ลูกค้าต้องการสินเชื่อประมาณเท่าไหร่?</p>
                             </div>
                         </div>
@@ -115,7 +115,7 @@ export function CustomerNeedsStep({ formData, setFormData, isExistingCustomer, e
                                 <Car className="w-5 h-5" />
                             </div>
                             <div>
-                                <Label className="text-base font-bold text-foreground">ทรัพย์สินค้ำประกัน</Label>
+                                <Label className="text-base text-foreground">ทรัพย์สินค้ำประกัน</Label>
                                 <p className="text-xs text-muted">เลือกทรัพย์สินที่จะนำมาเป็นหลักประกันในครั้งนี้</p>
                             </div>
                         </div>

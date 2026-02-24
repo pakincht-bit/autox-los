@@ -178,9 +178,9 @@ export default function ApplicationsPage() {
                             />
                         </div>
 
-                        <Link href="/dashboard/pre-question" className="w-full sm:w-auto mt-2 sm:mt-0">
-                            <Button className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 font-semibold shadow-md active:scale-95 transition-transform text-xs h-10 rounded-lg">
-
+                        <Link href="/dashboard/pre-question" className="w-full sm:w-auto">
+                            <Button size="lg" className="w-full sm:w-auto font-bold shadow-lg shadow-chaiyo-blue/20 active:scale-95 transition-all">
+                                <Calculator className="w-4 h-4" />
                                 แนะนำผลิตภัณฑ์
                             </Button>
                         </Link>
@@ -199,7 +199,7 @@ export default function ApplicationsPage() {
                             variant="ghost"
                             size="sm"
                             disabled={currentPage <= 1}
-                            className="text-xs h-8"
+                            className="text-xs"
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         >
                             ก่อนหน้า
@@ -211,7 +211,7 @@ export default function ApplicationsPage() {
                             variant="ghost"
                             size="sm"
                             disabled={currentPage >= totalPages}
-                            className="text-xs h-8"
+                            className="text-xs"
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         >
                             ถัดไป

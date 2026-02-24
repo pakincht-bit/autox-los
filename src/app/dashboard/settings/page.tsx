@@ -91,19 +91,19 @@ export default function SettingsPage() {
 
                             <div className="grid gap-6">
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-muted uppercase tracking-wider">ชื่อ-นามสกุล</Label>
+                                    <Label className="text-xs text-muted uppercase tracking-wider">ชื่อ-นามสกุล</Label>
                                     <Input defaultValue="สมหญิง จริงใจ" className="bg-white border-border-subtle focus:bg-white" />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-muted uppercase tracking-wider">อีเมลสำหรับติดต่องาน</Label>
+                                    <Label className="text-xs text-muted uppercase tracking-wider">อีเมลสำหรับติดต่องาน</Label>
                                     <Input defaultValue="somying.j@ngernchaiyo.com" className="bg-white border-border-subtle" />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-muted uppercase tracking-wider">เบอร์โทรศัพท์มือถือ</Label>
+                                    <Label className="text-xs text-muted uppercase tracking-wider">เบอร์โทรศัพท์มือถือ</Label>
                                     <Input defaultValue="081-xxx-xxxx" className="font-mono bg-white border-border-subtle" />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-muted uppercase tracking-wider">ตำแหน่งงาน</Label>
+                                    <Label className="text-xs text-muted uppercase tracking-wider">ตำแหน่งงาน</Label>
                                     <Input defaultValue="Assistant Branch Manager" disabled className="bg-gray-100/50 border-border-subtle text-muted" />
                                 </div>
                             </div>
@@ -127,7 +127,7 @@ export default function SettingsPage() {
 
                             <div className="grid gap-6 bg-white p-8 rounded-2xl border border-border-subtle shadow-sm">
                                 <div className="grid gap-3">
-                                    <Label className="text-xs font-bold text-muted uppercase tracking-wider">ภาษาที่ใช้ในระบบ (Language)</Label>
+                                    <Label className="text-xs text-muted uppercase tracking-wider">ภาษาที่ใช้ในระบบ (Language)</Label>
                                     <Select defaultValue="th">
                                         <SelectTrigger className="h-12 rounded-xl">
                                             <SelectValue placeholder="เลือกภาษา" />
@@ -140,7 +140,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div className="grid gap-3">
-                                    <Label className="text-xs font-bold text-muted uppercase tracking-wider">เขตเวลา (Timezone)</Label>
+                                    <Label className="text-xs text-muted uppercase tracking-wider">เขตเวลา (Timezone)</Label>
                                     <Select defaultValue="bangkok">
                                         <SelectTrigger className="h-12 rounded-xl">
                                             <SelectValue placeholder="เลือกเขตเวลา" />

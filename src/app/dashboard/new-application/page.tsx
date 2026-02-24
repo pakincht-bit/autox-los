@@ -2,9 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { FileText, ChevronLeft, ChevronRight, User, Car, Calculator, Check, AlertCircle, CheckCircle, Loader2, ArrowLeft, Save, Send } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, User, Car, Calculator, Check, AlertCircle, CheckCircle, Loader2, ArrowLeft, Save, Send, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
@@ -22,7 +22,9 @@ import { toast } from "sonner";
 // Steps
 import { IdentityCheckStep } from "./steps/IdentityCheckStep";
 import { PrivacyConsentStep } from "./steps/PrivacyConsentStep";
+import { SensitiveDataConsentStep } from "./steps/SensitiveDataConsentStep";
 import { CustomerInfoStep } from "./steps/CustomerInfoStep";
+import { IncomeAndDebtStep } from "./steps/IncomeAndDebtStep";
 import { CollateralStep } from "./steps/CollateralStepNew"; // New merged step
 import { CalculatorStep } from "./steps/CalculatorStep";
 import { DocumentUploadStep } from "./steps/DocumentUploadStep";
@@ -45,10 +47,11 @@ import { Label } from "@/components/ui/Label";
 // Application Flow starts at Step 1 (Customer Info).
 const ALL_STEPS = [
     { id: 1, title: 'ข้อมูลผู้กู้', description: 'Customer Info', icon: User },
-    { id: 2, title: 'หลักประกัน', description: 'Collateral', icon: Car }, // Merged step
-    { id: 3, title: 'คำนวณวงเงิน', description: 'Calculator', icon: Calculator },
-    { id: 4, title: 'เอกสาร', description: 'Documents', icon: FileText },
-    { id: 5, title: 'ตรวจสอบ', description: 'Review', icon: Check },
+    { id: 2, title: 'รายได้และหนี้สิน', description: 'Income & Debt', icon: DollarSign },
+    { id: 3, title: 'หลักประกัน', description: 'Collateral', icon: Car }, // Merged step
+    { id: 4, title: 'คำนวณวงเงิน', description: 'Calculator', icon: Calculator },
+    { id: 5, title: 'เอกสาร', description: 'Documents', icon: FileText },
+    { id: 6, title: 'ตรวจสอบ', description: 'Review', icon: Check },
 ];
 
 function NewApplicationPageContent() {
@@ -160,6 +163,7 @@ function NewApplicationPageContent() {
     const [existingProfile, setExistingProfile] = useState<any>(null);
     const [isIdentityVerified, setIsIdentityVerified] = useState(false);
     const [isConsentAccepted, setIsConsentAccepted] = useState(false);
+    const [isSensitiveConsentAccepted, setIsSensitiveConsentAccepted] = useState(false);
 
     // Mock Assets & Loans - Shared for Existing Customers
     const assetsWithLoans = [
@@ -219,6 +223,7 @@ function NewApplicationPageContent() {
         const currentIndex = visibleSteps.findIndex(s => s.id === currentStep);
         if (currentIndex < visibleSteps.length - 1) {
             setCurrentStep(visibleSteps[currentIndex + 1].id);
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
     };
 
@@ -226,6 +231,7 @@ function NewApplicationPageContent() {
         const currentIndex = visibleSteps.findIndex(s => s.id === currentStep);
         if (currentIndex > 0) {
             setCurrentStep(visibleSteps[currentIndex - 1].id);
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
     };
 
@@ -233,6 +239,7 @@ function NewApplicationPageContent() {
         // Allow jumping only if it's in visible steps
         if (visibleSteps.find(s => s.id === step)) {
             setCurrentStep(step);
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
     };
 
@@ -289,7 +296,7 @@ function NewApplicationPageContent() {
             }));
 
             setIsAnalyzing(false);
-            setCurrentStep(4); // Move to Collateral Info (Step 4)
+            setCurrentStep(3); // Move to Collateral Info (Step 3 now)
         }, 3000); // 3 seconds delay
     };
 
@@ -330,7 +337,7 @@ function NewApplicationPageContent() {
         setIsSkipped(true);
         setIsApplicationStarted(true);
         if (!appId) setAppId("app-256700001");
-        setCurrentStep(3); // Jump to Calculator (Step 3 now)
+        setCurrentStep(4); // Jump to Calculator (Step 4 now)
     };
 
     const { setBreadcrumbs, setRightContent } = useSidebar();
@@ -355,13 +362,12 @@ function NewApplicationPageContent() {
                             description: "ข้อมูลใบคำขอของคุณถูกบันทึกเรียบร้อยแล้ว",
                             duration: 3000,
                         })}
-                        className="bg-white border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50 h-9 px-4 rounded-lg font-bold"
                     >
                         <Save className="w-4 h-4 mr-2" /> บันทึกแบบร่าง
                     </Button>
                     <Button
+                        variant="default"
                         onClick={() => setIsSubmitDialogOpen(true)}
-                        className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-9 px-4 rounded-lg font-bold shadow-sm"
                     >
                         <Send className="w-4 h-4 mr-2" /> ส่งใบคำขอ
                     </Button>
@@ -420,8 +426,16 @@ function NewApplicationPageContent() {
                                     />
                                 )}
 
-                                {/* 1. Identity Check (After Consent) */}
-                                {(isConsentAccepted && !isIdentityVerified) && (
+                                {/* 0.5 Sensitive Data Consent (Second Step) */}
+                                {(isConsentAccepted && !isSensitiveConsentAccepted) && (
+                                    <SensitiveDataConsentStep
+                                        onAccept={() => setIsSensitiveConsentAccepted(true)}
+                                        onBack={() => setIsConsentAccepted(false)}
+                                    />
+                                )}
+
+                                {/* 1. Identity Check (After Both Consents) */}
+                                {(isConsentAccepted && isSensitiveConsentAccepted && !isIdentityVerified) && (
                                     <IdentityCheckStep
                                         formData={formData}
                                         setFormData={setFormData}
@@ -450,10 +464,10 @@ function NewApplicationPageContent() {
                         <div className="flex flex-col gap-8 items-start">
                             {/* MAIN CONTENT (Full Width now) */}
                             <div className="flex-1 w-full min-w-0">
-                                <Card className="min-h-[600px] border border-border-subtle shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] bg-white overflow-hidden">
+                                <Card className="min-h-[600px] border border-border-subtle shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] bg-white">
 
                                     {/* HORIZONTAL STEPPER (Integrated) */}
-                                    <div className="pt-10 pb-12 border-b border-border-subtle bg-gray-50/5">
+                                    <div className="pt-10 pb-12 border-b border-border-subtle bg-gray-50/5 rounded-t-[2rem]">
                                         <div className="relative flex items-center justify-between w-full px-12 md:px-24">
                                             <div className="absolute left-12 right-12 md:left-24 md:right-24 top-1/2 -translate-y-1/2 h-[2px] bg-gray-300 z-0">
                                                 <div
@@ -510,8 +524,16 @@ function NewApplicationPageContent() {
                                             />
                                         )}
 
-                                        {/* Step 2: Collateral (Merged: Type Selection + Document Upload + Info) */}
+                                        {/* Step 2: Income and Debt */}
                                         {currentStep === 2 && (
+                                            <IncomeAndDebtStep
+                                                formData={formData}
+                                                setFormData={setFormData}
+                                            />
+                                        )}
+
+                                        {/* Step 3: Collateral (Merged: Type Selection + Document Upload + Info) */}
+                                        {currentStep === 3 && (
                                             <CollateralStep
                                                 formData={formData}
                                                 setFormData={setFormData}
@@ -520,8 +542,8 @@ function NewApplicationPageContent() {
                                             />
                                         )}
 
-                                        {/* Step 3: Calculator */}
-                                        {currentStep === 3 && (
+                                        {/* Step 4: Calculator */}
+                                        {currentStep === 4 && (
                                             <CalculatorStep
                                                 onNext={nextStep}
                                                 formData={formData}
@@ -532,11 +554,11 @@ function NewApplicationPageContent() {
                                             />
                                         )}
 
-                                        {/* Step 4: Documents */}
-                                        {currentStep === 4 && <DocumentUploadStep formData={formData} setFormData={setFormData} />}
+                                        {/* Step 5: Documents */}
+                                        {currentStep === 5 && <DocumentUploadStep formData={formData} setFormData={setFormData} />}
 
-                                        {/* Step 5: Review */}
-                                        {currentStep === 5 && (
+                                        {/* Step 6: Review */}
+                                        {currentStep === 6 && (
                                             <ReviewStep
                                                 formData={formData}
                                                 setFormData={setFormData}
@@ -548,7 +570,7 @@ function NewApplicationPageContent() {
                                 </Card>
 
                                 {/* Footer / Navigation */}
-                                {(currentStep !== 5) && (
+                                {(currentStep !== 6) && (
                                     <div className="flex justify-between items-center py-6 mt-2">
                                         <Button
                                             variant="ghost"
@@ -617,12 +639,12 @@ function NewApplicationPageContent() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="mt-6 gap-3">
-                            <AlertDialogCancel className="h-12 border-gray-200 text-gray-500 hover:bg-gray-50 rounded-xl font-bold min-w-[120px]">
+                            <AlertDialogCancel className={cn(buttonVariants({ variant: "outline" }), "min-w-[120px]")}>
                                 ยกเลิก
                             </AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={() => router.push("/dashboard/applications")}
-                                className="h-12 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold min-w-[120px]"
+                                className={cn(buttonVariants({ variant: "destructive" }), "min-w-[120px]")}
                             >
                                 ยืนยันการออก
                             </AlertDialogAction>
@@ -647,7 +669,7 @@ function NewApplicationPageContent() {
 
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="comment" className="text-sm font-bold text-gray-700">หมายเหตุ / ความเห็นเพิ่มเติม</Label>
+                            <Label htmlFor="comment" className="text-sm text-gray-700">หมายเหตุ / ความเห็นเพิ่มเติม</Label>
                             <Textarea
                                 id="comment"
                                 placeholder="ระบุรายละเอียดเพิ่มเติมที่นี่..."
@@ -662,7 +684,7 @@ function NewApplicationPageContent() {
                         <Button
                             variant="outline"
                             onClick={() => setIsSubmitDialogOpen(false)}
-                            className="h-12 border-gray-200 text-gray-500 hover:bg-gray-50 rounded-xl font-bold flex-1"
+                            className="flex-1"
                         >
                             ยกเลิก
                         </Button>
@@ -680,7 +702,8 @@ function NewApplicationPageContent() {
                                     router.push(`/dashboard/applications/${appId || 'app-256700001'}`);
                                 }, 1500);
                             }}
-                            className="h-12 bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white rounded-xl font-bold flex-1"
+                            variant="default"
+                            className="flex-1"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? (

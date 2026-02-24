@@ -72,9 +72,9 @@ export default function DesignSystemPage() {
 
                 <h3 className="text-lg font-semibold mb-4">Brand Colors</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-8">
-                    <ColorSwatch name="Chaiyo Blue" colorClass="bg-chaiyo-blue" hex="#001275" />
-                    <ColorSwatch name="Chaiyo Gold" colorClass="bg-chaiyo-gold" hex="#FFB909" />
-                    <ColorSwatch name="Chaiyo Accent" colorClass="bg-chaiyo-accent" hex="#FFB909 (Mapped)" />
+                    <ColorSwatch name="Chaiyo Blue" colorClass="bg-chaiyo-blue" hex="#000F9F" />
+                    <ColorSwatch name="Chaiyo Gold" colorClass="bg-chaiyo-gold" hex="#FFD100" />
+                    <ColorSwatch name="Chaiyo Accent" colorClass="bg-chaiyo-accent" hex="#FFD100 (Mapped)" />
                 </div>
 
                 <h3 className="text-lg font-semibold mb-4">Status Colors</h3>

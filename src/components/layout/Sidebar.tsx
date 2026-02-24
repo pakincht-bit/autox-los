@@ -111,11 +111,12 @@ export function Sidebar() {
     // We render the expanded state by default to fill the space.
     if (!mounted) {
         return (
-            <div className="relative flex flex-col h-full bg-[#000A44] w-64 text-white">
-                <div className="p-5 border-b border-white/10 flex items-center justify-between h-[73px]">
+            <div className="relative flex flex-col h-full bg-[#000F9F] w-64 text-white overflow-hidden">
+                <div className="absolute top-0 left-0 w-[4px] h-full z-50" style={{ backgroundImage: 'url(/images/vertical-line.svg)', backgroundSize: 'cover' }} />
+                <div className="p-5 border-b border-white/10 flex items-center justify-between h-[73px] ml-[4px]">
                     <div className="flex items-center gap-3">
-                        <div className="min-w-8 w-8 h-8 rounded bg-white flex items-center justify-center text-chaiyo-blue font-bold text-lg">ช</div>
-                        <div className="font-semibold text-base text-white/90">LOS - AutoX</div>
+                        <img src="/images/logo-chaiyo.svg" alt="เงินไชโย" className="h-8 w-auto rounded shrink-0" />
+                        <div className="font-semibold text-base text-white/90">เงินไชโย</div>
                     </div>
                     <div className="h-8 w-8 rounded-md bg-white/10 flex items-center justify-center text-white/80">
                         <PanelLeft className="w-5 h-5" />
@@ -128,21 +129,22 @@ export function Sidebar() {
 
     return (
         <div className={cn(
-            "relative flex flex-col h-full bg-[#000A44] transition-all duration-300 text-white",
+            "relative flex flex-col h-full bg-[#000F9F] transition-all duration-300 text-white overflow-hidden",
             isCollapsed ? "w-16" : "w-64"
         )}>
+            {/* Stripe Line Left */}
+            <div className="absolute top-0 left-0 w-[4px] h-full z-50" style={{ backgroundImage: 'url(/images/vertical-line.svg)', backgroundSize: 'cover' }} />
+
             {/* Brand Header */}
             <div className={cn(
-                "p-5 border-b border-white/10 flex items-center h-[73px]",
+                "p-5 border-b border-white/10 flex items-center h-[73px] ml-[4px]",
                 isCollapsed ? "justify-center" : "justify-between"
             )}>
                 {!isCollapsed && (
                     <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="min-w-8 w-8 h-8 rounded bg-white flex items-center justify-center text-chaiyo-blue font-bold text-lg shrink-0">
-                            ช
-                        </div>
+                        <img src="/images/logo-chaiyo.svg" alt="เงินไชโย" className="h-8 w-auto rounded shrink-0" />
                         <div className="overflow-hidden">
-                            <h1 className="font-semibold text-base leading-none truncate text-white/90 tracking-wide">LOS - AutoX</h1>
+                            <h1 className="font-semibold text-base leading-none truncate text-white/90 tracking-wide">เงินไชโย</h1>
                             <div
                                 className="flex items-center gap-1.5 cursor-pointer group mt-1"
                                 onClick={() => setIsBranchInfoOpen(true)}

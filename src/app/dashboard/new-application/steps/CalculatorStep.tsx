@@ -262,7 +262,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                         {(readOnlyProduct || (formData && formData.collateralType)) ? null : (
                             // Selector Mode
                             <>
-                                <Label className="text-sm font-bold text-muted uppercase tracking-wider">เลือกประเภทหลักประกัน</Label>
+                                <Label className="text-sm text-muted uppercase tracking-wider">เลือกประเภทหลักประกัน</Label>
                                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                                     {PRODUCTS.map((prod) => (
                                         <div
@@ -292,7 +292,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                     <div className="space-y-6">
                         <div className="space-y-2">
                             <div className="flex justify-between items-baseline">
-                                <Label className="text-sm font-bold">สินเชื่อที่ต้องการ (บาท)</Label>
+                                <Label className="text-sm">สินเชื่อที่ต้องการ (บาท)</Label>
                                 {formData && (
                                     <Popover open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
                                         <PopoverTrigger asChild>
@@ -377,7 +377,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
                         {/* Payment Method Toggle (Moved here - ABOVE Loan Term) */}
                         <div className="space-y-4">
-                            <Label className="text-sm font-bold">รูปแบบการผ่อนชำระ</Label>
+                            <Label className="text-sm">รูปแบบการผ่อนชำระ</Label>
                             <div className="flex p-1 bg-gray-100/50 border border-gray-200 rounded-xl">
                                 <button
                                     onClick={() => setLocalPaymentMethod('installment')}
@@ -401,7 +401,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                         </div>
 
                         <div className="space-y-4">
-                            <Label className="text-sm font-bold">ระยะเวลาผ่อนชำระ (เดือน)</Label>
+                            <Label className="text-sm">ระยะเวลาผ่อนชำระ (เดือน)</Label>
                             <div className="grid grid-cols-4 gap-2">
                                 {(localPaymentMethod === 'bullet' ? [1, 2, 3, 4, 5, 6] : COMPARISON_DURATIONS).map((m) => (
                                     <button
@@ -426,7 +426,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                         <div className="pt-6 border-t border-gray-100 space-y-6">
                             <div className="flex items-center gap-2">
                                 <ShieldCheck className="w-5 h-5 text-chaiyo-blue" />
-                                <Label className="text-sm font-bold">ประกันภัยที่แนะนำ</Label>
+                                <Label className="text-sm">ประกันภัยที่แนะนำ</Label>
                             </div>
 
                             {/* 1. Freebie Insurance (Mock Logic: Car/Moto/Truck/Agri get free loan protection) */}
@@ -446,7 +446,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
                             {/* 2. Optional Insurance Selection */}
                             <div className="space-y-4">
-                                <Label className="text-xs font-bold text-muted-foreground uppercase">เลือกประกันเพิ่มเติม (สมัครใจ)</Label>
+                                <Label className="text-xs text-muted-foreground uppercase">เลือกประกันเพิ่มเติม (สมัครใจ)</Label>
 
                                 {/* Car Insurance Options */}
                                 {selectedProduct === 'car' && (
@@ -519,7 +519,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                                 {selectedInsurances.length > 0 && (
                                     <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
                                         <div className="flex items-center justify-between mb-2">
-                                            <Label className="text-sm font-bold">วิธีชำระค่าเบี้ยประกัน</Label>
+                                            <Label className="text-sm">วิธีชำระค่าเบี้ยประกัน</Label>
                                             <span className="text-sm font-bold text-chaiyo-blue">฿{calculateTotalInsurancePremium().toLocaleString()}</span>
                                         </div>
                                         <div className="flex p-1 bg-gray-100/50 border border-gray-200 rounded-xl">
@@ -561,7 +561,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
 
 
                 {/* Output Container with Chart */}
-                <Card className="lg:col-span-7 bg-[#001080] text-white border-none shadow-2xl overflow-hidden rounded-[2.5rem] flex flex-col h-full lg:sticky lg:top-6 lg:order-2">
+                <Card className="lg:col-span-7 bg-[#000F9F] text-white border-none shadow-2xl overflow-hidden rounded-[2.5rem] flex flex-col h-full lg:sticky lg:top-6 lg:order-2">
                     <CardContent className="p-8 flex flex-col h-full relative items-center">
                         {/* 1. Main Payment Display (Replacing Header & Separator) */}
                         <div className="flex justify-between items-start w-full mb-6 pt-2">
@@ -626,14 +626,14 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                                                     className={cn(
                                                         "w-full rounded-t-lg transition-all duration-500 relative",
                                                         isSelected && maxLoanAmount > 0
-                                                            ? "bg-chaiyo-gold shadow-[0_0_25px_rgba(255,193,7,0.6)]"
+                                                            ? "bg-chaiyo-gold shadow-[0_0_25px_rgba(255,209,0,0.6)]"
                                                             : "bg-white/10 group-hover:bg-white/20"
                                                     )}
                                                     style={{ height: `${heightPercentage}%` }}
                                                 >
                                                     {/* Tooltip on Hover */}
                                                     {maxLoanAmount > 0 && (
-                                                        <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white text-[#001080] text-[10px] font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-2xl z-20 transform translate-y-2 group-hover:translate-y-0">
+                                                        <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white text-[#000F9F] text-[10px] font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-2xl z-20 transform translate-y-2 group-hover:translate-y-0">
                                                             ฿{Math.ceil(mPayment).toLocaleString()}
                                                             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45"></div>
                                                         </div>
@@ -782,7 +782,7 @@ export function CalculatorStep({ onNext, formData, setFormData, onBack, hideNavi
                                         disabled={maxLoanAmount <= 0}
                                         onClick={handleNext}
                                         className={cn(
-                                            "h-14 text-lg font-bold bg-chaiyo-gold hover:bg-chaiyo-gold/90 text-[#001080] rounded-xl shadow-xl transition-all transform hover:scale-[1.02]",
+                                            "h-14 text-lg font-bold bg-chaiyo-gold hover:bg-chaiyo-gold/90 text-[#000F9F] rounded-xl shadow-xl transition-all transform hover:scale-[1.02]",
                                             onBack ? "flex-[2]" : "w-full",
                                             maxLoanAmount <= 0 && "opacity-50 grayscale cursor-not-allowed"
                                         )}

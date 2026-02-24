@@ -389,13 +389,6 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
         setFormData((prev: any) => ({ ...prev, [field]: value }));
     };
 
-    const formatNumberWithCommas = (val: string | number) => {
-        if (val === null || val === undefined || val === "") return "";
-        const parts = val.toString().split(".");
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        return parts.join(".");
-    };
-
     // --- Co-Borrower Handlers ---
     const startAddCoBorrower = () => {
         setIsAddingCoBorrower(true);
@@ -613,7 +606,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                     {/* SECTION 1: Personal Info from ID */}
                     <div className="space-y-4">
                         <h4 className="text-sm font-bold text-chaiyo-blue flex items-center gap-2 pb-2 border-b border-gray-100">
-                            <ShieldCheck className="w-4 h-4" /> 1. ข้อมูลส่วนตัว (จากบัตรประชาชน)
+                            <ShieldCheck className="w-4 h-4" /> ข้อมูลส่วนตัว (จากบัตรประชาชน)
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                             <div className="space-y-2">
@@ -675,9 +668,9 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                     </div>
 
                     {/* SECTION 2: Contact Info */}
-                    <div className="space-y-4 pt-4 border-t border-gray-100">
+                    <div className="space-y-4 pt-4">
                         <h4 className="text-sm font-bold text-chaiyo-blue flex items-center gap-2 pb-2 border-b border-gray-100">
-                            <Phone className="w-4 h-4" /> 2. ข้อมูลการติดต่อ
+                            <Phone className="w-4 h-4" /> ข้อมูลการติดต่อ
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                             {/* Phone Verification Field */}
@@ -838,116 +831,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                         </div>
                     </div>
 
-                    {/* SECTION 3: Income Info */}
-                    <div className="space-y-4 pt-4 border-t border-gray-100">
-                        <h4 className="text-sm font-bold text-chaiyo-blue flex items-center gap-2 pb-2 border-b border-gray-100">
-                            <Briefcase className="w-4 h-4" /> 3. ข้อมูลด้านรายได้
-                        </h4>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
-                            {/* Left: Inputs */}
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>อาชีพ</Label>
-                                    <Select value={formData.occupation} onValueChange={(val) => handleChange("occupation", val)}>
-                                        <SelectTrigger className="h-11">
-                                            <SelectValue placeholder="เลือกอาชีพ" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="พนักงานบริษัท">พนักงานบริษัท</SelectItem>
-                                            <SelectItem value="ข้าราชการ">ข้าราชการ</SelectItem>
-                                            <SelectItem value="เกษตรกร">เกษตรกร</SelectItem>
-                                            <SelectItem value="เจ้าของกิจการ">เจ้าของกิจการ</SelectItem>
-                                            <SelectItem value="รับจ้างทั่วไป">รับจ้างทั่วไป</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>รายได้ต่อเดือน (บาท)</Label>
-                                    <Input
-                                        value={formatNumberWithCommas(formData.income) || ""}
-                                        placeholder="0.00"
-                                        className="text-right h-11"
-                                        onChange={(e) => {
-                                            const cleanValue = e.target.value.replace(/,/g, '');
-                                            if (/^\d*\.?\d*$/.test(cleanValue)) {
-                                                handleChange("income", cleanValue);
-                                            }
-                                        }}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>ภาระหนี้สินต่อเดือน (บาท)</Label>
-                                    <Input
-                                        value={formatNumberWithCommas(formData.expenses) || ""}
-                                        placeholder="0.00"
-                                        className="text-right h-11"
-                                        onChange={(e) => {
-                                            const cleanValue = e.target.value.replace(/,/g, '');
-                                            if (/^\d*\.?\d*$/.test(cleanValue)) {
-                                                handleChange("expenses", cleanValue);
-                                            }
-                                        }}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-gray-700">หมายเหตุ: แหล่งที่มาของรายได้</Label>
-                                    <Textarea
-                                        value={formData.incomeRemarks || ""}
-                                        placeholder="ระบุแหล่งที่มาของรายได้เพิ่มเติม เช่น รายได้จากเงินเดือน, รายได้จากธุรกิจส่วนตัว, วิธีการคำนวณ..."
-                                        className="min-h-[80px] resize-none"
-                                        onChange={(e) => handleChange("incomeRemarks", e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Right: Outputs (Styled Card) */}
-                            <div className="bg-blue-50/30 p-6 rounded-2xl border border-blue-100/50 flex flex-col justify-center space-y-6">
-                                <div className="space-y-1">
-                                    <div className="flex justify-between items-center text-xs font-bold text-emerald-700 uppercase tracking-wider">
-                                        <span>รายได้สุทธิ (Net Income)</span>
-                                        <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]">Auto Calculated</Badge>
-                                    </div>
-                                    <div className="text-3xl font-black text-emerald-600 font-mono text-right">
-                                        ฿{((Number(formData.income) || 0) - (Number(formData.expenses) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                </div>
-
-                                <div className="h-px bg-blue-100/50" />
-
-                                <div className="space-y-1">
-                                    <div className="flex justify-between items-center text-xs font-bold text-blue-700 uppercase tracking-wider">
-                                        <span>DSR (%)</span>
-                                        {Number(formData.income) > 0 && (Number(formData.expenses) / Number(formData.income)) > 0.5 ? (
-                                            <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">High Risk</Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-[10px]">Normal</Badge>
-                                        )}
-                                    </div>
-                                    <div className={cn(
-                                        "text-3xl font-black font-mono text-right",
-                                        (Number(formData.income) > 0 && (Number(formData.expenses) / Number(formData.income)) > 0.5) ? "text-red-500" : "text-blue-600"
-                                    )}>
-                                        {Number(formData.income) > 0
-                                            ? ((Number(formData.expenses) / Number(formData.income)) * 100).toFixed(2)
-                                            : "0.00"
-                                        }%
-                                    </div>
-                                </div>
-
-                                {Number(formData.income) > 0 && (Number(formData.expenses) / Number(formData.income)) > 0.5 && (
-                                    <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-xl animate-in fade-in zoom-in duration-300">
-                                        <div className="flex items-start gap-2">
-                                            <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                                            <p className="text-[11px] leading-relaxed text-red-700 font-medium">
-                                                <strong>คำแนะนำ:</strong> เนื่องจาก DSR สูงกว่า 50% ระบบแนะนำให้ <strong>เพิ่มผู้กู้ร่วม หรือ ผู้ค้ำประกัน</strong> เพื่อเพิ่มโอกาสในการได้รับการอนุมัติ
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
 
@@ -955,7 +839,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-chaiyo-blue" />
+                        <Users className="w-5 h-5 text-gray-800" />
                         ผู้กู้ร่วม
                         <span className="text-sm font-normal text-muted-foreground ml-2">(สามารถเพิ่มได้หลายคน)</span>
                     </h3>
@@ -1220,7 +1104,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
             <div className="space-y-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-chaiyo-orange" />
+                        <ShieldCheck className="w-5 h-5 text-gray-800" />
                         ผู้ค้ำประกัน
                         <span className="text-sm font-normal text-muted-foreground ml-2">(สามารถเพิ่มได้หลายคน)</span>
                     </h3>
