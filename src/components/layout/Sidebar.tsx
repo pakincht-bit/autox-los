@@ -1,4 +1,5 @@
 "use client";
+// Force refresh to resolve HMR module factory error
 
 // Sync: Move sidebar button
 import { useState, useEffect } from "react";
@@ -14,8 +15,6 @@ import {
     Car,
     LogOut,
     Settings,
-    ChevronLeft,
-    ChevronRight,
     ShieldCheck,
     UserCircle,
     HelpCircle,
@@ -23,8 +22,7 @@ import {
     ChevronsUpDown,
     Search,
     Megaphone,
-    Info,
-    PanelLeft
+    Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -82,7 +80,7 @@ const navigationGroups = [
 export function Sidebar() {
     // Main sidebar component
     const pathname = usePathname();
-    const { isCollapsed, toggleCollapsed } = useSidebar();
+    const { isCollapsed } = useSidebar();
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [isBranchInfoOpen, setIsBranchInfoOpen] = useState(false);
     const [showAnnouncement, setShowAnnouncement] = useState(false);
@@ -119,7 +117,6 @@ export function Sidebar() {
                         <div className="font-semibold text-base text-white/90">เงินไชโย</div>
                     </div>
                     <div className="h-8 w-8 rounded-md bg-white/10 flex items-center justify-center text-white/80">
-                        <PanelLeft className="w-5 h-5" />
                     </div>
                 </div>
                 <div className="flex-1" />
@@ -137,12 +134,12 @@ export function Sidebar() {
 
             {/* Brand Header */}
             <div className={cn(
-                "p-5 border-b border-white/10 flex items-center h-[73px] ml-[4px]",
-                isCollapsed ? "justify-center" : "justify-between"
+                "border-b border-white/10 flex items-center h-[73px] ml-[4px] transition-all duration-300",
+                isCollapsed ? "justify-center px-1" : "justify-between px-5"
             )}>
-                {!isCollapsed && (
-                    <div className="flex items-center gap-3 overflow-hidden">
-                        <img src="/images/logo-chaiyo.svg" alt="เงินไชโย" className="h-8 w-auto rounded shrink-0" />
+                <div className={cn("flex items-center gap-3 overflow-hidden", isCollapsed && "justify-center")}>
+                    <img src="/images/logo-chaiyo.svg" alt="เงินไชโย" className="h-7 w-auto rounded shrink-0" />
+                    {!isCollapsed && (
                         <div className="overflow-hidden">
                             <h1 className="font-semibold text-base leading-none truncate text-white/90 tracking-wide">เงินไชโย</h1>
                             <div
@@ -155,27 +152,14 @@ export function Sidebar() {
                                 <Info className="w-3 h-3 text-white/40 group-hover:text-white/80 transition-colors shrink-0" />
                             </div>
                         </div>
-                    </div>
-                )}
-
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                        "text-white/70 hover:text-white hover:bg-white/20 shrink-0",
-                        isCollapsed ? "h-10 w-10 bg-white/5" : "h-8 w-8"
                     )}
-                    onClick={toggleCollapsed}
-                    title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                >
-                    <PanelLeft className="w-5 h-5" />
-                </Button>
+                </div>
             </div>
 
 
 
             {/* Navigation */}
-            <nav className="flex-1 py-6 px-3 space-y-6 overflow-y-auto no-scrollbar">
+            <nav className="flex-1 py-6 pl-4 pr-2 space-y-6">
 
 
                 {filteredGroups.map((group) => (
@@ -216,12 +200,12 @@ export function Sidebar() {
             </nav>
 
             {/* Announcement & User Footer */}
-            <div className={cn("p-4 border-t border-white/10 space-y-2", isCollapsed && "px-2")}>
+            <div className={cn("py-6 pl-4 pr-2 space-y-2 border-t border-white/10", isCollapsed && "pl-4 pr-2")}>
 
                 {/* Announcements - Direct trigger for Modal */}
                 <div
                     className={cn(
-                        "flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group hover:bg-white/10 border border-transparent outline-none",
+                        "flex items-center gap-3 p-2 rounded-md transition-colors cursor-pointer group hover:bg-white/10 border border-transparent outline-none",
                         isCollapsed && "justify-center p-1 py-2"
                     )}
                     onClick={() => setShowAnnouncement(true)}
@@ -241,7 +225,7 @@ export function Sidebar() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <div className={cn(
-                            "flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer group hover:bg-white/10 border border-transparent outline-none",
+                            "flex items-center gap-3 p-2 rounded-md transition-colors cursor-pointer group hover:bg-white/10 border border-transparent outline-none",
                             isCollapsed && "justify-center p-1"
                         )}>
                             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xs shrink-0">

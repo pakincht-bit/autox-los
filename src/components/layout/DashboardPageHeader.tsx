@@ -5,6 +5,7 @@ import React from 'react';
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSidebar } from "@/components/layout/SidebarContext";
+import { cn } from "@/lib/utils";
 
 export interface BreadcrumbItem {
     label: string;
@@ -16,11 +17,12 @@ export interface BreadcrumbItem {
 export interface DashboardPageHeaderProps {
     breadcrumbs: BreadcrumbItem[];
     rightContent?: React.ReactNode;
+    className?: string;
 }
 
-export function DashboardPageHeader({ breadcrumbs, rightContent }: DashboardPageHeaderProps) {
+export function DashboardPageHeader({ breadcrumbs, rightContent, className }: DashboardPageHeaderProps) {
     return (
-        <div className="w-full border-b border-gray-100 bg-white relative h-12 shrink-0 z-10">
+        <div className={cn("w-full border-b border-gray-100 bg-white relative h-12 shrink-0 z-10", className)}>
             <div className="flex items-center justify-between w-full h-full px-6 lg:px-8">
                 {/* LEFT: Toggle + Breadcrumb */}
                 <div className="flex-1 flex items-center justify-start text-sm text-gray-500 gap-1">
