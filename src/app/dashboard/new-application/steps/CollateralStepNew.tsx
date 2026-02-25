@@ -22,6 +22,7 @@ import {
     TRUCK_BRANDS,
     AGRI_BRANDS,
     MODELS_BY_BRAND,
+    SUB_MODELS_BY_MODEL,
     YEARS
 } from "@/data/vehicle-data";
 
@@ -132,7 +133,8 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
             let fields = ['appraisalPrice', 'brand', 'model', 'year'];
 
             if (formData.collateralType === 'car') {
-                mockData = { ...mockData, brand: 'Toyota', model: 'Camry', year: '2019' };
+                mockData = { ...mockData, brand: 'Toyota', model: 'Camry', year: '2019', subModel: 'HEV Premium' };
+                fields.push('subModel');
             } else if (formData.collateralType === 'moto') {
                 mockData = { ...mockData, brand: 'Honda', model: 'Wave 125i', year: '2021', appraisalPrice: 35000 };
             } else if (formData.collateralType === 'truck') {
@@ -282,7 +284,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                         }
                                         value={formData.brand}
                                         onValueChange={(val) => {
-                                            setFormData({ ...formData, brand: val, model: '' });
+                                            setFormData({ ...formData, brand: val, model: '', subModel: '' });
                                             setAiDetectedFields(prev => prev.filter(f => f !== 'brand' && f !== 'model'));
                                         }}
                                         placeholder="เลือกยี่ห้อ..."
@@ -312,12 +314,23 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>รุ่นย่อย</Label>
-                                    <Input
-                                        placeholder="ระบุรุ่นย่อย"
-                                        value={formData.subModel || ''}
-                                        onChange={(e) => setFormData({ ...formData, subModel: e.target.value })}
-                                        className="h-12"
+                                    <div className="flex items-center justify-between">
+                                        <Label>รุ่นย่อย</Label>
+                                        {aiDetectedFields.includes('subModel') && (
+                                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-none text-[10px] font-bold">
+                                                AI EXTRACTED
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <Combobox
+                                        options={SUB_MODELS_BY_MODEL[formData.model] || []}
+                                        value={formData.subModel}
+                                        onValueChange={(val) => {
+                                            setFormData({ ...formData, subModel: val });
+                                        }}
+                                        placeholder="เลือกรุ่นย่อย..."
+                                        searchPlaceholder="ค้นหารุ่นย่อย..."
+                                        className={cn("h-12", !formData.model && "opacity-50 pointer-events-none")}
                                     />
                                 </div>
                                 <div className="space-y-2">

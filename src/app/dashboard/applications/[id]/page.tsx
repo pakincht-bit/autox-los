@@ -92,6 +92,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
     // In real app, fetch data using params.id
     const app = MOCK_DETAIL_DATA;
     const [currentStatus, setCurrentStatus] = useState<ApplicationStatus>(app.status);
+    const [isActivityExpanded, setIsActivityExpanded] = useState(true);
     const { setBreadcrumbs, setRightContent } = useSidebar();
 
     useEffect(() => {
@@ -106,12 +107,12 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
     }, [app.applicationNo, setBreadcrumbs, setRightContent]);
 
     return (
-        <div className="">
+        <div className="h-full flex flex-col min-h-0">
             {/* APP DETAIL INFO & ACTIONS LAYOUT */}
-            <div className="flex flex-col lg:flex-row justify-between items-start w-full">
+            <div className="flex flex-col lg:flex-row justify-between items-stretch flex-1 min-h-0 w-full transition-all duration-300">
 
                 {/* LEFT: Application Details */}
-                <div className="flex flex-col gap-4 w-full lg:w-[75%] p-6 lg:p-8">
+                <div className={cn("flex flex-col gap-4 w-full p-6 lg:p-8 transition-all duration-300 h-full overflow-y-auto no-scrollbar", isActivityExpanded ? "lg:w-[70%]" : "lg:w-[calc(100%-64px)]")}>
                     <div className="max-w-[1000px] mx-auto w-full space-y-4">
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                             <ApplicationDetailSummary
@@ -391,9 +392,11 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                 </div>
 
                 {/* RIGHT: Application Properties & Actions */}
-                <div className="flex flex-col w-full lg:w-[25%] bg-gray-50/50 p-6 border-l border-gray-100 sticky top-0 h-full overflow-y-auto no-scrollbar">
+                <div className={cn("flex flex-col w-full bg-gray-50/50 border-l border-gray-100 h-full overflow-y-auto no-scrollbar transition-all duration-300", isActivityExpanded ? "lg:w-[30%] p-6" : "lg:w-[64px] p-4 items-center")}>
                     <ApplicationActivitySidebar
                         status={currentStatus}
+                        isExpanded={isActivityExpanded}
+                        onToggleExpand={() => setIsActivityExpanded(!isActivityExpanded)}
                         onApprove={() => {
                             if (currentStatus === 'In Review') {
                                 setCurrentStatus('Approved');

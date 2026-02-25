@@ -111,7 +111,7 @@ export function Sidebar() {
     // We render the expanded state by default to fill the space.
     if (!mounted) {
         return (
-            <div className="relative flex flex-col h-full bg-[#000F9F] w-64 text-white overflow-hidden">
+            <div className="relative flex flex-col h-full bg-chaiyo-blue w-64 text-white overflow-hidden">
                 <div className="absolute top-0 left-0 w-[4px] h-full z-50" style={{ backgroundImage: 'url(/images/vertical-line.svg)', backgroundSize: 'cover' }} />
                 <div className="p-5 border-b border-white/10 flex items-center justify-between h-[73px] ml-[4px]">
                     <div className="flex items-center gap-3">
@@ -129,7 +129,7 @@ export function Sidebar() {
 
     return (
         <div className={cn(
-            "relative flex flex-col h-full bg-[#000F9F] transition-all duration-300 text-white overflow-hidden",
+            "relative flex flex-col h-full bg-chaiyo-blue transition-all duration-300 text-white overflow-hidden",
             isCollapsed ? "w-16" : "w-64"
         )}>
             {/* Stripe Line Left */}

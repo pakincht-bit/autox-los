@@ -35,9 +35,10 @@ import {
 interface IncomeAndDebtStepProps {
     formData: any;
     setFormData: (data: any) => void;
+    isExistingCustomer?: boolean;
 }
 
-export function IncomeAndDebtStep({ formData, setFormData }: IncomeAndDebtStepProps) {
+export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = false }: IncomeAndDebtStepProps) {
     const handleChange = (field: string, value: any) => {
         setFormData((prev: any) => ({ ...prev, [field]: value }));
     };
@@ -522,40 +523,30 @@ export function IncomeAndDebtStep({ formData, setFormData }: IncomeAndDebtStepPr
                                         </div>
 
                                         {/* Chaiyo Debt */}
-                                        <div className="space-y-4">
-                                            <h5 className="font-bold text-gray-700 flex items-center justify-between">
-                                                <span>ภาระหนี้กับเงินไชโยรวม</span>
-                                            </h5>
-                                            <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs text-gray-500">ค่างวดสินเชื่อกับเงินไชโย (บาท/เดือน)</Label>
-                                                    <Input
-                                                        value={formatNumberWithCommas(formData.chaiyoLoanInstallment) || ""}
-                                                        onChange={(e) => handleNumberChange("chaiyoLoanInstallment", e.target.value)}
-                                                        className="text-right h-11 border-gray-200 focus-visible:ring-gray-200 bg-white"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs text-gray-500">ค่างวดสินเชื่อที่ขอครั้งนี้ (บาท/เดือน)</Label>
-                                                    <Input
-                                                        value={formatNumberWithCommas(formData.chaiyoNewInstallment) || ""}
-                                                        onChange={(e) => handleNumberChange("chaiyoNewInstallment", e.target.value)}
-                                                        className="text-right h-11 border-gray-200 focus-visible:ring-gray-200 bg-white"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs text-gray-500">ค่างวดประกันผ่อนกับเงินไชโย (บาท/เดือน)</Label>
-                                                    <Input
-                                                        value={formatNumberWithCommas(formData.chaiyoInsuranceInstallment) || ""}
-                                                        onChange={(e) => handleNumberChange("chaiyoInsuranceInstallment", e.target.value)}
-                                                        className="text-right h-11 border-gray-200 focus-visible:ring-gray-200 bg-white"
-                                                        placeholder="0"
-                                                    />
+                                        {isExistingCustomer && (
+                                            <div className="space-y-4">
+                                                <h5 className="font-bold text-gray-700 flex items-center justify-between">
+                                                    <span>ภาระหนี้กับเงินไชโยรวม</span>
+                                                </h5>
+                                                <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs text-gray-500">ค่างวดสินเชื่อกับเงินไชโย (บาท/เดือน)</Label>
+                                                        <div className="text-right h-11 border-gray-200 bg-white flex items-center justify-end px-3 rounded-md border text-sm">
+                                                            {formatNumberWithCommas(formData.chaiyoLoanInstallment) || "0"}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs text-gray-500">ค่างวดประกันผ่อนกับเงินไชโย (บาท/เดือน)</Label>
+                                                        <div className="text-right h-11 border-gray-200 bg-white flex items-center justify-end px-3 rounded-md border text-sm">
+                                                            {formatNumberWithCommas(formData.chaiyoInsuranceInstallment) || "0"}
+                                                        </div>
+                                                    </div>
+                                                    <div className="pt-2">
+                                                        <p className="text-[11px] text-red-500">* หมายเหตุ: ค่านี้ยังไม่รวมยอดขอสินเชื่อในครั้งนี้</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
 
 

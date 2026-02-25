@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { FileText, ChevronLeft, ChevronRight, User, Car, Calculator, Check, AlertCircle, CheckCircle, Loader2, ArrowLeft, Save, Send, DollarSign } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, User, Car, Calculator, Check, AlertCircle, CheckCircle, Loader2, ArrowLeft, Save, Send, DollarSign, Info } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
@@ -78,6 +78,11 @@ function NewApplicationPageContent() {
     const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
     const [submitComment, setSubmitComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Watchlist/Blacklist Status Check State
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [statusCheckResult, setStatusCheckResult] = useState<"NORMAL" | "WATCHLIST" | "BLACKLIST" | null>(null);
+    const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
 
     useEffect(() => {
         const state = searchParams.get('state');
@@ -219,12 +224,65 @@ function NewApplicationPageContent() {
     const visibleSteps = getVisibleSteps();
 
     const nextStep = () => {
+        // If we are on Step 1 (Customer Info), intercept and perform status check
+        if (currentStep === 1) {
+            handleStatusCheck();
+            return;
+        }
+
+        proceedToNextStep();
+    };
+
+    const proceedToNextStep = () => {
         // Find current index in visibleSteps
         const currentIndex = visibleSteps.findIndex(s => s.id === currentStep);
         if (currentIndex < visibleSteps.length - 1) {
             setCurrentStep(visibleSteps[currentIndex + 1].id);
             window.scrollTo({ top: 0, behavior: "smooth" });
         }
+    };
+
+    const handleStatusCheck = () => {
+        setIsCheckingStatus(true);
+        setIsStatusDialogOpen(true);
+        setStatusCheckResult(null);
+
+        // Simulate API call for checking status
+        setTimeout(() => {
+            let result: "NORMAL" | "WATCHLIST" | "BLACKLIST" = "NORMAL";
+            const idToTest = formData.idNumber || "";
+
+            // Mock Logic
+            if (idToTest.endsWith('888')) {
+                result = "BLACKLIST";
+            } else if (idToTest.endsWith('777')) {
+                result = "WATCHLIST";
+            }
+
+            setStatusCheckResult(result);
+            setIsCheckingStatus(false);
+
+            if (result === "NORMAL") {
+                // If normal, briefly show success then automatically proceed
+                setTimeout(() => {
+                    setIsStatusDialogOpen(false);
+                    proceedToNextStep();
+                }, 1000);
+            }
+        }, 1500);
+    };
+
+    const handleSubmitToTeam = () => {
+        setAlertDialog({
+            isOpen: true,
+            title: "ส่งเรื่องตรวจสอบสำเร็จ",
+            description: "ข้อมูลถูกส่งไปยังทีม Fraud/Legal/Compliance เรียบร้อยแล้ว",
+            variant: "success"
+        });
+
+        // Pass a query parameter so the detail page knows to show an activity log
+        const source = statusCheckResult?.toLowerCase();
+        setTimeout(() => router.push(`/dashboard/applications/${appId || "app-new"}?source=${source}`), 1500);
     };
 
     const prevStep = () => {
@@ -529,6 +587,7 @@ function NewApplicationPageContent() {
                                             <IncomeAndDebtStep
                                                 formData={formData}
                                                 setFormData={setFormData}
+                                                isExistingCustomer={isExistingCustomer}
                                             />
                                         )}
 
@@ -617,12 +676,92 @@ function NewApplicationPageContent() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogAction className="bg-chaiyo-blue hover:bg-chaiyo-blue/90">
+                            <AlertDialogAction onClick={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}>
                                 ตกลง
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+
+                {/* Watchlist/Blacklist Status Check Dialog */}
+                <Dialog open={isStatusDialogOpen} onOpenChange={(open) => {
+                    if (!open && !isCheckingStatus) {
+                        setIsStatusDialogOpen(false);
+                    }
+                }}>
+                    <DialogContent className="sm:max-w-xl rounded-[2rem] p-8">
+                        {!statusCheckResult || isCheckingStatus ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <Loader2 className="h-12 w-12 text-chaiyo-blue animate-spin mb-6" />
+                                <DialogHeader className="space-y-2 flex flex-col items-center">
+                                    <DialogTitle className="text-xl font-bold text-gray-900">กำลังตรวจสอบสถานะลูกค้า...</DialogTitle>
+                                    <DialogDescription className="text-base text-gray-500 text-center">
+                                        ระบบกำลังตรวจสอบข้อมูลผู้สมัครกับฐานข้อมูล<br />กรุณารอสักครู่
+                                    </DialogDescription>
+                                </DialogHeader>
+                            </div>
+                        ) : statusCheckResult === "NORMAL" ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <div className="h-16 w-16 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
+                                    <CheckCircle className="h-10 w-10 text-emerald-500" />
+                                </div>
+                                <DialogHeader className="space-y-2 flex flex-col items-center">
+                                    <DialogTitle className="text-xl font-bold text-gray-900">สถานะปกติ</DialogTitle>
+                                    <DialogDescription className="text-base text-gray-500 text-center">
+                                        ตรวจสอบสำเร็จ กำลังไปสู่ขั้นตอนถัดไป...
+                                    </DialogDescription>
+                                </DialogHeader>
+                            </div>
+                        ) : (
+                            <div className="space-y-8">
+                                <DialogHeader className="flex flex-col items-center text-center space-y-4">
+                                    <div className="h-16 w-16 flex items-center justify-center rounded-full bg-red-50 shrink-0">
+                                        <AlertCircle className="h-10 w-10 text-red-600" />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col items-center">
+                                        <DialogTitle className="text-xl font-bold text-gray-900">
+                                            พบข้อมูลต้องสงสัย ({statusCheckResult})
+                                        </DialogTitle>
+                                        <DialogDescription className="text-base text-gray-500 text-center">
+                                            ข้อมูลลูกค้าตรงกับฐานข้อมูลแจ้งเตือน กรุณาส่งเรื่องให้ทีมรับผิดชอบตรวจสอบเพิ่มเติม
+                                        </DialogDescription>
+                                    </div>
+                                </DialogHeader>
+
+                                <div className="bg-red-50 p-6 rounded-2xl text-red-800 border border-red-100">
+                                    <p className="flex items-start gap-3">
+                                        <Info className="w-5 h-5 shrink-0 mt-0.5" />
+                                        <span>
+                                            <strong className="block mb-1">คำแนะนำ:</strong>
+                                            ห้ามดำเนินการต่อจนกว่าจะได้รับการยืนยันจากทีม Fraud/Legal/Compliance
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4">
+                                    <Button
+                                        variant="outline"
+                                        size="xl"
+                                        onClick={() => setIsStatusDialogOpen(false)}
+                                        className="flex-1 order-2 sm:order-1 font-bold"
+                                    >
+                                        <ChevronLeft className="w-4 h-4 mr-2" />
+                                        ย้อนกลับ
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="xl"
+                                        onClick={handleSubmitToTeam}
+                                        className="flex-[2] order-1 sm:order-2 font-bold shadow-lg shadow-red-200"
+                                    >
+                                        <Send className="w-4 h-4 mr-2" />
+                                        ส่งให้ทีมตรวจสอบ
+                                    </Button>
+                                </DialogFooter>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
 
                 {/* Confirm Leave Dialog */}
                 <AlertDialog open={confirmLeaveDialog} onOpenChange={setConfirmLeaveDialog}>
@@ -651,74 +790,75 @@ function NewApplicationPageContent() {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-            </div>
-            {/* Submit Application Dialog */}
-            <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
-                <DialogContent className="rounded-[2rem] p-8 max-w-md">
-                    <DialogHeader>
-                        <div className="flex items-center gap-4 mb-2">
-                            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                <Send className="w-6 h-6 text-chaiyo-blue" />
+
+                {/* Submit Application Dialog */}
+                <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
+                    <DialogContent className="rounded-[2rem] p-8 max-w-md">
+                        <DialogHeader>
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                    <Send className="w-6 h-6 text-chaiyo-blue" />
+                                </div>
+                                <DialogTitle className="text-xl">ส่งใบคำขอสินเชื่อ</DialogTitle>
                             </div>
-                            <DialogTitle className="text-xl">ส่งใบคำขอสินเชื่อ</DialogTitle>
-                        </div>
-                        <DialogDescription className="text-base mt-2">
-                            กรุณาระบุหมายเหตุหรือคำแนะนำเพิ่มเติมสำหรับการส่งพิจารณาใบคำขอนี้
-                        </DialogDescription>
-                    </DialogHeader>
+                            <DialogDescription className="text-base mt-2">
+                                กรุณาระบุหมายเหตุหรือคำแนะนำเพิ่มเติมสำหรับการส่งพิจารณาใบคำขอนี้
+                            </DialogDescription>
+                        </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="comment" className="text-sm text-gray-700">หมายเหตุ / ความเห็นเพิ่มเติม</Label>
-                            <Textarea
-                                id="comment"
-                                placeholder="ระบุรายละเอียดเพิ่มเติมที่นี่..."
-                                value={submitComment}
-                                onChange={(e) => setSubmitComment(e.target.value)}
-                                className="min-h-[120px] resize-none"
-                            />
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="comment" className="text-sm text-gray-700">หมายเหตุ / ความเห็นเพิ่มเติม</Label>
+                                <Textarea
+                                    id="comment"
+                                    placeholder="ระบุรายละเอียดเพิ่มเติมที่นี่..."
+                                    value={submitComment}
+                                    onChange={(e) => setSubmitComment(e.target.value)}
+                                    className="min-h-[120px] resize-none"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    <DialogFooter className="mt-2 gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsSubmitDialogOpen(false)}
-                            className="flex-1"
-                        >
-                            ยกเลิก
-                        </Button>
-                        <Button
-                            onClick={() => {
-                                setIsSubmitting(true);
-                                // Mock submission delay
-                                setTimeout(() => {
-                                    setIsSubmitting(false);
-                                    setIsSubmitDialogOpen(false);
-                                    toast.success("ส่งใบคำขอสำเร็จ", {
-                                        description: "ใบคำขอของคุณถูกส่งเข้าสู่ระบบการพิจารณาแล้ว",
-                                    });
-                                    // Redirect to detail page (mocking ID)
-                                    router.push(`/dashboard/applications/${appId || 'app-256700001'}`);
-                                }, 1500);
-                            }}
-                            variant="default"
-                            className="flex-1"
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    กำลังส่ง...
-                                </>
-                            ) : (
-                                "ยืนยันการส่ง"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+                        <DialogFooter className="mt-2 gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsSubmitDialogOpen(false)}
+                                className="flex-1"
+                            >
+                                ยกเลิก
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setIsSubmitting(true);
+                                    // Mock submission delay
+                                    setTimeout(() => {
+                                        setIsSubmitting(false);
+                                        setIsSubmitDialogOpen(false);
+                                        toast.success("ส่งใบคำขอสำเร็จ", {
+                                            description: "ใบคำขอของคุณถูกส่งเข้าสู่ระบบการพิจารณาแล้ว",
+                                        });
+                                        // Redirect to detail page (mocking ID)
+                                        router.push(`/dashboard/applications/${appId || 'app-256700001'}`);
+                                    }, 1500);
+                                }}
+                                variant="default"
+                                className="flex-1"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        กำลังส่ง...
+                                    </>
+                                ) : (
+                                    "ยืนยันการส่ง"
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        </div >
     );
 }
 

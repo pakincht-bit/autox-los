@@ -1,16 +1,20 @@
-<svg width="3" height="400" viewBox="0 0 3 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_7_28)">
-<rect width="400" height="3" transform="translate(3.00002) rotate(90)" fill="#FFD201"/>
-<rect x="3.00002" y="1.31134e-07" width="20" height="3" transform="rotate(90 3.00002 1.31134e-07)" fill="#F5333F"/>
-<rect x="3.00002" y="20" width="14" height="3" transform="rotate(90 3.00002 20)" fill="#FFD201"/>
-<rect x="3.00002" y="34" width="7" height="3" transform="rotate(90 3.00002 34)" fill="#F5333F"/>
-<rect x="3.00002" y="41" width="6" height="3" transform="rotate(90 3.00002 41)" fill="#000F9F"/>
-<rect x="3.00002" y="47" width="15" height="3" transform="rotate(90 3.00002 47)" fill="white"/>
-<rect x="3.00002" y="62" width="338" height="3" transform="rotate(90 3.00002 62)" fill="#FFD201"/>
+<svg width="8" height="400" viewBox="0 0 8 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_15_5)">
+<mask id="mask0_15_5" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="8" height="400">
+<path d="M8 400L8 0L0 0L0 400H8Z" fill="white"/>
+</mask>
+<g mask="url(#mask0_15_5)">
+<path d="M8 400L8 0L0 0L0 400H8Z" fill="#FFD201"/>
+<path d="M8 34L8 0L0 0L0 34H8Z" fill="#F5333F"/>
+<path d="M8 58L8 34H0L0 58H8Z" fill="#FFD201"/>
+<path d="M8 70L8 58H0L0 70H8Z" fill="#F5333F"/>
+<path d="M8 80L8 70H0L0 80H8Z" fill="#000F9F"/>
+<path d="M8 105L8 80H0L0 105H8Z" fill="white"/>
+</g>
 </g>
 <defs>
-<clipPath id="clip0_7_28">
-<rect width="400" height="3" fill="white" transform="translate(3.00002) rotate(90)"/>
+<clipPath id="clip0_15_5">
+<rect width="8" height="400" fill="white"/>
 </clipPath>
 </defs>
 </svg>

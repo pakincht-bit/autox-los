@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Combobox } from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
+import { SUB_MODELS_BY_MODEL } from "@/data/vehicle-data";
 
 interface CollateralStepProps {
     formData: any;
@@ -183,7 +185,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                     {(!isExistingCustomer || selectedAssetId) && (
                         <div className="space-y-6 sticky top-6">
                             {/* Summary & Breakdown Card */}
-                            <div className="bg-[#000F9F] text-white p-6 rounded-[2.5rem] shadow-xl space-y-8 relative overflow-hidden">
+                            <div className="bg-chaiyo-blue text-white p-6 rounded-[2.5rem] shadow-xl space-y-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full -mr-16 -mt-16 pointer-events-none"></div>
 
                                 {/* 1. Asset Recap */}
@@ -344,11 +346,16 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                 {['car', 'moto'].includes(selectedType) && (
                                     <div className="space-y-2">
                                         <Label className="text-[13px] text-muted ml-1">รุ่นย่อย</Label>
-                                        <Input
-                                            placeholder="E / G / Sport..."
-                                            className="h-14 rounded-xl text-lg disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600"
-                                            value={formData.subModel || ""}
-                                            onChange={(e) => handleChange("subModel", e.target.value)}
+                                        <Combobox
+                                            options={SUB_MODELS_BY_MODEL[formData.model] || []}
+                                            value={formData.subModel}
+                                            onValueChange={(val) => {
+                                                handleChange("subModel", val);
+                                            }}
+                                            placeholder="เลือกรุ่นย่อย..."
+                                            searchPlaceholder="ค้นหารุ่นย่อย..."
+                                            emptyText="ไม่พบรุ่นที่ค้นหา"
+                                            className={cn("h-14 disabled:opacity-100 disabled:bg-gray-50 disabled:text-gray-600", !formData.model && "opacity-50 pointer-events-none")}
                                         />
                                     </div>
                                 )}

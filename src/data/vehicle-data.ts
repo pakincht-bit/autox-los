@@ -165,6 +165,25 @@ export const MODELS_BY_BRAND: Record<string, VehicleOption[]> = {
     ],
 };
 
+export const SUB_MODELS_BY_MODEL: Record<string, VehicleOption[]> = {
+    "Camry": [
+        { value: "hev_smart", label: "HEV Smart" },
+        { value: "hev_premium", label: "HEV Premium" },
+        { value: "hev_premium_luxury", label: "HEV Premium Luxury" },
+    ],
+    "Civic": [
+        { value: "el", label: "EL" },
+        { value: "el_plus", label: "EL+" },
+        { value: "rs", label: "RS" },
+    ],
+    "Ranger": [
+        { value: "xl", label: "XL" },
+        { value: "xlt", label: "XLT" },
+        { value: "wildtrak", label: "Wildtrak" },
+        { value: "raptor", label: "Raptor" },
+    ]
+};
+
 export const YEARS = Array.from({ length: 30 }, (_, i) => {
     const year = new Date().getFullYear() - i;
     return { value: year.toString(), label: year.toString() };

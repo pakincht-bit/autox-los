@@ -100,14 +100,34 @@ export function CollateralPhotoStep({ formData, setFormData, onAnalyze, isAnalyz
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-            <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-bold flex items-center gap-2">
-                    <Camera className="w-6 h-6 text-chaiyo-blue" />
-                    ถ่ายภาพและเอกสารหลักประกัน
-                </h3>
-                <p className="text-muted text-sm">
-                    อัปโหลดรูปภาพและเอกสารที่เกี่ยวข้อง (Upload photos and documents)
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h3 className="text-xl font-bold flex items-center gap-2">
+                        <Camera className="w-6 h-6 text-chaiyo-blue" />
+                        ถ่ายภาพและเอกสารหลักประกัน
+                    </h3>
+                    <p className="text-muted text-sm">
+                        อัปโหลดรูปภาพและเอกสารที่เกี่ยวข้อง (Upload photos and documents)
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={handleBulkUpload}
+                        className="flex items-center gap-2 border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50"
+                    >
+                        <Upload className="w-4 h-4" />
+                        อัปโหลดรูปภาพ
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleBulkUpload}
+                        className="flex items-center gap-2 border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50"
+                    >
+                        <Camera className="w-4 h-4" />
+                        เปิดกล้อง
+                    </Button>
+                </div>
             </div>
 
             {isExisting && (
@@ -159,24 +179,7 @@ export function CollateralPhotoStep({ formData, setFormData, onAnalyze, isAnalyz
 
                 {/* RIGHT: Upload Area & Gallery */}
                 <div className="lg:col-span-8 space-y-6">
-                    {/* Dropzone */}
-                    <div
-                        onClick={handleBulkUpload}
-                        className="border-2 border-dashed border-chaiyo-blue/30 bg-blue-50/20 hover:bg-blue-50/50 rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center min-h-[240px]"
-                    >
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg mb-6 group-hover:scale-110 transition-transform duration-300">
-                            <Upload className="w-8 h-8 text-chaiyo-blue" />
-                        </div>
-                        <h4 className="text-xl font-bold text-chaiyo-blue mb-2">คลิกเพื่ออัปโหลดไฟล์</h4>
-                        <p className="text-muted text-sm max-w-sm mx-auto">
-                            ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์ (รองรับ JPG, PNG, PDF)
-                        </p>
-                        <div className="flex gap-2 mt-4">
-                            <span className="text-[10px] bg-white px-2 py-1 rounded-md border border-gray-200 text-gray-400">.JPG</span>
-                            <span className="text-[10px] bg-white px-2 py-1 rounded-md border border-gray-200 text-gray-400">.PNG</span>
-                            <span className="text-[10px] bg-white px-2 py-1 rounded-md border border-gray-200 text-gray-400">.PDF</span>
-                        </div>
-                    </div>
+
 
                     {/* Gallery */}
                     {uploadedCount > 0 && (

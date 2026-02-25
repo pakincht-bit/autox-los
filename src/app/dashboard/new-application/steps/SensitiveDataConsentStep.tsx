@@ -2,8 +2,19 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { CheckCircle, ShieldAlert, FileText, ChevronDown } from "lucide-react";
+import { CheckCircle, ShieldAlert, FileText, ChevronDown, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRouter } from "next/navigation";
 
 interface SensitiveDataConsentStepProps {
     onAccept: () => void;
@@ -11,8 +22,10 @@ interface SensitiveDataConsentStepProps {
 }
 
 export const SensitiveDataConsentStep = ({ onAccept, onBack }: SensitiveDataConsentStepProps) => {
+    const router = useRouter();
     const [hasReadConsent, setHasReadConsent] = useState(false);
     const [isConsentAccepted, setIsConsentAccepted] = useState(false);
+    const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false);
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -97,7 +110,7 @@ export const SensitiveDataConsentStep = ({ onAccept, onBack }: SensitiveDataCons
                 </label>
             </div>
 
-            <div className={cn("flex pt-4", onBack ? "justify-between" : "justify-end")}>
+            <div className={cn("flex pt-4 flex-col sm:flex-row gap-4", onBack ? "justify-between" : "justify-end")}>
                 {onBack && (
                     <Button
                         variant="outline"
@@ -107,20 +120,58 @@ export const SensitiveDataConsentStep = ({ onAccept, onBack }: SensitiveDataCons
                         ย้อนกลับ
                     </Button>
                 )}
-                <Button
-                    onClick={onAccept}
-                    disabled={!isConsentAccepted}
-                    className={cn(
-                        "min-w-[200px] h-12 shadow-lg transition-all rounded-xl font-bold",
-                        isConsentAccepted
-                            ? "bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white shadow-blue-200"
-                            : "bg-gray-200 text-gray-400 shadow-none hover:bg-gray-200 cursor-not-allowed"
-                    )}
-                >
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    ยืนยันความยินยอม
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsDeclineDialogOpen(true)}
+                        className="min-w-[200px] h-12 rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border-gray-300 bg-white font-bold transition-colors"
+                    >
+                        <XCircle className="w-5 h-5 mr-2" />
+                        ปฏิเสธการให้ความยินยอม
+                    </Button>
+                    <Button
+                        onClick={onAccept}
+                        disabled={!isConsentAccepted}
+                        className={cn(
+                            "min-w-[200px] h-12 shadow-lg transition-all rounded-xl font-bold",
+                            isConsentAccepted
+                                ? "bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white shadow-blue-200"
+                                : "bg-gray-200 text-gray-400 shadow-none hover:bg-gray-200 cursor-not-allowed"
+                        )}
+                    >
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        ยืนยันความยินยอม
+                    </Button>
+                </div>
             </div>
+
+            <AlertDialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
+                <AlertDialogContent className="rounded-[2rem] p-8 max-w-md">
+                    <AlertDialogHeader>
+                        <div className="flex items-center gap-4 mb-2">
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                                <XCircle className="w-6 h-6 text-red-600" />
+                            </div>
+                            <AlertDialogTitle className="text-xl">ยืนยันการปฏิเสธ?</AlertDialogTitle>
+                        </div>
+                        <AlertDialogDescription className="text-base mt-2">
+                            หากคุณปฏิเสธการให้ความยินยอมข้อมูลส่วนบุคคลที่ละเอียดอ่อน คุณจะไม่สามารถดำเนินการสมัครสินเชื่อต่อได้
+                            ต้องการปฏิเสธและกลับหน้าหลักใช่หรือไม่?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6 gap-3">
+                        <AlertDialogCancel className="min-w-[120px] rounded-xl h-11 border-gray-300 text-gray-700 font-bold hover:bg-gray-50">
+                            ยกเลิก
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => router.push("/dashboard/applications")}
+                            className="bg-red-600 hover:bg-red-700 text-white min-w-[120px] rounded-xl h-11 font-bold shadow-sm shadow-red-200"
+                        >
+                            ยืนยันการปฏิเสธ
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

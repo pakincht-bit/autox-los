@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, CheckCircle, XCircle, FileText, MoreVertical, Clock, ChevronRight, ChevronDown, ChevronUp, User, Activity, FileCheck, Send, RotateCcw, MessageSquare } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, FileText, MoreVertical, Clock, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, Activity, FileCheck, Send, RotateCcw, MessageSquare, Maximize2, Minimize2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
@@ -8,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/Textarea";
 import Link from "next/link";
 import { ApplicationStatus } from "@/components/applications/types";
-
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 
 interface ApplicationHeaderProps {
     applicationId: string;
@@ -21,6 +22,8 @@ interface ApplicationHeaderProps {
     onReject?: () => void;
     onStatusChange?: (status: ApplicationStatus) => void;
     children?: React.ReactNode;
+    isExpanded?: boolean;
+    onToggleExpand?: () => void;
 }
 
 const getStatusBadgeVariant = (status: ApplicationStatus) => {
@@ -112,8 +115,10 @@ export function ApplicationActivitySidebar({
     status,
     onApprove,
     onReject,
-    onStatusChange
-}: Pick<ApplicationHeaderProps, 'status' | 'onApprove' | 'onReject' | 'onStatusChange'>) {
+    onStatusChange,
+    isExpanded,
+    onToggleExpand
+}: Pick<ApplicationHeaderProps, 'status' | 'onApprove' | 'onReject' | 'onStatusChange' | 'isExpanded' | 'onToggleExpand'>) {
     // Current user role mock - in real app, this would come from an auth context
     const userRole: string = 'Admin'; // 'Maker', 'Checker', or 'Admin'
     const currentUserName = 'สมหมาย มุ่งมั่น';
@@ -126,6 +131,30 @@ export function ApplicationActivitySidebar({
     const [submittedActivities, setSubmittedActivities] = useState<SubmittedActivity[]>([]);
     // Track all statuses that have been reached so past steps stay visually completed
     const [reachedStatuses, setReachedStatuses] = useState<Set<string>>(new Set([status, 'Draft']));
+
+    const searchParams = useSearchParams();
+
+    // Check query params on mount to simulate Watchlist/Blacklist redirect
+    useEffect(() => {
+        const source = searchParams?.get('source');
+        if (source === 'watchlist' || source === 'blacklist') {
+            const { date, time } = getNowBE();
+            const sourceUpper = source.toUpperCase();
+
+            const newActivity: SubmittedActivity = {
+                id: `special-checked-${Date.now()}`,
+                title: 'ส่งตรวจสอบพิเศษ',
+                description: `ลูกค้าติดเงื่อนไข ${sourceUpper} - ส่งเรื่องให้ Fraud/Legal/Compliance พิจารณาเพิ่มเติม`,
+                actor: 'ระบบอัตโนมัติ',
+                position: 'AutoX Alert',
+                date,
+                time,
+                icon: <Activity className="w-4 h-4 text-orange-600" />,
+                iconBg: 'bg-orange-100',
+            };
+            setSubmittedActivities(prev => [...prev, newActivity]);
+        }
+    }, [searchParams]);
 
     // When status changes, record it as reached
     const markStatusReached = (s: string) => {
@@ -307,126 +336,135 @@ export function ApplicationActivitySidebar({
     ];
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-chaiyo-blue" />
-                    ประวัติการทำรายการ
-                </h3>
+        <div className={cn("flex flex-col h-full", !isExpanded && "items-center overflow-x-hidden")}>
+            <div className={cn("mb-4 flex items-center w-full", isExpanded ? "justify-between" : "justify-center")}>
+                {isExpanded && (
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-chaiyo-blue" />
+                        ประวัติการทำรายการ
+                    </h3>
+                )}
+                {onToggleExpand && (
+                    <Button variant="ghost" size="sm" onClick={onToggleExpand} className="h-8 w-8 p-0 text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors rounded-full rounded-md shrink-0">
+                        {isExpanded ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                    </Button>
+                )}
             </div>
 
-            <div className="flex-1 relative space-y-6 before:absolute before:top-0 before:left-[17px] before:h-full before:w-0.5 before:bg-gray-100">
-                {allActivities.map((activity) => (
-                    <div key={activity.id} className="relative flex items-start group">
-                        <div className={`flex items-center justify-center w-9 h-9 rounded-full border-2 border-white shadow-sm shrink-0 z-10 ${activity.iconBg} ${!activity.isCompleted && !activity.isCurrent && 'opacity-50 grayscale'}`}>
-                            {activity.icon}
-                        </div>
-                        <div className={`ml-4 flex flex-col gap-1 w-full ${!activity.isCompleted && !activity.isCurrent && 'opacity-60'}`}>
-                            <span className={`text-sm font-bold ${(activity.isCompleted || activity.isCurrent) ? 'text-gray-900' : 'text-gray-500'}`}>
-                                {activity.title}
-                            </span>
-                            <p className="text-[13px] text-gray-600">{activity.description}</p>
-                            <div className="flex items-center justify-between mt-1">
-                                {activity.isCompleted && activity.actor !== '-' && (
-                                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                                        <span className="font-medium text-gray-700">{activity.actor}</span>
-                                        {activity.position && (
-                                            <>
-                                                <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
-                                                <span className="text-gray-400">{activity.position}</span>
-                                            </>
-                                        )}
-                                    </span>
-                                )}
-                                {(activity.date !== '-' || activity.time !== '-') && (
-                                    <div className="text-[10px] text-gray-400 flex items-center gap-1">
-                                        {activity.date !== '-' && <span>{activity.date}</span>}
-                                        {activity.date !== '-' && activity.time !== '-' && <span className="w-0.5 h-0.5 rounded-full bg-gray-300 mx-0.5" />}
-                                        {activity.time !== '-' && <span>{activity.time}</span>}
-                                    </div>
-                                )}
+            {isExpanded && (
+                <div className="flex-1 relative space-y-6 before:absolute before:top-0 before:left-[17px] before:h-full before:w-0.5 before:bg-gray-100 w-full overflow-y-auto no-scrollbar">
+                    {allActivities.map((activity) => (
+                        <div key={activity.id} className="relative flex items-start group">
+                            <div className={`flex items-center justify-center w-9 h-9 rounded-full border-2 border-white shadow-sm shrink-0 z-10 ${activity.iconBg} ${!activity.isCompleted && !activity.isCurrent && 'opacity-50 grayscale'}`}>
+                                {activity.icon}
                             </div>
-
-                            {/* Authoritative Feedback & Action Card */}
-                            {activity.isCurrent && activity.canAction && (
-                                <div className="mt-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-1 duration-300">
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-center gap-2 pb-2 border-b border-gray-50 mb-1">
-                                            <div className="w-6 h-6 rounded-full bg-chaiyo-blue/10 flex items-center justify-center">
-                                                <User className="w-3 h-3 text-chaiyo-blue" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] text-gray-400 leading-none">ผู้พิจารณาปัจจุบัน</span>
-                                                <span className="text-[11px] font-bold text-gray-700">{currentUserName}</span>
-                                                <span className="text-[10px] text-gray-400">{currentUserPosition}</span>
-                                            </div>
+                            <div className={`ml-4 flex flex-col gap-1 w-full ${!activity.isCompleted && !activity.isCurrent && 'opacity-60'}`}>
+                                <span className={`text-sm font-bold ${(activity.isCompleted || activity.isCurrent) ? 'text-gray-900' : 'text-gray-500'}`}>
+                                    {activity.title}
+                                </span>
+                                <p className="text-[13px] text-gray-600">{activity.description}</p>
+                                <div className="flex items-center justify-between mt-1">
+                                    {activity.isCompleted && activity.actor !== '-' && (
+                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                            <span className="font-medium text-gray-700">{activity.actor}</span>
+                                            {activity.position && (
+                                                <>
+                                                    <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
+                                                    <span className="text-gray-400">{activity.position}</span>
+                                                </>
+                                            )}
+                                        </span>
+                                    )}
+                                    {(activity.date !== '-' || activity.time !== '-') && (
+                                        <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                                            {activity.date !== '-' && <span>{activity.date}</span>}
+                                            {activity.date !== '-' && activity.time !== '-' && <span className="w-0.5 h-0.5 rounded-full bg-gray-300 mx-0.5" />}
+                                            {activity.time !== '-' && <span>{activity.time}</span>}
                                         </div>
+                                    )}
+                                </div>
 
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">การดำเนินการ</label>
-                                            <Select value={selectedAction} onValueChange={setSelectedAction}>
-                                                <SelectTrigger className="h-9 rounded-lg border-gray-100 bg-gray-50/50">
-                                                    <SelectValue placeholder="เลือกการดำเนินการ" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {(status === 'Draft' || status === 'Sent Back') ? (
-                                                        <SelectItem value="submit">ส่งพิจารณา (Submit)</SelectItem>
-                                                    ) : (
-                                                        <>
-                                                            <SelectItem value="approve">อนุมัติ (Approve)</SelectItem>
-                                                            <SelectItem value="sendback">ส่งกลับเพื่อแก้ไข (Send Back)</SelectItem>
-                                                            <SelectItem value="reject">ปฏิเสธ (Reject)</SelectItem>
-                                                        </>
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                {/* Authoritative Feedback & Action Card */}
+                                {activity.isCurrent && activity.canAction && (
+                                    <div className="mt-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-1 duration-300">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-center gap-2 pb-2 border-b border-gray-50 mb-1">
+                                                <div className="w-6 h-6 rounded-full bg-chaiyo-blue/10 flex items-center justify-center">
+                                                    <User className="w-3 h-3 text-chaiyo-blue" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-400 leading-none">ผู้พิจารณาปัจจุบัน</span>
+                                                    <span className="text-[11px] font-bold text-gray-700">{currentUserName}</span>
+                                                    <span className="text-[10px] text-gray-400">{currentUserPosition}</span>
+                                                </div>
+                                            </div>
 
-                                        {status !== 'Draft' && status !== 'Sent Back' && (
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ผลตอบรับ (Feedback)</label>
-                                                <Select value={selectedFeedback} onValueChange={setSelectedFeedback}>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">การดำเนินการ</label>
+                                                <Select value={selectedAction} onValueChange={setSelectedAction}>
                                                     <SelectTrigger className="h-9 rounded-lg border-gray-100 bg-gray-50/50">
-                                                        <SelectValue placeholder="เลือกเหตุผลหรือผลตอบรับ..." />
+                                                        <SelectValue placeholder="เลือกการดำเนินการ" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="ok">ข้อมูลครบถ้วน ถูกต้องตามเงื่อนไข</SelectItem>
-                                                        <SelectItem value="doc_missing">เอกสารไม่ครบถ้วน / ไม่ชัดเจน</SelectItem>
-                                                        <SelectItem value="income_low">รายได้ไม่เพียงพอต่อเกณฑ์</SelectItem>
-                                                        <SelectItem value="policy_fail">ไม่ผ่านเกณฑ์นโยบายเครดิต</SelectItem>
-                                                        <SelectItem value="other">อื่นๆ (ระบุในหมายเหตุ)</SelectItem>
+                                                        {(status === 'Draft' || status === 'Sent Back') ? (
+                                                            <SelectItem value="submit">ส่งพิจารณา (Submit)</SelectItem>
+                                                        ) : (
+                                                            <>
+                                                                <SelectItem value="approve">อนุมัติ (Approve)</SelectItem>
+                                                                <SelectItem value="sendback">ส่งกลับเพื่อแก้ไข (Send Back)</SelectItem>
+                                                                <SelectItem value="reject">ปฏิเสธ (Reject)</SelectItem>
+                                                            </>
+                                                        )}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                        )}
 
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ความเห็นเพิ่มเติม</label>
-                                            <Textarea
-                                                value={comment}
-                                                onChange={(e) => setComment(e.target.value)}
-                                                className="min-h-[90px] text-xs px-3 py-2 bg-gray-50/50 border-gray-100 focus:bg-white focus:border-chaiyo-blue transition-all"
-                                                placeholder="ระบุรายละเอียดหรือความเห็นประกอบการพิจารณา..."
-                                            />
+                                            {status !== 'Draft' && status !== 'Sent Back' && (
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ผลตอบรับ (Feedback)</label>
+                                                    <Select value={selectedFeedback} onValueChange={setSelectedFeedback}>
+                                                        <SelectTrigger className="h-9 rounded-lg border-gray-100 bg-gray-50/50">
+                                                            <SelectValue placeholder="เลือกเหตุผลหรือผลตอบรับ..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="ok">ข้อมูลครบถ้วน ถูกต้องตามเงื่อนไข</SelectItem>
+                                                            <SelectItem value="doc_missing">เอกสารไม่ครบถ้วน / ไม่ชัดเจน</SelectItem>
+                                                            <SelectItem value="income_low">รายได้ไม่เพียงพอต่อเกณฑ์</SelectItem>
+                                                            <SelectItem value="policy_fail">ไม่ผ่านเกณฑ์นโยบายเครดิต</SelectItem>
+                                                            <SelectItem value="other">อื่นๆ (ระบุในหมายเหตุ)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ความเห็นเพิ่มเติม</label>
+                                                <Textarea
+                                                    value={comment}
+                                                    onChange={(e) => setComment(e.target.value)}
+                                                    className="min-h-[90px] text-xs px-3 py-2 bg-gray-50/50 border-gray-100 focus:bg-white focus:border-chaiyo-blue transition-all"
+                                                    placeholder="ระบุรายละเอียดหรือความเห็นประกอบการพิจารณา..."
+                                                />
+                                            </div>
+
+                                            <Button
+                                                className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 h-10 shadow-lg shadow-chaiyo-blue/10 font-bold text-xs disabled:opacity-50"
+                                                onClick={handleSubmitFeedback}
+                                                disabled={!selectedAction}
+                                            >
+                                                ยืนยันการพิจารณา
+                                            </Button>
                                         </div>
-
-                                        <Button
-                                            className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 h-10 shadow-lg shadow-chaiyo-blue/10 font-bold text-xs disabled:opacity-50"
-                                            onClick={handleSubmitFeedback}
-                                            disabled={!selectedAction}
-                                        >
-                                            ยืนยันการพิจารณา
-                                        </Button>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Maker Footer: Re-submit after send back */}
-            {status === 'Sent Back' && submittedActivities.length > 0 && (userRole === 'Maker' || userRole === 'Admin') && (
+            {isExpanded && status === 'Sent Back' && submittedActivities.length > 0 && (userRole === 'Maker' || userRole === 'Admin') && (
                 <div className="mt-6 pt-4 border-t border-gray-200">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center">

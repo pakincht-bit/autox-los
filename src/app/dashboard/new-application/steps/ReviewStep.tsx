@@ -861,7 +861,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
             <div className="pt-4 pb-8 flex justify-center">
                 <Button
                     size="lg"
-                    className="w-full max-w-sm h-14 text-lg font-bold bg-chaiyo-gold hover:bg-chaiyo-gold/90 text-[#000F9F] shadow-xl"
+                    className="w-full max-w-sm h-14 text-lg font-bold bg-chaiyo-gold hover:bg-chaiyo-gold/90 text-chaiyo-blue shadow-xl"
                     disabled={!acceptedTerms}
                     onClick={handleConfirmSubmission}
                 >
@@ -875,7 +875,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
             {
                 showOTP && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-[#000F9F]/80 backdrop-blur-md" />
+                        <div className="absolute inset-0 bg-chaiyo-blue/80 backdrop-blur-md" />
                         <Card className="relative w-full max-w-md bg-white shadow-2xl rounded-[2.5rem] border-none overflow-hidden animate-in zoom-in-95 duration-200">
                             <div className="p-10 space-y-8">
                                 <div className="flex justify-center">

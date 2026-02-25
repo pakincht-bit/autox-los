@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,7 +33,6 @@ interface IdentityCheckStepProps {
 }
 
 type KYCStage = 'INIT' | 'READING_CARD' | 'CHECKING_MEMBER' | 'CARD_SUCCESS' | 'FACE_VERIFY' | 'FACE_SUCCESS' | 'COMPLETE';
-type VerificationStatus = 'NORMAL' | 'WATCHLIST' | 'BLACKLIST';
 
 export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityCheckStepProps) {
     const [stage, setStage] = useState<KYCStage>('INIT');
@@ -40,7 +40,6 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
     const [isExistingMember, setIsExistingMember] = useState<boolean>(false);
     const [existingProfile, setExistingProfile] = useState<any>(null);
-    const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('NORMAL');
 
     // Mock Data
     const [mockChipPhoto, setMockChipPhoto] = useState<string | null>(null);
@@ -178,6 +177,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
             prefix: "นาย",
             birthDate: "1990-01-01",
             addressLine1: "123 หมู่ 1",
+            street: "",
             subDistrict: "ลาดพร้าว",
             district: "ลาดพร้าว",
             province: "กรุงเทพมหานคร",
@@ -208,6 +208,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
             prefix: "นางสาว",
             birthDate: "1995-05-05",
             addressLine1: "456 หมู่ 2",
+            street: "เจริญกรุง",
             subDistrict: "บางรัก",
             district: "บางรัก",
             province: "กรุงเทพมหานคร",
@@ -242,7 +243,6 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
     const checkMemberStatus = async (idNumber: string) => {
         setStage('CHECKING_MEMBER');
-        setVerificationStatus('NORMAL'); // Reset
 
         await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -265,20 +265,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         setIsExistingMember(isExisting);
         setExistingProfile(profile);
 
-        // 2. Mock Logic for Blacklist/Watchlist
-        // BLACKLIST (Block)
-        if (idNumber.endsWith('888') || formData.idNumber.endsWith('888')) {
-            setVerificationStatus('BLACKLIST');
-            setStage('COMPLETE');
-            return;
-        }
 
-        // WATCHLIST (Warning but Proceed)
-        if (idNumber.endsWith('777') || formData.idNumber.endsWith('777')) {
-            setVerificationStatus('WATCHLIST');
-            setStage('COMPLETE');
-            return;
-        }
 
         // 3. Normal Flow
         if (isExisting) {
@@ -518,81 +505,26 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
                             {/* STAGE 4: COMPLETE (Results) */}
                             {stage === 'COMPLETE' && (
-                                verificationStatus !== 'NORMAL' ? (
-                                    <Card className={cn(
-                                        "border-2",
-                                        verificationStatus === 'BLACKLIST' ? "bg-red-50 border-red-200" : "bg-orange-50 border-orange-200"
-                                    )}>
-                                        <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-                                            {verificationStatus === 'BLACKLIST' && (
-                                                <>
-                                                    <XCircle className="w-16 h-16 text-red-600 mb-4" />
-                                                    <h3 className="text-xl font-bold text-red-800">ติด Blacklist</h3>
-                                                    <p className="text-red-700 max-w-xs mt-2">บุคคลนี้มีประวัติค้างชำระหนี้หรือผิดนัดชำระหนี้กับสถาบันการเงิน (ห้ามทำธุรกรรม)</p>
-                                                </>
-                                            )}
-                                            {verificationStatus === 'WATCHLIST' && (
-                                                <>
-                                                    <AlertTriangle className="w-16 h-16 text-orange-500 mb-4" />
-                                                    <h3 className="text-xl font-bold text-orange-800">อยู่ในกลุ่มเฝ้าระวัง (Watchlist)</h3>
-                                                    <p className="text-orange-700 max-w-xs mt-2">บุคคลนี้อยู่ในรายชื่อเฝ้าระวัง โปรดตรวจสอบเอกสารและข้อมูลเพิ่มเติมอย่างละเอียด</p>
-                                                </>
-                                            )}
-
-                                            <div className="mt-6 flex gap-3 w-full px-10">
-                                                <Button
-                                                    variant="outline"
-                                                    className="flex-1 border-red-200 hover:bg-red-100 text-red-700"
-                                                    onClick={() => {
-                                                        setStage('INIT');
-                                                        setVerificationStatus('NORMAL');
-                                                        setFormData({ ...formData, idNumber: "" });
-                                                        setVerificationMethod(null); // Reset all way back? or just reset form?
-                                                    }}
-                                                >
-                                                    ตรวจสอบใหม่
-                                                </Button>
-                                                {verificationStatus === 'WATCHLIST' && (
-                                                    <Button
-                                                        className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-                                                        onClick={() => {
-                                                            // Allow proceed for Watchlist
-                                                            setVerificationStatus('NORMAL');
-                                                            if (isExistingMember) {
-                                                                onNext(true, existingProfile);
-                                                            } else {
-                                                                setStage('FACE_VERIFY');
-                                                            }
-                                                        }}
-                                                    >
-                                                        ดำเนินการต่อ
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ) : (
-                                    <Card className={cn(
-                                        "border-2",
-                                        isExistingMember ? "bg-blue-50 border-blue-200" : "bg-emerald-50 border-emerald-200"
-                                    )}>
-                                        <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-                                            {isExistingMember ? (
-                                                <>
-                                                    <UserCheck className="w-12 h-12 text-blue-600 mb-2" />
-                                                    <h3 className="text-xl font-bold text-blue-800">ลูกค้าเก่าในระบบ</h3>
-                                                    <p className="text-blue-700">สถานะปกติ ยืนยันตัวตนเรียบร้อย</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle className="w-12 h-12 text-emerald-500 mb-2" />
-                                                    <h3 className="text-xl font-bold text-emerald-800">ยืนยันตัวตนเรียบร้อย</h3>
-                                                    <p className="text-emerald-700 mb-6">สถานะปกติ ตรวจสอบข้อมูลลูกค้าใหม่</p>
-                                                </>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                )
+                                <Card className={cn(
+                                    "border-2",
+                                    isExistingMember ? "bg-blue-50 border-blue-200" : "bg-emerald-50 border-emerald-200"
+                                )}>
+                                    <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                                        {isExistingMember ? (
+                                            <>
+                                                <UserCheck className="w-12 h-12 text-blue-600 mb-2" />
+                                                <h3 className="text-xl font-bold text-blue-800">ลูกค้าเก่าในระบบ</h3>
+                                                <p className="text-blue-700">สถานะปกติ ยืนยันตัวตนเรียบร้อย</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle className="w-12 h-12 text-emerald-500 mb-2" />
+                                                <h3 className="text-xl font-bold text-emerald-800">ยืนยันตัวตนเรียบร้อย</h3>
+                                                <p className="text-emerald-700 mb-6">สถานะปกติ ตรวจสอบข้อมูลลูกค้าใหม่</p>
+                                            </>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             )}
                         </div>
 
@@ -610,7 +542,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                         {/* 1. Static Identity Information */}
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-2 text-sm font-bold text-gray-700 pb-2 border-b border-gray-100">
-                                                <UserCheck className="w-4 h-4 text-chaiyo-blue" />
+
                                                 ข้อมูลตามบัตรประชาชน
                                             </div>
 
@@ -665,7 +597,6 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                             className="disabled:bg-gray-100 disabled:opacity-80 pr-10"
                                                             maxLength={useYearOnly ? 4 : 10}
                                                         />
-                                                        <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
                                                     </div>
                                                     <div className="flex items-center space-x-2 pt-1">
                                                         <Checkbox
@@ -682,17 +613,72 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                         </label>
                                                     </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label>ที่อยู่อาศัย (ตามบัตร)</Label>
-                                                    <div className="relative">
-                                                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                        <Textarea
-                                                            className="pl-9 pr-3 py-2 min-h-[80px]"
-                                                            value={formData.fullAddress || `${formData.addressLine1 || ""} ${formData.subDistrict || ""} ${formData.district || ""} ${formData.province || ""} ${formData.zipCode || ""}`.trim()}
-                                                            onChange={(e) => handleFormChange('fullAddress', e.target.value)}
-                                                            placeholder="บ้านเลขที่, ถนน, ตำบล/แขวง, อำเภอ/เขต, จังหวัด, รหัสไปรษณีย์"
-                                                            disabled={verificationMethod === 'DIPCHIP'}
-                                                        />
+                                                <div className="space-y-4 pt-2">
+                                                    <div className="flex items-center gap-2 text-sm font-bold text-gray-700 pb-2 border-b border-gray-100">
+                                                        ที่อยู่อาศัย
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="col-span-1 md:col-span-2 space-y-2">
+                                                            <Label className="text-xs text-muted-foreground">เลขที่บ้าน/หมู่/คอนโด/ซอย</Label>
+                                                            <Input
+                                                                className="bg-white"
+                                                                value={formData.addressLine1 || ""}
+                                                                onChange={(e) => handleFormChange('addressLine1', e.target.value)}
+                                                                disabled={verificationMethod === 'DIPCHIP'}
+                                                                placeholder="เช่น 123/45 หมู่ 1 ซอยสุขใจ 1"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs text-muted-foreground">ถนน</Label>
+                                                            <Combobox
+                                                                options={[{ label: "สุขุมวิท", value: "สุขุมวิท" }, { label: "เพชรเกษม", value: "เพชรเกษม" }, { label: "พหลโยธิน", value: "พหลโยธิน" }]}
+                                                                value={formData.street || ""}
+                                                                onValueChange={(val) => handleFormChange('street', val)}
+                                                                disabled={verificationMethod === 'DIPCHIP'}
+                                                                placeholder="ระบุถนน"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs text-muted-foreground">แขวง/ตำบล</Label>
+                                                            <Combobox
+                                                                options={[{ label: "ลาดพร้าว", value: "ลาดพร้าว" }, { label: "บางรัก", value: "บางรัก" }]}
+                                                                value={formData.subDistrict || ""}
+                                                                onValueChange={(val) => handleFormChange('subDistrict', val)}
+                                                                disabled={verificationMethod === 'DIPCHIP'}
+                                                                placeholder="ระบุแขวง/ตำบล"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs text-muted-foreground">เขต/อำเภอ</Label>
+                                                            <Combobox
+                                                                options={[{ label: "ลาดพร้าว", value: "ลาดพร้าว" }, { label: "บางรัก", value: "บางรัก" }]}
+                                                                value={formData.district || ""}
+                                                                onValueChange={(val) => handleFormChange('district', val)}
+                                                                disabled={verificationMethod === 'DIPCHIP'}
+                                                                placeholder="ระบุเขต/อำเภอ"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs text-muted-foreground">จังหวัด</Label>
+                                                            <Combobox
+                                                                options={[{ label: "กรุงเทพมหานคร", value: "กรุงเทพมหานคร" }, { label: "นนทบุรี", value: "นนทบุรี" }, { label: "ปทุมธานี", value: "ปทุมธานี" }]}
+                                                                value={formData.province || ""}
+                                                                onValueChange={(val) => handleFormChange('province', val)}
+                                                                disabled={verificationMethod === 'DIPCHIP'}
+                                                                placeholder="ระบุจังหวัด"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs text-muted-foreground">รหัสไปรษณีย์</Label>
+                                                            <Input
+                                                                className="bg-white"
+                                                                value={formData.zipCode || ""}
+                                                                onChange={(e) => handleFormChange('zipCode', e.target.value.replace(/\D/g, '').slice(0, 5))}
+                                                                disabled={verificationMethod === 'DIPCHIP'}
+                                                                maxLength={5}
+                                                                placeholder="12345"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

@@ -17,7 +17,7 @@ function DashboardLayoutContent({
                 <div className="print:hidden">
                     <Sidebar />
                 </div>
-                <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#000F9F]">
+                <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-chaiyo-blue">
                     {/* Main Content Area - Inset Workspace */}
                     <div className="flex-1 relative p-2 overflow-hidden">
                         <div className="bg-white rounded-md h-full shadow-sm flex flex-col overflow-hidden border border-white/5">

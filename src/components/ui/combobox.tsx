@@ -19,6 +19,7 @@ interface ComboboxProps {
     searchPlaceholder?: string;
     emptyText?: string;
     className?: string;
+    disabled?: boolean;
 }
 
 export function Combobox({
@@ -29,9 +30,15 @@ export function Combobox({
     searchPlaceholder = "ค้นหา...",
     emptyText = "ไม่พบข้อมูล",
     className,
+    disabled = false,
 }: ComboboxProps) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState("");
+    const [focusedIndex, setFocusedIndex] = React.useState(-1);
+
+    React.useEffect(() => {
+        setFocusedIndex(-1);
+    }, [search, open]);
 
     const filtered = React.useMemo(() => {
         if (!search) return options;
@@ -58,6 +65,7 @@ export function Combobox({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
+                    disabled={disabled}
                     className={cn(
                         "w-full justify-between h-12 bg-white font-normal rounded-xl border-gray-200 px-3 hover:bg-gray-50 transition-all",
                         className
@@ -79,7 +87,24 @@ export function Combobox({
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "ArrowDown") {
+                                e.preventDefault();
+                                setFocusedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : prev));
+                            } else if (e.key === "ArrowUp") {
+                                e.preventDefault();
+                                setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+                            } else if (e.key === "Enter" && focusedIndex >= 0 && focusedIndex < filtered.length) {
+                                e.preventDefault();
+                                onValueChange?.(filtered[focusedIndex].label);
+                                setOpen(false);
+                                setSearch("");
+                            } else if (e.key === "Escape") {
+                                setOpen(false);
+                            }
+                        }}
                         placeholder={searchPlaceholder}
+                        autoFocus
                         className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
                     />
                 </div>
@@ -91,10 +116,11 @@ export function Combobox({
                             {emptyText}
                         </div>
                     ) : (
-                        filtered.map((option) => {
+                        filtered.map((option, index) => {
                             const isSelected =
                                 value === option.value ||
                                 value?.toLowerCase() === option.label.toLowerCase();
+                            const isFocused = index === focusedIndex;
                             return (
                                 <div
                                     key={option.value}
@@ -105,7 +131,8 @@ export function Combobox({
                                     }}
                                     className={cn(
                                         "relative flex cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm outline-none transition-colors hover:bg-gray-100 hover:text-gray-900",
-                                        isSelected && "bg-gray-50"
+                                        isSelected && "bg-gray-50",
+                                        isFocused && "bg-gray-100 text-gray-900"
                                     )}
                                 >
                                     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
