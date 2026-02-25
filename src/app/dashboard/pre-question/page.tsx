@@ -294,9 +294,9 @@ function PreQuestionPageContent() {
                                 <div key={step.id} className="relative z-10 flex flex-col items-center">
                                     {/* Circle Step Indicator */}
                                     <div className={cn(
-                                        "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 bg-white shadow-sm",
+                                        "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 bg-white",
                                         isActive
-                                            ? "border-chaiyo-blue text-chaiyo-blue shadow-[0_0_0_4px_rgba(37,99,235,0.1)] scale-110"
+                                            ? "border-chaiyo-blue text-chaiyo-blue scale-110"
                                             : isCompleted
                                                 ? "bg-chaiyo-blue border-chaiyo-blue text-white"
                                                 : "border-gray-200 text-gray-300"
@@ -329,8 +329,8 @@ function PreQuestionPageContent() {
                         </div>
 
                         {/* Section 1: Collateral Info */}
-                        <div className="relative border-l-[3px] border-gray-200 ml-4 pl-8 pb-12">
-                            <div className="absolute -left-[18px] top-0 w-8 h-8 bg-white rounded-full border-[3px] border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
+                        <div className="relative border-l-[2px] border-gray-200 ml-4 pl-8 pb-12">
+                            <div className="absolute -left-[18px] top-0 w-8 h-8 bg-white rounded-full border-[2px] border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
                                 1
                             </div>
 
@@ -348,10 +348,10 @@ function PreQuestionPageContent() {
                                                     setAiDetectedFields([]);
                                                 }}
                                                 className={cn(
-                                                    "flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 text-sm font-bold transition-all text-center group flex flex-col items-center justify-center gap-2",
+                                                    "flex-1 min-w-[120px] py-3 px-4 rounded-xl border text-sm font-bold transition-all text-center group flex flex-col items-center justify-center gap-2",
                                                     formData.collateralType === p.id
-                                                        ? "border-chaiyo-blue bg-blue-50 text-chaiyo-blue shadow-sm"
-                                                        : "border-gray-200 bg-white text-gray-600 hover: hover:border-gray-300"
+                                                        ? "border-chaiyo-blue bg-blue-50 text-chaiyo-blue"
+                                                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
                                                 )}
                                             >
                                                 <p.icon className={cn("w-6 h-6", formData.collateralType === p.id ? "text-chaiyo-blue" : "text-gray-400 group-hover:text-gray-600")} />
@@ -364,7 +364,7 @@ function PreQuestionPageContent() {
                                 <div className="space-y-6">
                                     {/* Photo Upload Area (Card 1) */}
                                     {formData.collateralType === 'car' && (
-                                        <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
+                                        <div className="border border-border-strong rounded-xl bg-white overflow-hidden">
                                             <div className="p-6 bg-blue-50/30">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                                                     <div>
@@ -394,7 +394,7 @@ function PreQuestionPageContent() {
 
                                                 <div className="flex flex-wrap gap-4">
                                                     {uploadedDocs.map((doc, idx) => (
-                                                        <div key={idx} className="relative w-28 h-28 rounded-xl overflow-hidden border-2 border-gray-200 group bg-white shadow-sm">
+                                                        <div key={idx} className="relative w-28 h-28 rounded-xl overflow-hidden border border-border-strong group bg-white">
                                                             <img src={doc} alt={`doc-${idx}`} className="w-full h-full object-cover" />
                                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                                                                 <button
@@ -480,7 +480,7 @@ function PreQuestionPageContent() {
                                                                 <h4 className="font-bold text-gray-900">ผลการวิเคราะห์โดย AI (AI Result)</h4>
                                                             </div>
 
-                                                            <div className="grid grid-cols-2 gap-4 bg-white/60 p-5 rounded-2xl border border-blue-100/50 shadow-sm">
+                                                            <div className="grid grid-cols-2 gap-4 bg-white/60 p-5 rounded-2xl border border-blue-100/50">
                                                                 <div className="space-y-1">
                                                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ยี่ห้อ (Brand)</p>
                                                                     <p className="text-sm font-bold text-gray-800">{formData.aiDetectedData.brand || '-'}</p>
@@ -515,7 +515,7 @@ function PreQuestionPageContent() {
                                     )}
 
                                     {/* Form and Pricing Summary Card (Card 2) */}
-                                    <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm divide-y divide-gray-100">
+                                    <div className="border border-border-strong rounded-xl bg-white overflow-hidden divide-y divide-gray-200">
                                         {(formData.collateralType === 'car' || formData.collateralType === 'moto' || formData.collateralType === 'truck' || formData.collateralType === 'agri') ? (
                                             <div className="flex flex-col">
                                                 {/* Redbook Form Section Header */}
@@ -729,7 +729,7 @@ function PreQuestionPageContent() {
                                                 )}
 
                                                 {/* 6. ราคาประเมิน */}
-                                                <div className="space-y-4 md:col-span-2 p-4 bg-gray-50 border border-gray-100 rounded-xl">
+                                                <div className="space-y-4 md:col-span-2 p-4 bg-gray-50 border border-border-strong rounded-xl">
                                                     <Label className="text-sm text-gray-700">ราคาประเมิน กรอก เบื้องต้น</Label>
 
                                                     <div className="space-y-2">
@@ -831,20 +831,20 @@ function PreQuestionPageContent() {
                                                             "md:grid-cols-2"
                                                 )}>
                                                     {formData.collateralType === 'car' && (
-                                                        <div className="p-4 rounded-xl bg-white border border-gray-100 shadow-sm space-y-1">
+                                                        <div className="p-4 rounded-xl bg-white border border-border-strong space-y-1">
                                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">AI Analysis Price</p>
                                                             <p className="text-lg font-bold text-gray-900">฿{formData.aiPrice?.toLocaleString() || '0'}</p>
                                                             <Badge className="bg-blue-50 text-blue-600 border-none text-[9px]">From Photos</Badge>
                                                         </div>
                                                     )}
                                                     {(formData.collateralType === 'car' || formData.collateralType === 'moto' || formData.collateralType === 'truck' || formData.collateralType === 'agri') && (
-                                                        <div className="p-4 rounded-xl bg-white border border-gray-100 shadow-sm space-y-1">
+                                                        <div className="p-4 rounded-xl bg-white border border-border-strong space-y-1">
                                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Redbook Database</p>
                                                             <p className="text-lg font-bold text-gray-900">฿{formData.redbookPrice?.toLocaleString() || '0'}</p>
                                                             <Badge className="bg-purple-50 text-purple-600 border-none text-[9px]">Market Standard</Badge>
                                                         </div>
                                                     )}
-                                                    <div className="p-4 rounded-xl bg-chaiyo-blue text-white shadow-sm space-y-1">
+                                                    <div className="p-4 rounded-xl bg-gray-50 text-gray-900 border border-border-strong space-y-1">
                                                         <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">Final Appraisal Price</p>
                                                         <p className="text-2xl font-black">฿{formData.appraisalPrice?.toLocaleString() || '0'}</p>
                                                         <p className="text-[9px] text-blue-100 italic">* อ้างอิงวงเงินสูงสุด</p>
@@ -869,22 +869,22 @@ function PreQuestionPageContent() {
                                         if (questions.length === 0) return null;
 
                                         return (
-                                            <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm divide-y divide-gray-100">
+                                            <div className="border border-border-strong rounded-xl bg-white overflow-hidden divide-y divide-gray-200">
                                                 {questions.map((q) => (
                                                     <div key={q.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/40">
                                                         <div>
                                                             <Label>{q.text}</Label>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 bg-white border border-gray-200 p-1.5 rounded-xl shadow-sm shrink-0">
+                                                        <div className="flex items-center gap-1.5 bg-white border border-border-strong p-1.5 rounded-xl shrink-0">
                                                             <button
                                                                 onClick={() => setFormData({ ...formData, collateralQuestions: { ...formData.collateralQuestions, [q.id]: 'yes' } })}
-                                                                className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'yes' ? "bg-gray-200 text-gray-700 shadow-sm" : "text-gray-500 hover:bg-gray-100")}
+                                                                className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'yes' ? "bg-gray-200 text-gray-700" : "text-gray-500 hover:bg-gray-100")}
                                                             >
                                                                 ใช่
                                                             </button>
                                                             <button
                                                                 onClick={() => setFormData({ ...formData, collateralQuestions: { ...formData.collateralQuestions, [q.id]: 'no' } })}
-                                                                className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'no' ? "bg-chaiyo-blue text-white shadow-lg shadow-blue-200" : "text-gray-500 hover:bg-gray-100")}
+                                                                className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'no' ? "bg-chaiyo-blue text-white" : "text-gray-500 hover:bg-gray-100")}
                                                             >
                                                                 ไม่ใช่
                                                             </button>
@@ -901,15 +901,15 @@ function PreQuestionPageContent() {
                         </div>
 
                         {/* Section 2: Borrower Info */}
-                        <div className="relative border-l-[3px] border-gray-200 ml-4 pl-8 pb-12">
-                            <div className="absolute -left-[18px] top-0 w-8 h-8 bg-white rounded-full border-[3px] border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
+                        <div className="relative border-l-[2px] border-gray-200 ml-4 pl-8 pb-12">
+                            <div className="absolute -left-[18px] top-0 w-8 h-8 bg-white rounded-full border-[2px] border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
                                 2
                             </div>
 
                             <div className="space-y-6 -mt-1">
                                 <h3 className="text-xl font-bold text-gray-900">ข้อมูลทั่วไป</h3>
 
-                                <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm p-6">
+                                <div className="border border-border-strong rounded-xl bg-white overflow-hidden p-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                                         <div className="space-y-2">
                                             <Label>สัญชาติ *</Label>
@@ -1009,15 +1009,15 @@ function PreQuestionPageContent() {
                         </div>
 
                         {/* Summary / Submit */}
-                        <div className="relative border-l-[3px] border-transparent ml-4 pl-8">
-                            <div className="absolute -left-[18px] top-0 w-8 h-8 rounded-full border-[3px] border-chaiyo-blue bg-chaiyo-blue flex items-center justify-center text-white shadow-sm ring-4 ring-white">
+                        <div className="relative border-l-[2px] border-transparent ml-4 pl-8">
+                            <div className="absolute -left-[18px] top-0 w-8 h-8 rounded-full border-[2px] border-gray-200 bg-gray-50 flex items-center justify-center text-gray-900 ring-4 ring-white">
                                 <Check className="w-4 h-4" strokeWidth={3} />
                             </div>
                             <div className="pt-0 flex flex-col items-start -mt-1 space-y-4">
                                 <Button
                                     size="xl"
                                     onClick={nextStep}
-                                    className="min-w-[200px] shadow-lg shadow-chaiyo-blue/20 font-bold transition-all"
+                                    className="min-w-[200px] font-bold transition-all"
                                     disabled={!formData.collateralType || !formData.nationality || !formData.specialProject}
                                 >
                                     ถัดไป <ChevronRight className="w-5 h-5 ml-2" />
@@ -1090,9 +1090,9 @@ function PreQuestionPageContent() {
                                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                                             {/* Display Info Section */}
                                             <div className="lg:col-span-2 space-y-6">
-                                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                                <div className="bg-white border border-border-strong rounded-xl overflow-hidden">
                                                     <div className="p-6 space-y-6">
-                                                        <h4 className="font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
+                                                        <h4 className="font-bold text-gray-900 border-b border-gray-200 pb-3 flex items-center gap-2">
                                                             <User className="w-5 h-5 text-chaiyo-blue" /> ปัจจัยที่มีผลต่อการคำนวณ LTV
                                                         </h4>
 
@@ -1151,7 +1151,7 @@ function PreQuestionPageContent() {
                                                             </div>
                                                         </div>
 
-                                                        <div className="mt-8 pt-4 border-t border-gray-100">
+                                                        <div className="mt-8 pt-4 border-t border-gray-200">
                                                             <Button
                                                                 variant="outline"
                                                                 size="xl"
@@ -1167,15 +1167,15 @@ function PreQuestionPageContent() {
 
                                             {/* Loan Summary Limit Card Breakdown */}
                                             <div className="lg:col-span-3 space-y-6">
-                                                <div className="bg-white border-2 border-chaiyo-blue rounded-2xl overflow-hidden shadow-lg shadow-blue-900/5">
-                                                    <div className="bg-gradient-to-r from-chaiyo-blue to-blue-700 p-6 text-white flex items-center gap-3">
-                                                        <Briefcase className="w-6 h-6 text-chaiyo-gold" />
+                                                <div className="bg-white border border-border-strong rounded-2xl overflow-hidden">
+                                                    <div className="bg-gray-50 p-6 text-gray-900 flex items-center gap-3 border-b border-gray-200">
+
                                                         <h3 className="font-bold text-lg">สรุปวงเงินกู้สูงสุด (Maximum Loan Limit)</h3>
                                                     </div>
 
                                                     <div className="p-6 space-y-6">
                                                         {/* Row 1: Appraisal */}
-                                                        <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+                                                        <div className="flex justify-between items-center pb-4 border-b border-gray-200">
                                                             <div>
                                                                 <div className="flex items-center gap-2">
                                                                     <p className="font-medium text-gray-800">ราคาประเมิน (Appraisal Price)</p>
@@ -1193,7 +1193,7 @@ function PreQuestionPageContent() {
                                                         </div>
 
                                                         {/* Row 2: LTV Breakdown */}
-                                                        <div className="space-y-3 pb-4 border-b border-gray-100">
+                                                        <div className="space-y-3 pb-4 border-b border-gray-200">
                                                             <div className="flex justify-between items-center">
                                                                 <p className="font-medium text-gray-800">สัดส่วนวงเงินกู้ (LTV)</p>
                                                                 <span className="font-bold text-gray-900 bg-gray-100 px-3 py-1 rounded-full text-sm">
@@ -1202,7 +1202,7 @@ function PreQuestionPageContent() {
                                                             </div>
 
                                                             {/* LTV Sub-list */}
-                                                            <div className=" rounded-xl p-4 space-y-2 text-sm border border-gray-100">
+                                                            <div className="rounded-xl p-4 border border-border-strong space-y-2 text-sm">
                                                                 <div className="flex justify-between text-gray-600">
                                                                     <span>ฐาน LTV มาตรฐาน</span>
                                                                     <span>{(formData.collateralType === 'land' ? 0.70 : 0.80) * 100}%</span>
@@ -1242,7 +1242,7 @@ function PreQuestionPageContent() {
                                                             <Button
                                                                 size="xl"
                                                                 onClick={() => setCurrentStep(3)}
-                                                                className="min-w-[200px] shadow-lg shadow-chaiyo-blue/20 font-bold transition-all"
+                                                                className="min-w-[200px] font-bold transition-all"
                                                             >
                                                                 ถัดไป <ChevronRight className="w-5 h-5 ml-2" />
                                                             </Button>
@@ -1432,13 +1432,13 @@ function PreQuestionPageContent() {
                                     <TabsList className="grid w-full grid-cols-2 mb-8 h-14 bg-gray-100 p-1.5 rounded-2xl">
                                         <TabsTrigger
                                             value="monthly"
-                                            className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-chaiyo-blue data-[state=active]:shadow-sm text-gray-500 font-bold h-full text-base transition-all"
+                                            className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-chaiyo-blue text-gray-500 font-bold h-full text-base transition-all"
                                         >
                                             ผ่อนชำระรายเดือน
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="balloon"
-                                            className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-sm text-gray-500 font-bold h-full text-base transition-all"
+                                            className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-amber-600 text-gray-500 font-bold h-full text-base transition-all"
                                         >
                                             โปะงวดท้าย (One-Time)
                                         </TabsTrigger>
@@ -1449,7 +1449,7 @@ function PreQuestionPageContent() {
                                         <div className="w-full">
                                             <TabsContent value="monthly" className="mt-0 animate-in fade-in zoom-in-95 duration-300">
                                                 {/* Option 1: Monthly Installment */}
-                                                <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-lg shadow-blue-100 relative group w-full">
+                                                <div className="bg-white rounded-3xl overflow-hidden border border-border-strong relative group w-full">
                                                     {/* Header - Product & Key Figures */}
                                                     <div className="p-6 text-white relative overflow-hidden transition-colors bg-gradient-to-r from-chaiyo-blue to-blue-600">
                                                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
@@ -1491,11 +1491,11 @@ function PreQuestionPageContent() {
                                                             </div>
                                                         </div>
 
-                                                        <div className=" rounded-xl p-4 border border-gray-100">
+                                                        <div className="rounded-xl p-4 border border-border-strong">
                                                             <p className="text-xs font-medium text-gray-500 mb-3">ตัวอย่างค่างวด (Estimated Installment)</p>
                                                             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                                                 {exampleMonths.map((m) => (
-                                                                    <div key={m} className="bg-white p-3 rounded-lg border border-gray-200 text-center shadow-sm">
+                                                                    <div key={m} className="bg-white p-3 rounded-lg border border-border-strong text-center">
                                                                         <div className="text-xs text-gray-400 mb-1">{m} เดือน</div>
                                                                         <div className="font-bold text-[13px] text-chaiyo-blue">{calcMonthly(maxLoan, m).toLocaleString()}</div>
                                                                     </div>
@@ -1504,15 +1504,14 @@ function PreQuestionPageContent() {
                                                         </div>
 
                                                         {/* Bundle Deal Inside Monthly Card */}
-                                                        <div className="mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 relative overflow-hidden">
-                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                                                        <div className="mt-4 bg-gray-50 border border-border-strong rounded-xl p-4 relative overflow-hidden">
 
                                                             <div className="flex items-start gap-4 relative z-10">
                                                                 <div className="shrink-0">
                                                                     <img
                                                                         src="/images/chaiyo-card.svg"
                                                                         alt="Chaiyo Card"
-                                                                        className="w-28 h-auto shadow-sm rounded-lg"
+                                                                        className="w-28 h-auto rounded-lg"
                                                                     />
                                                                 </div>
                                                                 <div className="flex-1">
@@ -1530,8 +1529,7 @@ function PreQuestionPageContent() {
                                                         </div>
 
                                                         {/* Bundle Deal: Free Insurance */}
-                                                        <div className="mt-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 relative overflow-hidden">
-                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                                                        <div className="mt-3 bg-gray-50 border border-border-strong rounded-xl p-4 relative overflow-hidden">
 
                                                             <div className="flex items-start gap-4 relative z-10">
                                                                 <div className="shrink-0">
@@ -1558,7 +1556,7 @@ function PreQuestionPageContent() {
                                                             <Button
                                                                 size="xl"
                                                                 onClick={handleCreateApplication}
-                                                                className="w-full shadow-lg shadow-chaiyo-blue/20 font-bold"
+                                                                className="w-full font-bold"
                                                             >
                                                                 ดำเนินการต่อ
                                                             </Button>
@@ -1581,10 +1579,9 @@ function PreQuestionPageContent() {
 
                                             <TabsContent value="balloon" className="mt-0 animate-in fade-in zoom-in-95 duration-300">
                                                 {/* Option 2: Balloon Payment */}
-                                                <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-lg shadow-amber-100 relative group w-full">
+                                                <div className="bg-white rounded-3xl overflow-hidden border border-border-strong relative group w-full">
                                                     {/* Header - Product & Key Figures (Amber Variant) */}
-                                                    <div className="p-6 text-white relative overflow-hidden transition-colors bg-gradient-to-r from-amber-500 to-orange-600">
-                                                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                                                    <div className="p-6 text-gray-900 border-b border-gray-200 relative overflow-hidden transition-colors bg-gray-50">
                                                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
                                                             <div>
                                                                 <div className="flex items-center gap-2 mb-1">
@@ -1599,16 +1596,14 @@ function PreQuestionPageContent() {
                                                         </div>
 
                                                         {/* Key Stats Bar */}
-                                                        <div className="grid grid-cols-2 gap-2 mt-6 pt-4 border-t border-white/10">
-
-
+                                                        <div className="grid grid-cols-2 gap-2 mt-6 pt-4 border-t border-gray-200">
                                                             <div>
-                                                                <p className="text-white/70 text-xs">วงเงินสูงสุด</p>
-                                                                <p className="font-bold">{maxLoan.toLocaleString()} <span className="text-[10px] font-normal opacity-75">บาท</span></p>
+                                                                <p className="text-gray-500 text-xs">วงเงินสูงสุด</p>
+                                                                <p className="font-bold text-gray-900">{maxLoan.toLocaleString()} <span className="text-[10px] font-normal opacity-75">บาท</span></p>
                                                             </div>
                                                             <div>
-                                                                <p className="text-white/70 text-xs">ดอกเบี้ย</p>
-                                                                <p className="font-bold">23.99% <span className="text-[10px] font-normal opacity-75">ต่อปี</span></p>
+                                                                <p className="text-gray-500 text-xs">ดอกเบี้ย</p>
+                                                                <p className="font-bold text-gray-900">23.99% <span className="text-[10px] font-normal opacity-75">ต่อปี</span></p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1626,7 +1621,7 @@ function PreQuestionPageContent() {
                                                         </div>
 
                                                         <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 space-y-3">
-                                                            <div className="flex justify-between items-center text-sm p-2 bg-white rounded-lg border border-amber-100 shadow-sm">
+                                                            <div className="flex justify-between items-center text-sm p-2 bg-white rounded-lg border border-amber-100">
                                                                 <span className="text-gray-600">ผ่อนชำระต่อเดือน (เฉพาะดอกเบี้ย)</span>
                                                                 <span className="font-bold text-amber-700 text-lg">{calcBalloonMonthly(maxLoan).toLocaleString()} บาท</span>
                                                             </div>
@@ -1641,7 +1636,7 @@ function PreQuestionPageContent() {
                                                             <Button
                                                                 size="xl"
                                                                 onClick={handleCreateApplication}
-                                                                className="w-full bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 font-bold"
+                                                                className="w-full bg-amber-500 hover:bg-amber-600 font-bold"
                                                             >
                                                                 ดำเนินการต่อ
                                                             </Button>
@@ -1667,7 +1662,7 @@ function PreQuestionPageContent() {
                                         {/* Column 2: Document Checklist (Hidden for now) */}
                                         {/* <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm animate-in fade-in duration-500 h-full"> */}
                                         {/* <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm animate-in fade-in duration-500 h-full">
-                                    <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+                                    <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
                                         <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
                                             <FileText className="w-5 h-5 text-emerald-600" />
                                         </div>
@@ -1705,7 +1700,7 @@ function PreQuestionPageContent() {
                                             ))}
                                         </div>
                                     )}
-                                    <div className="pt-3 border-t border-gray-100 mt-auto">
+                                    <div className="pt-3 border-t border-gray-200 mt-auto">
                                         <p className="text-xs text-gray-400 flex items-center gap-1.5">
                                             <Sparkles className="w-3.5 h-3.5" />
                                             เอกสารที่แนะนำนี้สร้างขึ้นจากข้อมูลที่ได้รับโดยอัตโนมัติ สามารถปรับเปลี่ยนได้ตามเงื่อนไขของสาขา
@@ -1716,7 +1711,7 @@ function PreQuestionPageContent() {
                                 </Tabs>
 
                                 {/* Actions Bar */}
-                                <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                                <div className="bg-white p-4 rounded-xl border border-border-strong flex flex-col md:flex-row justify-between items-center gap-4">
                                     <Button
                                         variant="outline"
                                         size="xl"
@@ -1743,9 +1738,9 @@ function PreQuestionPageContent() {
                         }
                         return (
                             <div className="max-w-6xl mx-auto py-8 animate-in slide-in-from-right-8 duration-300">
-                                <Card className="border border-border-subtle shadow-xl rounded-[2rem] bg-white overflow-hidden">
+                                <Card className="border border-border-strong shadow-none rounded-[2rem] bg-white overflow-hidden">
                                     <CardContent className="p-8 space-y-6">
-                                        <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+                                        <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
                                             <div className="w-12 h-12 rounded-xl bg-chaiyo-blue/10 flex items-center justify-center">
                                                 <FileText className="w-6 h-6 text-chaiyo-blue" />
                                             </div>
@@ -1755,7 +1750,7 @@ function PreQuestionPageContent() {
                                             </div>
                                         </div>
 
-                                        <div className="bg-gray-800 rounded-xl overflow-hidden shadow-inner border border-gray-200 relative flex items-center justify-center w-full" style={{ height: '80vh' }}>
+                                        <div className="bg-gray-800 rounded-xl overflow-hidden border border-border-strong relative flex items-center justify-center w-full" style={{ height: '80vh' }}>
                                             <PdfViewer key={pdfPath} url={pdfPath} rotation={pdfRotation} />
                                         </div>
 
@@ -1774,7 +1769,7 @@ function PreQuestionPageContent() {
                                             </label>
                                         </div>
 
-                                        <div className="flex justify-between items-center pt-6 border-t border-gray-100">
+                                        <div className="flex justify-between items-center pt-6 border-t border-gray-200">
                                             <Button
                                                 variant="outline"
                                                 size="xl"
@@ -1787,7 +1782,7 @@ function PreQuestionPageContent() {
                                                 size="xl"
                                                 onClick={handleProceedToApplication}
                                                 disabled={!formData.isSalesheetRead}
-                                                className="px-8 shadow-lg shadow-blue-500/20 font-bold"
+                                                className="px-8 font-bold"
                                             >
                                                 ดำเนินการต่อ <ChevronRight className="w-4 h-4 ml-2" />
                                             </Button>
@@ -1867,7 +1862,7 @@ function PreQuestionPageContent() {
                             <img
                                 src={uploadedDocs[lightboxIndex]}
                                 alt={`Document ${lightboxIndex + 1}`}
-                                className="max-h-[80vh] max-w-full object-contain shadow-2xl rounded-lg"
+                                className="max-h-[80vh] max-w-full object-contain rounded-lg"
                                 onClick={(e) => e.stopPropagation()}
                             />
 
@@ -1878,7 +1873,7 @@ function PreQuestionPageContent() {
                                         onClick={() => setLightboxIndex(idx)}
                                         className={cn(
                                             "w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
-                                            idx === lightboxIndex ? "border-white scale-110 shadow-lg ring-2 ring-white/20" : "border-transparent opacity-50 hover:opacity-100"
+                                            idx === lightboxIndex ? "border-white scale-110 ring-2 ring-white/20" : "border-transparent opacity-50 hover:opacity-100"
                                         )}
                                     >
                                         <img src={doc} className="w-full h-full object-cover" />

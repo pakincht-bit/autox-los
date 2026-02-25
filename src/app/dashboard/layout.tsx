@@ -28,7 +28,7 @@ function DashboardLayoutContent({
                     size="icon"
                     onClick={() => toggleCollapsed()}
                     className={cn(
-                        "absolute top-[24px] z-[100] h-6 w-6 rounded-full border border-gray-200 bg-white shadow-md hover:bg-gray-50 transition-all duration-300 flex items-center justify-center",
+                        "absolute top-[20px] z-40 h-6 w-6 rounded-full border border-gray-200 bg-white shadow-md hover:bg-gray-50 transition-all duration-300 flex items-center justify-center",
                         isCollapsed ? "left-[72px]" : "left-[264px]",
                         "-translate-x-1/2"
                     )}

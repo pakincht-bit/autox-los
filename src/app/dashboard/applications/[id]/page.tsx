@@ -28,7 +28,7 @@ const MOCK_DETAIL_DATA: ApplicationDetail = {
     applicationNo: "app-256700001",
     applicantName: "สมชาย ใจดี",
     makerName: "สมหญิง ใจดี",
-    submissionDate: "01/10/2023",
+    submissionDate: "01/10/2566",
     requestedAmount: 500000,
     status: "In Review",
     productType: "สินเชื่อจำนำทะเบียนรถยนต์",
@@ -60,9 +60,9 @@ const MOCK_DETAIL_DATA: ApplicationDetail = {
         }
     ],
     documents: [
-        { id: "d1", name: "บัตรประชาชน.pdf", type: "Identity", uploadDate: "01/10/2023", status: "Verified", url: "#" },
-        { id: "d2", name: "เล่มทะเบียนรถ.pdf", type: "Asset", uploadDate: "01/10/2023", status: "Verified", url: "#" },
-        { id: "d3", name: "Statement ย้อนหลัง 6 เดือน.pdf", type: "Income", uploadDate: "02/10/2023", status: "Rejected", url: "#" },
+        { id: "d1", name: "บัตรประชาชน.pdf", type: "Identity", uploadDate: "01/10/2566", status: "Verified", url: "#" },
+        { id: "d2", name: "เล่มทะเบียนรถ.pdf", type: "Asset", uploadDate: "01/10/2566", status: "Verified", url: "#" },
+        { id: "d3", name: "Statement ย้อนหลัง 6 เดือน.pdf", type: "Income", uploadDate: "02/10/2566", status: "Rejected", url: "#" },
     ],
     collateral: {
         id: "c1",
@@ -70,7 +70,7 @@ const MOCK_DETAIL_DATA: ApplicationDetail = {
         subType: "รถเก๋ง (Sedan)",
         brand: "Toyota",
         model: "Camry 2.5 HEV Premium Luxury",
-        year: "2023",
+        year: "2566",
         color: "Platinum White Pearl",
         registrationNo: "9กข 9999",
         province: "กรุงเทพมหานคร",
@@ -158,7 +158,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                         </DialogContent>
                                     </Dialog>
                                     <Button
-                                        className="h-9 bg-chaiyo-blue hover:bg-chaiyo-blue/90 font-medium shadow-sm transition-all"
+                                        className="h-9 bg-gray-900 text-white font-medium transition-all"
                                         onClick={() => router.push(`/dashboard/new-application?state=draft&id=${app.applicationNo}`)}
                                     >
                                         <Pencil className="w-4 h-4 mr-1.5" />
@@ -207,7 +207,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                                         <span className="text-sm font-medium text-gray-600">วงเงินต่อมูลค่าหลักประกัน (LTV)</span>
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                                <div className="h-full bg-chaiyo-blue" style={{ width: `${app.ltv}%` }} />
+                                                                <div className="h-full bg-gray-900" style={{ width: `${app.ltv}%` }} />
                                                             </div>
                                                             <span className="font-bold text-gray-900">{app.ltv}%</span>
                                                         </div>
@@ -231,7 +231,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="flex flex-col items-center mb-6">
-                                                    <div className="h-20 w-20 bg-chaiyo-blue/10 rounded-full flex items-center justify-center text-chaiyo-blue mb-3">
+                                                    <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-900 mb-3">
                                                         <User className="h-10 w-10" />
                                                     </div>
                                                     <h3 className="font-bold text-lg">{app.applicantName}</h3>
@@ -243,7 +243,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                                     <InfoItem label="อาชีพ" value="ค้าขาย" />
                                                     <InfoItem label="รายได้เฉลี่ย" value="฿35,000 / เดือน" />
                                                 </div>
-                                                <Button variant="outline" className="w-full mt-6 border-chaiyo-blue text-chaiyo-blue hover:bg-chaiyo-blue/5">
+                                                <Button variant="outline" className="w-full mt-6 border-gray-200 text-gray-900">
                                                     ดูข้อมูลผู้กู้ฉบับเต็ม
                                                 </Button>
                                             </CardContent>
@@ -267,7 +267,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                         </Card>
                                         <Card className="border-border-subtle shadow-sm">
                                             <CardContent className="p-6 flex items-center gap-4">
-                                                <div className="p-3 rounded-xl bg-chaiyo-blue/10 text-chaiyo-blue">
+                                                <div className="p-3 rounded-xl bg-gray-100 text-gray-900">
                                                     <Car className="w-8 h-8" />
                                                 </div>
                                                 <div>
@@ -302,7 +302,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                         </Card>
 
                                         {/* Right Col: Details */}
-                                        <Card className="lg:col-span-2 border-border-subtle shadow-sm">
+                                        <Card className="lg:col-span-2 border-border-subtle">
                                             <CardHeader className="flex flex-row items-center justify-between">
                                                 <CardTitle className="text-lg">รายละเอียดพาหนะ</CardTitle>
                                                 <Badge variant="outline" className="font-mono text-xs">{app.collateral?.id}</Badge>

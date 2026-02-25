@@ -58,8 +58,8 @@ export function ApplicationDetailSummary({
 }: Omit<ApplicationHeaderProps, 'onApprove' | 'onReject' | 'onStatusChange' | 'children'>) {
     return (
         <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-lg bg-chaiyo-blue/5 border border-chaiyo-blue/10 flex items-center justify-center shrink-0">
-                <FileText className="h-6 w-6 text-chaiyo-blue" />
+            <div className="h-12 w-12 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
+                <FileText className="h-6 w-6 text-gray-900" />
             </div>
             <div className="w-full">
                 <div className="flex items-center gap-3">
@@ -340,7 +340,7 @@ export function ApplicationActivitySidebar({
             <div className={cn("mb-4 flex items-center w-full", isExpanded ? "justify-between" : "justify-center")}>
                 {isExpanded && (
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-chaiyo-blue" />
+                        <Activity className="w-4 h-4 text-gray-900" />
                         ประวัติการทำรายการ
                     </h3>
                 )}
@@ -355,7 +355,7 @@ export function ApplicationActivitySidebar({
                 <div className="flex-1 relative space-y-6 before:absolute before:top-0 before:left-[17px] before:h-full before:w-0.5 before:bg-gray-100 w-full overflow-y-auto no-scrollbar">
                     {allActivities.map((activity) => (
                         <div key={activity.id} className="relative flex items-start group">
-                            <div className={`flex items-center justify-center w-9 h-9 rounded-full border-2 border-white shadow-sm shrink-0 z-10 ${activity.iconBg} ${!activity.isCompleted && !activity.isCurrent && 'opacity-50 grayscale'}`}>
+                            <div className={`flex items-center justify-center w-9 h-9 rounded-full border-2 border-white shrink-0 z-10 ${activity.iconBg} ${!activity.isCompleted && !activity.isCurrent && 'opacity-50 grayscale'}`}>
                                 {activity.icon}
                             </div>
                             <div className={`ml-4 flex flex-col gap-1 w-full ${!activity.isCompleted && !activity.isCurrent && 'opacity-60'}`}>
@@ -389,8 +389,8 @@ export function ApplicationActivitySidebar({
                                     <div className="mt-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-1 duration-300">
                                         <div className="flex flex-col gap-4">
                                             <div className="flex items-center gap-2 pb-2 border-b border-gray-50 mb-1">
-                                                <div className="w-6 h-6 rounded-full bg-chaiyo-blue/10 flex items-center justify-center">
-                                                    <User className="w-3 h-3 text-chaiyo-blue" />
+                                                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+                                                    <User className="w-3 h-3 text-gray-900" />
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] text-gray-400 leading-none">ผู้พิจารณาปัจจุบัน</span>
@@ -448,7 +448,7 @@ export function ApplicationActivitySidebar({
                                             </div>
 
                                             <Button
-                                                className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 h-10 shadow-lg shadow-chaiyo-blue/10 font-bold text-xs disabled:opacity-50"
+                                                className="w-full bg-gray-900 text-white h-10 font-bold text-xs disabled:opacity-50"
                                                 onClick={handleSubmitFeedback}
                                                 disabled={!selectedAction}
                                             >
@@ -484,7 +484,7 @@ export function ApplicationActivitySidebar({
                             placeholder="ระบุรายละเอียดการแก้ไขหรือหมายเหตุ..."
                         />
                         <Button
-                            className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 h-10 shadow-lg shadow-chaiyo-blue/10 font-bold text-xs"
+                            className="w-full bg-gray-900 text-white h-10 font-bold text-xs"
                             onClick={handleMakerResubmit}
                         >
                             <Send className="w-3.5 h-3.5 mr-1.5" />

@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
     Dialog,
     DialogContent,
+    DialogTitle,
 } from "@/components/ui/Dialog";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/Label";
@@ -27,7 +28,8 @@ export function AnnouncementModal({ open, onOpenChange }: AnnouncementModalProps
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-            <DialogContent className="sm:max-w-[800px] p-0 gap-0 border-none bg-transparent shadow-none [&>button]:bg-white [&>button]:text-black [&>button]:opacity-100 [&>button]:hover:bg-gray-100 [&>button]:rounded-full [&>button]:shadow-md [&>button]:w-8 [&>button]:h-8 [&>button]:top-4 [&>button]:right-4 [&>button]:z-50 [&>button]:flex [&>button]:items-center [&>button]:justify-center border-0 outline-none">
+            <DialogContent className="sm:max-w-[800px] p-0 gap-0 border-none bg-transparent shadow-none border-0 outline-none">
+                <DialogTitle className="sr-only">Announcement</DialogTitle>
                 <div className="flex flex-col overflow-hidden bg-white rounded-lg shadow-xl">
                     {/* Main Image 16:9 */}
                     <a

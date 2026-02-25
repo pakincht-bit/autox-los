@@ -46,19 +46,19 @@
   --color-ring: #10069F;
 
   /* Structural Base */
-  --color-background: #F9FAFB;
+  --color-background: #F8F9FA;
   --color-panel-bg: #FFFFFF;
-  --color-foreground: #111827;
-  --color-muted: #6B7280;
+  --color-foreground: #1F2937;
+  --color-muted: #9CA3AF;
 
   /* Surfaces */
   --color-card-bg: #FFFFFF;
   --color-sidebar-bg: #F9FAFB;
 
   /* Borders */
-  --color-border-color: #E5E7EB;
-  --color-border-subtle: #F3F4F6;
-  --color-border-strong: #D1D5DB;
+  --color-border-color: #E2E8F0;
+  --color-border-subtle: #F1F5F9;
+  --color-border-strong: #CBD5E1;
 
   /* Typography */
   --font-sans: var(--font-ibm-plex-thai), ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -168,18 +168,18 @@
     }
   }
 
-  --animate-fade-in: fade-in 0.2s ease-out;
-  --animate-fade-out: fade-out 0.2s ease-in;
-  --animate-zoom-in: zoom-in 0.2s ease-out;
-  --animate-zoom-out: zoom-out 0.2s ease-in;
-  --animate-slide-in-from-right: slide-in-from-right 0.3s ease-out;
+  --animate-fade-in: fade-in 0.15s ease-out;
+  --animate-fade-out: fade-out 0.15s ease-in;
+  --animate-zoom-in: zoom-in 0.15s ease-out;
+  --animate-zoom-out: zoom-out 0.15s ease-in;
+  --animate-slide-in-from-right: slide-in-from-right 0.25s ease-out;
   --animate-calm-pulse: calm-pulse 2s infinite;
   --animate-scan: scan 2s linear infinite;
 }
 
 /* Animation Utilities for Radix */
 .animate-in {
-  animation-duration: 0.2s;
+  animation-duration: 0.15s;
   animation-timing-function: ease-out;
   animation-fill-mode: forwards;
 }

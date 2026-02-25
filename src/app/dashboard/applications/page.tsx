@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, Calculator } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { ApplicationTable } from "@/components/applications/ApplicationTable";
 import { Application, ApplicationStatus } from "@/components/applications/types";
@@ -17,7 +18,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700001",
         applicantName: "สมชาย ใจดี",
         makerName: "สมหญิง ใจดี",
-        submissionDate: "01/10/2023",
+        submissionDate: "01/10/2566",
         requestedAmount: 500000,
         status: "Approved",
         productType: "สินเชื่อจำนำทะเบียนรถยนต์"
@@ -27,7 +28,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700002",
         applicantName: "วิภาวดี รักษ์ไทย",
         makerName: "กานต์ สว่างใจ",
-        submissionDate: "02/10/2023",
+        submissionDate: "02/10/2566",
         requestedAmount: 120000,
         status: "In Review",
         productType: "สินเชื่อโฉนดที่ดิน"
@@ -37,7 +38,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700003",
         applicantName: "กมล คนขยัน",
         makerName: "สมหญิง ใจดี",
-        submissionDate: "03/10/2023",
+        submissionDate: "03/10/2566",
         requestedAmount: 35000,
         status: "In Review",
         productType: "สินเชื่อนาโนไฟแนนซ์"
@@ -47,7 +48,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700004",
         applicantName: "ดาริน สวยงาม",
         makerName: "กานต์ สว่างใจ",
-        submissionDate: "04/10/2023",
+        submissionDate: "04/10/2566",
         requestedAmount: 850000,
         status: "Draft",
         productType: "สินเชื่อจำนำทะเบียนรถบรรทุก"
@@ -57,7 +58,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700005",
         applicantName: "เอกชัย มั่นคง",
         makerName: "สมหญิง ใจดี",
-        submissionDate: "05/10/2023",
+        submissionDate: "05/10/2566",
         requestedAmount: 45000,
         status: "Rejected",
         productType: "สินเชื่อส่วนบุคคล"
@@ -67,7 +68,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700006",
         applicantName: "มานะ อดทน",
         makerName: "กานต์ สว่างใจ",
-        submissionDate: "06/10/2023",
+        submissionDate: "06/10/2566",
         requestedAmount: 200000,
         status: "In Review",
         productType: "สินเชื่อจำนำทะเบียนรถยนต์"
@@ -77,7 +78,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700007",
         applicantName: "ประภาส เจริญดี",
         makerName: "สมหญิง ใจดี",
-        submissionDate: "07/10/2023",
+        submissionDate: "07/10/2566",
         requestedAmount: 350000,
         status: "Sent Back",
         productType: "สินเชื่อจำนำทะเบียนรถยนต์"
@@ -87,7 +88,7 @@ const MOCK_DATA: Application[] = [
         applicationNo: "app-256700008",
         applicantName: "สุนีย์ แสงทอง",
         makerName: "กานต์ สว่างใจ",
-        submissionDate: "08/10/2023",
+        submissionDate: "08/10/2566",
         requestedAmount: 180000,
         status: "Sent Back",
         productType: "สินเชื่อโฉนดที่ดิน"
@@ -167,19 +168,19 @@ export default function ApplicationsPage() {
                     </Tabs>
 
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                            <input
+                        <div className="relative w-full sm:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted hover:text-chaiyo-blue transition-colors z-10" />
+                            <Input
                                 type="text"
                                 placeholder="ค้นหาชื่อ หรือเลขที่คำขอ..."
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                                className="w-full pl-9 pr-4 py-2 bg-white border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-chaiyo-blue/50 transition-all shadow-sm"
+                                className="pl-9 pr-4 h-9 shadow-none border-gray-200"
                             />
                         </div>
 
                         <Link href="/dashboard/pre-question" className="w-full sm:w-auto">
-                            <Button size="lg" className="w-full sm:w-auto font-bold shadow-lg shadow-chaiyo-blue/20 active:scale-95 transition-all">
+                            <Button className="w-full sm:w-auto font-bold active:scale-95 transition-all">
                                 <Calculator className="w-4 h-4" />
                                 แนะนำผลิตภัณฑ์
                             </Button>

@@ -1,5 +1,5 @@
 "use client";
-// Force refresh to resolve HMR module factory error
+// Force refresh to resolve stale HMR cache and module factory errors
 
 // Sync: Move sidebar button
 import { useState, useEffect } from "react";

@@ -133,7 +133,7 @@ export const SensitiveDataConsentStep = ({ onAccept, onBack }: SensitiveDataCons
                         onClick={onAccept}
                         disabled={!isConsentAccepted}
                         className={cn(
-                            "min-w-[200px] h-12 shadow-lg transition-all rounded-xl font-bold",
+                            "min-w-[200px] h-12 transition-all rounded-xl font-bold",
                             isConsentAccepted
                                 ? "bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white shadow-blue-200"
                                 : "bg-gray-200 text-gray-400 shadow-none hover:bg-gray-200 cursor-not-allowed"

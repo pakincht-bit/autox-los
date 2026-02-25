@@ -49,7 +49,7 @@ export const PrivacyConsentStep = ({ onAccept, onBack, collateralType }: Privacy
                 <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                     <div className="flex items-center gap-2 font-semibold text-gray-700">
                         <FileText className="w-4 h-4 text-chaiyo-blue" />
-                        2. ข้อกำหนดและเงื่อนไข (Privacy Notice)
+                        ข้อกำหนดและเงื่อนไข (Privacy Notice)
                     </div>
                     {!hasReadPrivacy && (
                         <div className="text-xs text-orange-500 flex items-center gap-1 animate-pulse">
@@ -137,7 +137,7 @@ export const PrivacyConsentStep = ({ onAccept, onBack, collateralType }: Privacy
                     onClick={onAccept}
                     disabled={!isPrivacyAccepted}
                     className={cn(
-                        "min-w-[200px] h-12 shadow-lg transition-all rounded-xl font-bold",
+                        "min-w-[200px] h-12 transition-all rounded-xl font-bold",
                         isPrivacyAccepted
                             ? "bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white shadow-blue-200"
                             : "bg-gray-200 text-gray-400 shadow-none hover:bg-gray-200 cursor-not-allowed"

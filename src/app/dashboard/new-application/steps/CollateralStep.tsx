@@ -614,7 +614,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     disabled={isAnalyzing}
                                     className={cn(
                                         "h-16 px-8 rounded-2xl font-bold transition-all shrink-0",
-                                        isAnalyzing ? "bg-emerald-100 text-emerald-700" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200"
+                                        isAnalyzing ? "bg-emerald-100 text-emerald-700" : "bg-emerald-600 hover:bg-emerald-700 text-white"
                                     )}
                                 >
                                     {isAnalyzing ? (

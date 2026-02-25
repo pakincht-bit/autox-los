@@ -100,7 +100,7 @@ const AddressForm = ({ title, prefix = "", formData, onChange, disabled = false,
                     {prefix === 'work' && (
                         <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                             <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">ชื่อสถานที่ทำงาน / ชื่อกิจการ <span className="text-red-500">*</span></Label>
+                                <Label className="text-xs text-muted-foreground">ชื่อสถานที่ทำงาน / ชื่อกิจการ</Label>
                                 <Input
                                     className="bg-white"
                                     value={formData[getField('workplaceName')] || ""}
@@ -884,7 +884,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
 
             {/* MAIN APPLICANT - SECTION 1: Personal Info */}
-            <Card className="border-border-subtle shadow-sm">
+            <Card className="border-border-subtle">
                 <CardHeader className="bg-blue-50/50 border-b border-border-subtle pb-4">
                     <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
                         <User className="w-5 h-5" />
@@ -971,7 +971,16 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                 <Input value={formData.prefix || ""} disabled className="bg-gray-50 text-gray-600 h-11" />
                             </div>
                             <div className="space-y-2">
-                                <Label>ชื่อ</Label>
+                                <Label>ชื่อเล่น</Label>
+                                <Input
+                                    value={formData.nickname || ""}
+                                    onChange={(e) => handleChange("nickname", e.target.value)}
+                                    placeholder="ระบุชื่อเล่น"
+                                    className="h-11 bg-white"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>ชื่อจริง</Label>
                                 <Input value={formData.firstName || ""} disabled className="bg-gray-50 text-gray-600 h-11" />
                             </div>
                             <div className="space-y-2">
@@ -982,15 +991,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                 <Label>นามสกุล</Label>
                                 <Input value={formData.lastName || ""} disabled className="bg-gray-50 text-gray-600 h-11" />
                             </div>
-                            <div className="space-y-2">
-                                <Label>ชื่อเล่น</Label>
-                                <Input
-                                    value={formData.nickname || ""}
-                                    onChange={(e) => handleChange("nickname", e.target.value)}
-                                    placeholder="ระบุชื่อเล่น"
-                                    className="h-11 bg-white"
-                                />
-                            </div>
+
                             <div className="space-y-2">
                                 <Label>วันที่ออกบัตร</Label>
                                 <Input value={formatDateToThai(formData.issueDate) || ""} disabled className="bg-gray-50 text-gray-600 h-11" />
@@ -1005,7 +1006,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
             </Card>
 
             {/* MAIN APPLICANT - SECTION 2: Address Info */}
-            <Card className="border-border-subtle shadow-sm">
+            <Card className="border-border-subtle">
                 <CardHeader className="bg-blue-50/50 border-b border-border-subtle pb-4">
                     <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
                         <MapPin className="w-5 h-5" />
@@ -1020,7 +1021,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                             prefix=""
                             formData={formData}
                             onChange={handleChange}
-                            disabled={true}
+                            disabled={false}
                         />
 
 
@@ -1073,7 +1074,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
             </Card>
 
             {/* MAIN APPLICANT - SECTION 3: Contact Info */}
-            <Card className="border-border-subtle shadow-sm">
+            <Card className="border-border-subtle">
                 <CardHeader className="bg-blue-50/50 border-b border-border-subtle pb-4">
                     <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
                         <Phone className="w-5 h-5" />
@@ -1306,7 +1307,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                         </div>
 
                         {/* SOCIAL MEDIAS SECTION */}
-                        <div className="space-y-4 pt-4 border-t border-gray-100">
+                        <div className="space-y-4 pt-4">
                             <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                                 <Label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                     <Globe className="w-4 h-4 text-chaiyo-blue" /> เครือข่ายสังคมออนไลน์ (Social Media)
@@ -1321,7 +1322,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                 </Button>
                             </div>
 
-                            <div className="border border-border-subtle rounded-xl overflow-hidden shadow-sm bg-white">
+                            <div className="border border-border-subtle rounded-xl overflow-hidden bg-white">
                                 <Table>
                                     <TableHeader className="bg-gray-50/80">
                                         <TableRow className="hover:bg-transparent">

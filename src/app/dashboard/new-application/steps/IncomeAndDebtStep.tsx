@@ -161,7 +161,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         <div className="flex flex-col xl:flex-row gap-6 items-start animate-in fade-in slide-in-from-bottom-2">
             {/* Main Form Container */}
             <div className="flex-1 space-y-8 w-full">
-                <Card className="border-border-subtle shadow-sm">
+                <Card className="border-border-subtle">
                     <CardHeader className="bg-blue-50/50 border-b border-border-subtle pb-4">
                         <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
                             <DollarSign className="w-5 h-5" />
@@ -171,7 +171,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                     <CardContent className="p-6 space-y-8">
                         {/* Occupation Type Selection */}
                         <div className="space-y-4">
-                            <Label className="text-base text-gray-800">กลุ่มอาชีพ *</Label>
+                            <Label>กลุ่มอาชีพ</Label>
                             <Select
                                 value={formData.occupationType || ""}
                                 onValueChange={(val) => handleChange("occupationType", val)}
@@ -575,7 +575,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                             <Plus className="w-4 h-4 mr-1" /> เพิ่มบุคคลอ้างอิง
                                         </Button>
                                     </div>
-                                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                    <div className="border border-border-subtle rounded-xl overflow-hidden">
                                         <Table>
                                             <TableHeader className="bg-gray-50">
                                                 <TableRow className="hover:bg-gray-50">
@@ -645,7 +645,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
 
             {/* Right side breakdown */}
             <div className="w-full xl:w-[350px] shrink-0 sticky top-6 space-y-4">
-                <Card className="border-border-subtle shadow-sm overflow-hidden">
+                <Card className="border-border-subtle overflow-hidden">
                     <CardHeader className="bg-gray-50 border-b border-gray-100 pb-4">
                         <CardTitle className="text-base flex items-center gap-2 text-gray-800">
                             <PieChart className="w-5 h-5 text-chaiyo-blue" />

@@ -1004,7 +1004,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                 <div className="relative mx-auto w-32 h-32">
                                     <div className="absolute inset-0 border-4 border-gray-100 rounded-full" />
                                     <div className="absolute inset-0 border-4 border-chaiyo-gold border-t-transparent rounded-full animate-spin" />
-                                    <div className="absolute inset-4 bg-white rounded-full shadow-lg flex items-center justify-center">
+                                    <div className="absolute inset-4 bg-white rounded-full flex items-center justify-center">
                                         <ShieldCheck className="w-12 h-12 text-chaiyo-blue animate-pulse" />
                                     </div>
                                 </div>
@@ -1021,7 +1021,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                 <div className="bg-emerald-500 p-8 text-center text-white relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/20 to-transparent" />
                                     <div className="relative z-10">
-                                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/20">
+                                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100">
                                             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
                                         </div>
                                         <h3 className="text-2xl font-bold mb-1">อนุมัติเบื้องต้น!</h3>
@@ -1064,7 +1064,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                 <div className="bg-red-500 p-8 text-center text-white relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/20 to-transparent" />
                                     <div className="relative z-10">
-                                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-900/20">
+                                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
                                             <XCircle className="w-10 h-10 text-red-500" />
                                         </div>
                                         <h3 className="text-2xl font-bold mb-1">ไม่ผ่านการพิจารณา</h3>
@@ -1092,10 +1092,10 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                 <div className="bg-amber-400 p-8 text-center text-amber-950 relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/20 to-transparent" />
                                     <div className="relative z-10">
-                                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-900/10">
+                                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-100">
                                             <AlertCircle className="w-10 h-10 text-amber-500" />
                                         </div>
-                                        <h3 className="text-2xl font-bold mb-1">รอผลการพิจารณา</h3>
+                                        <h3 className="2xl font-bold mb-1">รอผลการพิจารณา</h3>
                                         <p className="text-amber-900/80 text-sm">ใบคำขอของท่านต้องได้รับการตรวจสอบเพิ่มเติม</p>
                                     </div>
                                 </div>

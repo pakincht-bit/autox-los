@@ -65,7 +65,7 @@ export function PersonalInfoStep({ formData, setFormData }: PersonalInfoStepProp
                         </div>
 
                         {screeningStatus === 'IDLE' && (
-                            <Button size="lg" className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 shadow-lg shadow-chaiyo-blue/20" onClick={handlePreScreening}>
+                            <Button size="lg" className="bg-gray-900 text-white" onClick={handlePreScreening}>
                                 ตรวจสอบประวัติ
                             </Button>
                         )}

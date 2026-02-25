@@ -1,8 +1,6 @@
-import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Badge } from "@/components/ui/Badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Application, ApplicationStatus } from "./types";
-import { Eye, FileEdit, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ApplicationTableProps {
@@ -64,18 +62,17 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                     <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[150px]">รหัสคำขอ</TableHead>
                         <TableHead>ผู้กู้</TableHead>
-                        <TableHead>ผู้บันทึก</TableHead>
                         <TableHead>ประเภทสินเชื่อ</TableHead>
-                        <TableHead>วันที่ยื่น</TableHead>
                         <TableHead className="text-right">วงเงินที่ขอ</TableHead>
                         <TableHead className="text-center">สถานะ</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
+                        <TableHead>วันที่ยื่น</TableHead>
+                        <TableHead>ผู้บันทึก</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {data.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="h-32 text-center text-muted">
+                            <TableCell colSpan={7} className="h-32 text-center text-muted">
                                 ไม่พบข้อมูลรายการคำขอ
                             </TableCell>
                         </TableRow>
@@ -90,9 +87,7 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                                 <TableCell>
                                     <span className="font-semibold text-foreground text-[13px]">{app.applicantName}</span>
                                 </TableCell>
-                                <TableCell className="text-muted text-[13px]">{app.makerName}</TableCell>
                                 <TableCell className="text-muted">{app.productType}</TableCell>
-                                <TableCell className="text-muted">{app.submissionDate}</TableCell>
                                 <TableCell className="text-right font-medium">
                                     {app.requestedAmount.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
                                 </TableCell>
@@ -101,28 +96,8 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
                                         {getStatusLabel(app.status)}
                                     </Badge>
                                 </TableCell>
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                    <ActionMenu
-                                        items={[
-                                            {
-                                                label: "ดูรายละเอียด",
-                                                icon: <Eye className="w-4 h-4" />,
-                                                onClick: () => router.push(`/dashboard/applications/${app.id}`),
-                                            },
-                                            {
-                                                label: "แก้ไข",
-                                                icon: <FileEdit className="w-4 h-4" />,
-                                                onClick: () => console.log("Edit", app.id),
-                                            },
-                                            {
-                                                label: "ลบ",
-                                                icon: <Trash2 className="w-4 h-4" />,
-                                                variant: "destructive",
-                                                onClick: () => console.log("Delete", app.id),
-                                            },
-                                        ]}
-                                    />
-                                </TableCell>
+                                <TableCell className="text-muted">{app.submissionDate}</TableCell>
+                                <TableCell className="text-muted text-[13px]">{app.makerName}</TableCell>
                             </TableRow>
                         ))
                     )}

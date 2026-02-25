@@ -84,8 +84,8 @@ Tables are the workhorse of the LOS.
 ### Overlays (Sheets & Dialogs)
 Used to maintain context while performing sub-tasks.
 
--   **Sheet (Side Panel)**: Used for long forms or detailed views (e.g., "Edit Customer Details") where the user might need to reference the underlying page. It slides in from the right.
--   **Dialog (Modal)**: Used for short, critical decisions (e.g., "Confirm Approval"). Forces focus and blocks interaction with the background.
+-   **Sheet (Side Panel)**: Used for long forms or detailed views (e.g., "Edit Customer Details") where the user might need to reference the underlying page. It slides in from the right. **Note**: Sheets should not include a top-right close (X) icon; ensure explicit close/cancel buttons are provided within the content or footer.
+-   **Dialog (Modal)**: Used for short, critical decisions (e.g., "Confirm Approval"). Forces focus and blocks interaction with the background. **Note**: Dialogs should not include a top-right close (X) icon; they should be closed via explicit buttons in the footer (e.g., "Cancel", "Confirm") or by clicking the backdrop if appropriate.
 
 ---
 
@@ -95,8 +95,8 @@ We use a "light touch" approach to depth.
 
 ### Borders
 Borders define structure.
--   **Standard**: `1px solid #E5E7EB`. Used on Cards and Inputs.
--   **Separators**: `1px solid #F3F4F6`. Used inside cards to separate sections.
+-   **Standard**: `1px solid #E5E7EB` (`border-border-color`). Used for inputs and high-contrast boundaries.
+-   **Minimalist Card Border**: `1px solid #F3F4F6` (`border-border-subtle`). Preferred for outer card borders and internal separators to ensure a premium, integrated look when shadows are removed.
 
 ### Shadows
 Shadows define hierarchy (elevation).
@@ -122,11 +122,21 @@ We follow a 4px grid system but lean towards tighter spacing:
 
 ---
 
-## 8. Date & Time Convention
+The platform **strictly and exclusively** uses the **Buddhist Era (พุทธศักราช - พ.ศ.)** for all date displays and inputs across the LOS.
 
-The platform strictly uses the **Buddhist Era (พุทธศักราช - พ.ศ.)** for all date displays across the LOS.
-
--   **Year Format**: Always use the 4-digit B.E. year (e.g., 2566 instead of 2023).
+-   **Mandatory Rule**: All year references in the UI (labels, placeholders, inputs, tables, reports) **must** be in B.E. format. No Western (A.D.) years should be displayed anywhere in the user interface.
+-   **Year Format**: Always use the 4-digit B.E. year (e.g., 2567 instead of 2024).
 -   **Separators**: Standard date separators (e.g., `/`) or Thai full month names are preferred depending on context.
--   **Consistency**: No Western (A.D.) years should be displayed anywhere in the user interface.
+-   **Input Implementation**: Use text inputs with formatting logic to handle B.E. entry, converting to A.D. only for backend storage. Avoid standard `type="date"` inputs as they typically default to A.D. in many browsers.
+
+---
+
+## 9. Layering & Z-Index
+Maintaining a clear visual hierarchy through proper layering (z-index) ensures the UI behaves predictably when multiple overlays are active.
+
+-   **Level 0 (Base)**: Main content cards, tables, and standard page layout.
+-   **Level 1 (Navigation Overlays)**: Sidebar toggle button (`z-40`). This should be above the content but below any critical interaction overlays.
+-   **Level 2 (Modals & Dialogs)**: `AlertDialog`, `Dialog`, and `Sheet` components (`z-50+`). **Dialogs must always be the highest level of the UI.** No persistent navigation elements (like the sidebar toggle) should appear above the modal backdrop or content.
+-   **Level 3 (Top Level)**: Tooltips and specific global notifications that need to clear even modals.
+
 

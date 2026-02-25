@@ -5,6 +5,7 @@ import { AnnouncementModal } from "@/components/layout/AnnouncementModal";
 
 import { Search, Megaphone, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import {
     Dialog,
     DialogContent,
@@ -45,12 +46,12 @@ export function DashboardHeader() {
     return (
         <header className="h-16 px-8 flex items-center justify-between shrink-0 z-10 print:hidden">
             <div className="flex items-center gap-4 flex-1">
-                <div className="relative max-w-md w-full hidden md:block">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                    <input
-                        type="text"
+                <div className="relative max-w-sm w-full hidden md:block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted hover:text-chaiyo-blue transition-colors z-10" />
+                    <Input
+                        type="search"
                         placeholder="ค้นหาข้อมูล..."
-                        className="w-full pl-9 pr-4 py-2 bg-white border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-chaiyo-blue/50 transition-all shadow-sm"
+                        className="pl-9 pr-4 h-9 shadow-none border-gray-200"
                     />
                 </div>
             </div>

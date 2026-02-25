@@ -54,20 +54,31 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
     // --- DATE LOGIC ---
     const [useYearOnly, setUseYearOnly] = useState(false);
     const [dateDisplay, setDateDisplay] = useState("");
+    // --- DATE DISPLAY STATES ---
+    const [issueDateDisplay, setIssueDateDisplay] = useState("");
+    const [expiryDateDisplay, setExpiryDateDisplay] = useState("");
+
+    const formatToThaiBE = (dateString: string | undefined) => {
+        if (!dateString) return "";
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "";
+            const thaiYear = date.getFullYear() + 543;
+            return `${format(date, "dd/MM")}/${thaiYear}`;
+        } catch {
+            return "";
+        }
+    };
 
     useEffect(() => {
         if (formData.birthDate) {
             const date = new Date(formData.birthDate);
             if (!isNaN(date.getTime())) {
-                const year = date.getFullYear();
-                const thaiYear = year + 543;
-
+                const thaiYear = date.getFullYear() + 543;
                 if (useYearOnly) {
                     setDateDisplay(`${thaiYear}`);
                 } else {
-                    const day = format(date, "dd");
-                    const month = format(date, "MM");
-                    setDateDisplay(`${day}/${month}/${thaiYear}`);
+                    setDateDisplay(`${format(date, "dd/MM")}/${thaiYear}`);
                 }
             }
         } else {
@@ -75,70 +86,50 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         }
     }, [formData.birthDate, useYearOnly]);
 
-    const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => {
+        setIssueDateDisplay(formatToThaiBE(formData.issueDate));
+    }, [formData.issueDate]);
+
+    useEffect(() => {
+        setExpiryDateDisplay(formatToThaiBE(formData.expiryDate));
+    }, [formData.expiryDate]);
+
+    const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string, setDisplay: (val: string) => void) => {
         let val = e.target.value.replace(/\D/g, ''); // Keep only numbers
 
-        if (useYearOnly) {
-            // Year Only Mode
+        if (field === 'birthDate' && useYearOnly) {
             if (val.length > 4) val = val.slice(0, 4);
-            setDateDisplay(val);
-
+            setDisplay(val);
             if (val.length === 4) {
                 let y = parseInt(val);
-                let realYearAD = y;
-                if (y > 2400) {
-                    // Already BE
-                    realYearAD = y - 543;
-                }
-                // Default to Jan 1st
-                handleFormChange('birthDate', `${realYearAD}-01-01`);
+                let realYearAD = y > 2400 ? y - 543 : y;
+                handleFormChange(field, `${realYearAD}-01-01`);
             }
-        } else {
-            // Full Date Mode
-            if (val.length > 8) val = val.slice(0, 8); // Cap at 8 digits
+            return;
+        }
 
-            // Auto-format with slashes
-            let formattedVal = val;
-            if (val.length >= 3) {
-                formattedVal = val.slice(0, 2) + '/' + val.slice(2);
-            }
-            if (val.length >= 5) {
-                formattedVal = formattedVal.slice(0, 5) + '/' + formattedVal.slice(5);
-            }
+        if (val.length > 8) val = val.slice(0, 8);
+        let formattedVal = val;
+        if (val.length >= 3) formattedVal = val.slice(0, 2) + '/' + val.slice(2);
+        if (val.length >= 5) formattedVal = formattedVal.slice(0, 5) + '/' + formattedVal.slice(5);
 
-            setDateDisplay(formattedVal);
+        setDisplay(formattedVal);
 
-            // Parse logic (triggered when we have a full date)
-            if (val.length === 8) {
-                const d = parseInt(val.slice(0, 2));
-                const m = parseInt(val.slice(2, 4));
-                const y = parseInt(val.slice(4, 8));
-
-                // Auto-adjust AD to BE logic
-                let realYearAD = y;
-                if (y > 2400) {
-                    // Already BE
-                    realYearAD = y - 543;
-                }
-
-                // Validate date
-                const dateObj = new Date(realYearAD, m - 1, d);
-                if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
-                    handleFormChange('birthDate', format(dateObj, "yyyy-MM-dd"));
-                }
+        if (val.length === 8) {
+            const d = parseInt(val.slice(0, 2));
+            const m = parseInt(val.slice(2, 4));
+            const y = parseInt(val.slice(4, 8));
+            const realYearAD = y > 2400 ? y - 543 : y;
+            const dateObj = new Date(realYearAD, m - 1, d);
+            if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
+                handleFormChange(field, format(dateObj, "yyyy-MM-dd"));
             }
         }
     };
 
-    const handleDateBlur = () => {
-        if (formData.birthDate) {
-            const date = new Date(formData.birthDate);
-            const thaiYear = date.getFullYear() + 543;
-            if (useYearOnly) {
-                setDateDisplay(`${thaiYear}`);
-            } else {
-                setDateDisplay(`${format(date, "dd/MM")}/${thaiYear}`);
-            }
+    const handleDateBlur = (field: string, setDisplay: (val: string) => void) => {
+        if (formData[field]) {
+            setDisplay(formatToThaiBE(formData[field]));
         }
     };
 
@@ -627,8 +618,8 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                     <div className="relative">
                                                         <Input
                                                             value={dateDisplay}
-                                                            onChange={handleDateInputChange}
-                                                            onBlur={handleDateBlur}
+                                                            onChange={(e) => handleDateInputChange(e, 'birthDate', setDateDisplay)}
+                                                            onBlur={() => handleDateBlur('birthDate', setDateDisplay)}
                                                             placeholder={useYearOnly ? "YYYY (พ.ศ. เช่น 2533)" : "DD/MM/YYYY (พ.ศ.)"}
                                                             disabled={verificationMethod === 'DIPCHIP'}
                                                             className="disabled:bg-gray-100 disabled:opacity-80 pr-10"
@@ -654,168 +645,29 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                     <div className="space-y-2">
                                                         <Label>วันที่ออกบัตร</Label>
                                                         <Input
-                                                            type="date"
-                                                            value={formData.issueDate || ""}
-                                                            onChange={(e) => handleFormChange('issueDate', e.target.value)}
+                                                            value={issueDateDisplay}
+                                                            onChange={(e) => handleDateInputChange(e, 'issueDate', setIssueDateDisplay)}
+                                                            onBlur={() => handleDateBlur('issueDate', setIssueDateDisplay)}
+                                                            placeholder="DD/MM/YYYY (พ.ศ.)"
                                                             disabled={verificationMethod === 'DIPCHIP'}
                                                             className="disabled:bg-gray-100 disabled:opacity-80"
+                                                            maxLength={10}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Label>วันที่บัตรหมดอายุ</Label>
                                                         <Input
-                                                            type="date"
-                                                            value={formData.expiryDate || ""}
-                                                            onChange={(e) => handleFormChange('expiryDate', e.target.value)}
+                                                            value={expiryDateDisplay}
+                                                            onChange={(e) => handleDateInputChange(e, 'expiryDate', setExpiryDateDisplay)}
+                                                            onBlur={() => handleDateBlur('expiryDate', setExpiryDateDisplay)}
+                                                            placeholder="DD/MM/YYYY (พ.ศ.)"
                                                             disabled={verificationMethod === 'DIPCHIP'}
                                                             className="disabled:bg-gray-100 disabled:opacity-80"
+                                                            maxLength={10}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="space-y-4 pt-2">
-                                                    <div className="flex items-center gap-2 text-sm font-bold text-gray-700 pb-2 border-b border-gray-100">
-                                                        ที่อยู่อาศัย
-                                                    </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 col-span-1 md:col-span-2">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">เลขที่บ้าน</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.houseNumber || ""}
-                                                                    onChange={(e) => handleFormChange('houseNumber', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="123/45"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ชั้น</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.floorNumber || ""}
-                                                                    onChange={(e) => handleFormChange('floorNumber', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="เช่น 2"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">หน่วย/ห้อง</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.unitNumber || ""}
-                                                                    onChange={(e) => handleFormChange('unitNumber', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="เช่น 201"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">หมู่ที่</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.moo || ""}
-                                                                    onChange={(e) => handleFormChange('moo', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="เช่น 1"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-2">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">หมู่บ้าน/อาคาร</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.village || ""}
-                                                                    onChange={(e) => handleFormChange('village', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="ชื่อหมู่บ้านหรืออาคาร"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ซอย</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.soi || ""}
-                                                                    onChange={(e) => handleFormChange('soi', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="ชื่อซอย"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 col-span-1 md:col-span-2">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">แยก</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.yaek || ""}
-                                                                    onChange={(e) => handleFormChange('yaek', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="ระบุแยก (ถ้ามี)"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ตรอก</Label>
-                                                                <Input
-                                                                    className="bg-white"
-                                                                    value={formData.trohk || ""}
-                                                                    onChange={(e) => handleFormChange('trohk', e.target.value)}
-                                                                    disabled={verificationMethod === 'DIPCHIP'}
-                                                                    placeholder="ระบุตรอก (ถ้ามี)"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs text-muted-foreground">ถนน</Label>
-                                                            <Combobox
-                                                                options={[{ label: "สุขุมวิท", value: "สุขุมวิท" }, { label: "เพชรเกษม", value: "เพชรเกษม" }, { label: "พหลโยธิน", value: "พหลโยธิน" }]}
-                                                                value={formData.street || ""}
-                                                                onValueChange={(val) => handleFormChange('street', val)}
-                                                                disabled={verificationMethod === 'DIPCHIP'}
-                                                                placeholder="ระบุถนน"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs text-muted-foreground">แขวง/ตำบล</Label>
-                                                            <Combobox
-                                                                options={[{ label: "ลาดพร้าว", value: "ลาดพร้าว" }, { label: "บางรัก", value: "บางรัก" }]}
-                                                                value={formData.subDistrict || ""}
-                                                                onValueChange={(val) => handleFormChange('subDistrict', val)}
-                                                                disabled={verificationMethod === 'DIPCHIP'}
-                                                                placeholder="ระบุแขวง/ตำบล"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs text-muted-foreground">เขต/อำเภอ</Label>
-                                                            <Combobox
-                                                                options={[{ label: "ลาดพร้าว", value: "ลาดพร้าว" }, { label: "บางรัก", value: "บางรัก" }]}
-                                                                value={formData.district || ""}
-                                                                onValueChange={(val) => handleFormChange('district', val)}
-                                                                disabled={verificationMethod === 'DIPCHIP'}
-                                                                placeholder="ระบุเขต/อำเภอ"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs text-muted-foreground">จังหวัด</Label>
-                                                            <Combobox
-                                                                options={[{ label: "กรุงเทพมหานคร", value: "กรุงเทพมหานคร" }, { label: "นนทบุรี", value: "นนทบุรี" }, { label: "ปทุมธานี", value: "ปทุมธานี" }]}
-                                                                value={formData.province || ""}
-                                                                onValueChange={(val) => handleFormChange('province', val)}
-                                                                disabled={verificationMethod === 'DIPCHIP'}
-                                                                placeholder="ระบุจังหวัด"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs text-muted-foreground">รหัสไปรษณีย์</Label>
-                                                            <Input
-                                                                className="bg-white"
-                                                                value={formData.zipCode || ""}
-                                                                onChange={(e) => handleFormChange('zipCode', e.target.value.replace(/\D/g, '').slice(0, 5))}
-                                                                disabled={verificationMethod === 'DIPCHIP'}
-                                                                maxLength={5}
-                                                                placeholder="12345"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                {/* Address section removed - handled in Customer Info step */}
                                             </div>
                                         </div>
 
@@ -829,7 +681,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                             </div>
                                         )}
 
-                                        <Button size="lg" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg mt-6" onClick={handleCreateProfile}>
+                                        <Button size="lg" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white mt-6" onClick={handleCreateProfile}>
                                             <UserPlus className="w-5 h-5 mr-2" /> สร้างข้อมูลลูกค้าและเริ่มงาน
                                         </Button>
                                     </CardContent>

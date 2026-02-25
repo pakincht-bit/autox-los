@@ -248,7 +248,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                             size="lg"
                                             onClick={handleAnalyzePhotos}
                                             disabled={isAnalyzing || uploadedDocs.length === 0}
-                                            className="font-bold px-8 h-12 rounded-xl shadow-lg shadow-blue-500/20"
+                                            className="font-bold px-8 h-12 rounded-xl"
                                         >
                                             {isAnalyzing ? (
                                                 <>
@@ -617,7 +617,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                                 className={cn(
                                                     "px-8 py-2.5 rounded-xl text-sm font-bold transition-all",
                                                     formData.collateralQuestions?.[q.id] === 'no'
-                                                        ? "bg-chaiyo-blue text-white shadow-lg shadow-blue-200"
+                                                        ? "bg-gray-900 text-white"
                                                         : "text-gray-400 hover:bg-gray-50"
                                                 )}
                                             >
@@ -656,7 +656,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     onClick={() => setLightboxIndex(idx)}
                                     className={cn(
                                         "w-16 h-16 rounded-xl overflow-hidden border-2 transition-all",
-                                        idx === lightboxIndex ? "border-white scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
+                                        idx === lightboxIndex ? "border-white scale-110" : "border-transparent opacity-40 hover:opacity-100"
                                     )}
                                 >
                                     <img src={doc} className="w-full h-full object-cover" />
