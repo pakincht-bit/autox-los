@@ -10,6 +10,7 @@ These are the design conventions that **must** be followed when implementing UI 
 - **Use `h-12` as the platform standard height.** All form elements should uniformly use `h-12` (48px) to provide a consistent, touch-friendly UI across the application. 
 - **Use white backgrounds.** Do not use `bg-gray-50` or `bg-gray-100` for default input backgrounds unless it is specifically disabled. Rely on the base `bg-white` from the default Shadcn component.
 - The default UI components (`Input`, `Select`, `Combobox`) have been preconfigured to use `h-12` and `bg-white` by default. Do not add redundant `className="h-12 border-gray-200 ..."` inline classes when rendering these fields.
+- **Mandatory fields.** Visually indicate mandatory fields by appending a red asterisk `*` to the label. Implementation should use `<span className="text-red-500">*</span>` inside the `Label` component. e.g. `<Label>ชื่อ <span className="text-red-500">*</span></Label>`
 ## Dates & Years
 - **Strictly use Buddhist Era (พ.ศ.).** All dates displayed to the user or entered by the user **must** use B.E. years (e.g., 2567). 
 - **No A.D. (C.E.) years.** Never show Western years (e.g., 2024) in any part of the UI.
