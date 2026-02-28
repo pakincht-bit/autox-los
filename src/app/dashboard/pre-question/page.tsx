@@ -2815,7 +2815,7 @@ function PreQuestionPageContent() {
                                                     </ul>
                                                     <div className="mt-2 grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
                                                         <Button size="lg" onClick={handleCreateApplication} className="w-full font-bold bg-chaiyo-blue text-white hover:bg-blue-800">เลือก</Button>
-                                                        <Button size="lg" variant="outline" onClick={handlePrint} className="w-full font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-2"><Printer className="w-4 h-4" /> พิมพ์</Button>
+                                                        <Button size="lg" variant="outline" onClick={handlePrint} className="w-full font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-2"> ดู Salesheet</Button>
                                                     </div>
                                                 </div>
                                             </div>
