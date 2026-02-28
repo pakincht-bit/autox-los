@@ -70,6 +70,12 @@ const BUILDING_APPRAISAL_SOURCES = [
     { value: 'external_appraisal', label: 'บริษัทประเมินภายนอก' }
 ];
 
+const CONDO_APPRAISAL_SOURCES = [
+    { value: 'land_office', label: 'สำนักงานที่ดิน' },
+    { value: 'external_appraisal', label: 'บริษัทประเมินภายนอก' },
+    { value: 'treasury_department', label: 'กรมธนารักษ์' }
+];
+
 function PreQuestionPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -144,6 +150,7 @@ function PreQuestionPageContent() {
     const [isFetchingRedbook, setIsFetchingRedbook] = useState(false);
     const [isConditionDialogOpen, setIsConditionDialogOpen] = useState(false);
     const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(false);
+    const [isIncomeDebtExpanded, setIsIncomeDebtExpanded] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -606,7 +613,7 @@ function PreQuestionPageContent() {
         const updated = [...(formData.condoUnitAppraisals || [])];
         if (updated[index]) {
             if (field === 'source') {
-                const label = LAND_APPRAISAL_SOURCES.find(s => s.value === value)?.label || '';
+                const label = CONDO_APPRAISAL_SOURCES.find(s => s.value === value)?.label || '';
                 updated[index] = { ...updated[index], source: value, label };
             } else {
                 updated[index] = { ...updated[index], [field]: value };
@@ -630,7 +637,7 @@ function PreQuestionPageContent() {
         const updated = [...(formData.condoBalconyAppraisals || [])];
         if (updated[index]) {
             if (field === 'source') {
-                const label = LAND_APPRAISAL_SOURCES.find(s => s.value === value)?.label || '';
+                const label = CONDO_APPRAISAL_SOURCES.find(s => s.value === value)?.label || '';
                 updated[index] = { ...updated[index], source: value, label };
             } else {
                 updated[index] = { ...updated[index], [field]: value };
@@ -830,7 +837,7 @@ function PreQuestionPageContent() {
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                                                     <div>
                                                         <h4 className="text-lg font-bold text-gray-900">
-                                                            อัพโหลดรูปถ่ายหลักประกัน วิเคราะห์โดย AI
+                                                            อัพโหลดรูปถ่ายหลักประกัน
                                                         </h4>
                                                     </div>
                                                     <div className="flex items-center gap-3">
@@ -1104,7 +1111,7 @@ function PreQuestionPageContent() {
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    disabled={(formData.condoUnitAppraisals || []).length >= LAND_APPRAISAL_SOURCES.length}
+                                                                    disabled={(formData.condoUnitAppraisals || []).length >= CONDO_APPRAISAL_SOURCES.length}
                                                                     onClick={handleAddCondoUnitAppraisal}
                                                                     className="h-8 gap-1"
                                                                 >
@@ -1138,7 +1145,7 @@ function PreQuestionPageContent() {
                                                                                             <SelectValue placeholder="เลือกแหล่งที่มา" />
                                                                                         </SelectTrigger>
                                                                                         <SelectContent>
-                                                                                            {LAND_APPRAISAL_SOURCES.map(source => {
+                                                                                            {CONDO_APPRAISAL_SOURCES.map(source => {
                                                                                                 const isUsed = (formData.condoUnitAppraisals || []).some((a: any, i: number) => a.source === source.value && i !== idx);
                                                                                                 return (
                                                                                                     <SelectItem key={source.value} value={source.value} disabled={isUsed}>
@@ -1179,14 +1186,14 @@ function PreQuestionPageContent() {
                                                         {/* ราคาประเมินพื้นที่ระเบียง Table */}
                                                         <div className="space-y-2">
                                                             <div className="flex items-center justify-between">
-                                                                <Label className="text-sm font-bold text-gray-700">ราคาประเมินพื้นที่ระเบียง <span className="text-red-500">*</span></Label>
+                                                                <Label className="text-sm font-bold text-gray-700">ราคาประเมินพื้นที่ระเบียง</Label>
                                                                 <Button
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="sm"
                                                                     onClick={handleAddCondoBalconyAppraisal}
                                                                     className="h-8 gap-1"
-                                                                    disabled={(formData.condoBalconyAppraisals || []).length >= LAND_APPRAISAL_SOURCES.length}
+                                                                    disabled={(formData.condoBalconyAppraisals || []).length >= CONDO_APPRAISAL_SOURCES.length}
                                                                 >
                                                                     <Plus className="w-3 h-3" /> เพิ่มแหล่งข้อมูล
                                                                 </Button>
@@ -1218,7 +1225,7 @@ function PreQuestionPageContent() {
                                                                                             <SelectValue placeholder="เลือกแหล่งที่มา" />
                                                                                         </SelectTrigger>
                                                                                         <SelectContent>
-                                                                                            {LAND_APPRAISAL_SOURCES.map(source => {
+                                                                                            {CONDO_APPRAISAL_SOURCES.map(source => {
                                                                                                 const isUsed = (formData.condoBalconyAppraisals || []).some((a: any, i: number) => a.source === source.value && i !== idx);
                                                                                                 return (
                                                                                                     <SelectItem key={source.value} value={source.value} disabled={isUsed}>
@@ -1736,7 +1743,7 @@ function PreQuestionPageContent() {
                                                 <SelectTrigger className="bg-white text-base h-12 rounded-xl">
                                                     <SelectValue placeholder="เลือกจำนวนงวด" />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-[300px] overflow-y-auto">
                                                     {(TENURE_OPTIONS[formData.collateralType] || []).map((months) => (
                                                         <SelectItem key={months} value={months.toString()}>
                                                             {months} งวด
@@ -1749,88 +1756,117 @@ function PreQuestionPageContent() {
                                 </div>
 
                                 {/* New Section: Income and Debt Breakdown */}
-                                <div className="border border-border-strong rounded-xl bg-white overflow-hidden p-6 space-y-8">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-sm font-bold text-gray-700">รายได้รวม</Label>
+                                <div className="border border-border-strong rounded-2xl bg-white overflow-hidden">
+                                    {/* Accordion Header */}
+                                    <button
+                                        onClick={() => setIsIncomeDebtExpanded(!isIncomeDebtExpanded)}
+                                        className={cn(
+                                            "w-full p-6 flex items-center justify-between text-left transition-colors hover:bg-gray-50",
+                                            isIncomeDebtExpanded ? "bg-gray-50/50" : "bg-white"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-gray-900">แหล่งที่มารายได้และภาระหนี้สิน (ถ้ามี)</h4>
+                                            </div>
                                         </div>
-                                        <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="font-bold text-gray-600">ประเภทรายได้</TableHead>
-                                                        <TableHead className="text-right font-bold text-gray-600 w-[300px]">จำนวนเงิน (บาท) / ต่อเดือน</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {(formData.incomeBreakdown || []).filter((i: any) => i.source !== 'total').map((item: any, idx: number) => (
-                                                        <TableRow key={idx}>
-                                                            <TableCell className="font-medium text-gray-700">
-                                                                {item.label}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Input
-                                                                    type="text"
-                                                                    className="h-10 text-right font-mono border border-gray-200 focus:border-chaiyo-blue focus:ring-1 focus:ring-chaiyo-blue transition-colors text-gray-900 bg-white"
-                                                                    value={item.price ? Number(item.price).toLocaleString() : ''}
-                                                                    onChange={(e) => handleUpdateIncomeBreakdown(idx, e.target.value.replace(/,/g, ''))}
-                                                                    placeholder="0"
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                    <TableRow className="bg-blue-50/30 hover:bg-blue-50/30">
-                                                        <TableCell className="font-bold text-gray-900 text-right">รวมรายได้ทั้งหมด</TableCell>
-                                                        <TableCell className="text-right border-l border-border-subtle">
-                                                            <span className="text-lg font-bold text-chaiyo-blue font-mono">
-                                                                {Number(formData.salary || 0).toLocaleString()}
-                                                            </span>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                </TableBody>
-                                            </Table>
+                                        <div className={cn(
+                                            "w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-transform duration-300",
+                                            isIncomeDebtExpanded ? "rotate-180" : ""
+                                        )}>
+                                            <ChevronDown className="w-5 h-5 text-gray-500" />
                                         </div>
-                                    </div>
+                                    </button>
 
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-sm font-bold text-gray-700">ภาระหนี้สินรวม</Label>
-                                        </div>
-                                        <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="font-bold text-gray-600">รายการภาระหนี้</TableHead>
-                                                        <TableHead className="text-right font-bold text-gray-600 w-[300px]">จำนวนเงิน (บาท) / ต่อเดือน</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {(formData.debtBreakdown || []).map((item: any, idx: number) => (
-                                                        <TableRow key={idx}>
-                                                            <TableCell className="font-medium text-gray-700">
-                                                                {item.label}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Input
-                                                                    type="text"
-                                                                    className="h-10 text-right font-mono border border-gray-200 focus:border-chaiyo-blue focus:ring-1 focus:ring-chaiyo-blue transition-colors text-gray-900 bg-white"
-                                                                    value={item.price ? Number(item.price).toLocaleString() : ''}
-                                                                    onChange={(e) => handleUpdateDebtBreakdown(idx, e.target.value.replace(/,/g, ''))}
-                                                                    placeholder="0"
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                    <TableRow className="bg-gray-50/50 hover:bg-gray-50/50">
-                                                        <TableCell className="font-bold text-gray-900 text-right">รวมภาระหนี้ทั้งหมด</TableCell>
-                                                        <TableCell className="text-right border-l border-border-subtle">
-                                                            <span className="text-lg font-bold text-red-600 font-mono">
-                                                                {Number(formData.monthlyDebt || 0).toLocaleString()}
-                                                            </span>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                </TableBody>
-                                            </Table>
+                                    {/* Accordion Content */}
+                                    <div className={cn(
+                                        "transition-all duration-300 ease-in-out",
+                                        isIncomeDebtExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
+                                    )}>
+                                        <div className="p-6 space-y-8 bg-white">
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-sm font-bold text-gray-700">รายได้รวม</Label>
+                                                </div>
+                                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead className="font-bold text-gray-600">ประเภทรายได้</TableHead>
+                                                                <TableHead className="text-right font-bold text-gray-600 w-[300px]">จำนวนเงิน (บาท) / ต่อเดือน</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {(formData.incomeBreakdown || []).filter((i: any) => i.source !== 'total').map((item: any, idx: number) => (
+                                                                <TableRow key={idx}>
+                                                                    <TableCell className="font-medium text-gray-700">
+                                                                        {item.label}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Input
+                                                                            type="text"
+                                                                            className="h-10 text-right font-mono border border-gray-200 focus:border-chaiyo-blue focus:ring-1 focus:ring-chaiyo-blue transition-colors text-gray-900 bg-white"
+                                                                            value={item.price ? Number(item.price).toLocaleString() : ''}
+                                                                            onChange={(e) => handleUpdateIncomeBreakdown(idx, e.target.value.replace(/,/g, ''))}
+                                                                            placeholder="0"
+                                                                        />
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                            <TableRow className="bg-blue-50/30 hover:bg-blue-50/30">
+                                                                <TableCell className="font-bold text-gray-900 text-right">รวมรายได้ทั้งหมด</TableCell>
+                                                                <TableCell className="text-right border-l border-border-subtle pr-6">
+                                                                    <span className="text-lg font-bold text-chaiyo-blue font-mono">
+                                                                        {Number(formData.salary || 0).toLocaleString()}
+                                                                    </span>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-sm font-bold text-gray-700">ภาระหนี้สินรวม</Label>
+                                                </div>
+                                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead className="font-bold text-gray-600">รายการภาระหนี้</TableHead>
+                                                                <TableHead className="text-right font-bold text-gray-600 w-[300px]">จำนวนเงิน (บาท) / ต่อเดือน</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {(formData.debtBreakdown || []).map((item: any, idx: number) => (
+                                                                <TableRow key={idx}>
+                                                                    <TableCell className="font-medium text-gray-700">
+                                                                        {item.label}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Input
+                                                                            type="text"
+                                                                            className="h-10 text-right font-mono border border-gray-200 focus:border-chaiyo-blue focus:ring-1 focus:ring-chaiyo-blue transition-colors text-gray-900 bg-white"
+                                                                            value={item.price ? Number(item.price).toLocaleString() : ''}
+                                                                            onChange={(e) => handleUpdateDebtBreakdown(idx, e.target.value.replace(/,/g, ''))}
+                                                                            placeholder="0"
+                                                                        />
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                            <TableRow className="bg-gray-50/50 hover:bg-gray-50/50">
+                                                                <TableCell className="font-bold text-gray-900 text-right">รวมภาระหนี้ทั้งหมด</TableCell>
+                                                                <TableCell className="text-right border-l border-border-subtle pr-6">
+                                                                    <span className="text-lg font-bold text-red-600 font-mono">
+                                                                        {Number(formData.monthlyDebt || 0).toLocaleString()}
+                                                                    </span>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
