@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  resolveAlias: {
+    "lucide-react": "lucide-react/dist/cjs/lucide-react.js",
+  },
 };
 
 export default nextConfig;

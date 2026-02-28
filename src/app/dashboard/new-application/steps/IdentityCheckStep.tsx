@@ -33,7 +33,7 @@ interface IdentityCheckStepProps {
     onNext: (isExisting: boolean, profile?: any) => void;
 }
 
-type KYCStage = 'INIT' | 'READING_CARD' | 'CHECKING_MEMBER' | 'CARD_SUCCESS' | 'TAKING_ID_PHOTO' | 'FACE_VERIFY' | 'FACE_SUCCESS' | 'COMPLETE';
+type KYCStage = 'INIT' | 'READING_CARD' | 'CHECKING_MEMBER' | 'CARD_SUCCESS' | 'TAKING_ID_FRONT' | 'TAKING_ID_BACK' | 'FACE_VERIFY' | 'FACE_SUCCESS' | 'COMPLETE';
 
 export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityCheckStepProps) {
     const [stage, setStage] = useState<KYCStage>('INIT');
@@ -54,6 +54,10 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         { label: "อื่นๆ (Other)", value: "Other" },
     ];
     const [watchlistReasons, setWatchlistReasons] = useState<('Fraud' | 'Compliance' | 'Legal')[]>([]);
+    const [idFrontPhoto, setIdFrontPhoto] = useState<string | null>(null);
+    const [idBackPhoto, setIdBackPhoto] = useState<string | null>(null);
+    const [isProcessingFrontPhoto, setIsProcessingFrontPhoto] = useState(false);
+
     const [alertDialog, setAlertDialog] = useState({
         isOpen: false,
         title: "",
@@ -68,6 +72,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
     // --- DATE LOGIC ---
     const [useYearOnly, setUseYearOnly] = useState(false);
+    const [isLifetime, setIsLifetime] = useState(false);
     const [dateDisplay, setDateDisplay] = useState("");
     // --- DATE DISPLAY STATES ---
     const [issueDateDisplay, setIssueDateDisplay] = useState("");
@@ -175,11 +180,19 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         handleFormChange('birthDate', ""); // Clear date when switching modes to avoid confusion
     };
 
+    const toggleLifetime = (checked: boolean) => {
+        setIsLifetime(checked);
+        if (checked) {
+            setExpiryDateDisplay("");
+            handleFormChange('expiryDate', "");
+        }
+    };
+
     // --- CAMERA LOGIC ---
     useEffect(() => {
         if (stage === 'FACE_VERIFY') {
             startCamera("user");
-        } else if (stage === 'TAKING_ID_PHOTO') {
+        } else if (stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') {
             startCamera("environment");
         } else {
             stopCamera();
@@ -296,76 +309,82 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
             nationality: "Thai",
         };
 
-        setFormData({ ...formData, ...mockData });
+        const updatedData = { ...formData, ...mockData };
+        setFormData(updatedData);
         setMockChipPhoto("https://api.dicebear.com/7.x/avataaars/svg?seed=Somchai&backgroundColor=e6e6e6");
-        setStage('CARD_SUCCESS'); // Land on result container
+
+        // Skip review for Dipchip, go straight to DOPA
+        handleDOPAVerify(updatedData);
     };
 
     // 1.2 Manual/OCR Upload Handler
-    const handleOCRUpload = () => {
-        setStage('TAKING_ID_PHOTO');
+    const handleOCRUpload = (cardType: 'THAI_ID' | 'PINK_CARD') => {
+        setFormData({ ...formData, cardType });
+        setIdFrontPhoto(null);
+        setIdBackPhoto(null);
+        setStage('TAKING_ID_FRONT');
     };
 
     const handleCaptureID = async () => {
         const photo = capturePhoto();
         if (!photo) return;
 
-        setStage('READING_CARD'); // Show OCR processing
-        setMockChipPhoto(photo);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (stage === 'TAKING_ID_FRONT') {
+            setIsProcessingFrontPhoto(true);
+            setIdFrontPhoto(photo);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            setIsProcessingFrontPhoto(false);
+            setStage('TAKING_ID_BACK');
+        } else if (stage === 'TAKING_ID_BACK') {
+            setIdBackPhoto(photo);
+            stopCamera();
+            setStage('READING_CARD'); // Show OCR processing
+            setMockChipPhoto(idFrontPhoto); // Use front photo as representative
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-        const mockData = {
-            idNumber: "3-3345-67890-12-3",
-            firstName: "สมหญิง",
-            middleName: "มณี",
-            lastName: "ใจงาม",
-            prefix: "นางสาว",
-            gender: "หญิง",
-            birthDate: "1995-05-05",
-            addressLine1: "456 หมู่ 2",
-            houseNumber: "456",
-            moo: "2",
-            street: "เจริญกรุง",
-            subDistrict: "บางรัก",
-            province: "กรุงเทพมหานคร",
-            zipCode: "10500",
-            fullAddress: "456 หมู่ 2 บางรัก บางรัก กรุงเทพมหานคร 10500",
-            issueDate: "2022-10-10",
-            expiryDate: "2031-10-09",
-            laserId: "CH2-9876543-21",
-        };
+            let mockData: any = {
+                idNumber: formData.cardType === 'PINK_CARD' ? "0-1234-56789-01-2" : "3-3345-67890-12-3",
+                firstName: formData.cardType === 'PINK_CARD' ? "ออง" : "สมหญิง",
+                middleName: formData.cardType === 'PINK_CARD' ? "" : "มณี",
+                lastName: formData.cardType === 'PINK_CARD' ? "มิน" : "ใจงาม",
+                prefix: formData.cardType === 'PINK_CARD' ? "นาย" : "นางสาว",
+                gender: formData.cardType === 'PINK_CARD' ? "ชาย" : "หญิง",
+                birthDate: formData.cardType === 'PINK_CARD' ? "1998-08-08" : "1995-05-05",
+                addressLine1: formData.cardType === 'PINK_CARD' ? "789 หมู่ 3" : "456 หมู่ 2",
+                houseNumber: formData.cardType === 'PINK_CARD' ? "789" : "456",
+                moo: formData.cardType === 'PINK_CARD' ? "3" : "2",
+                street: "เจริญกรุง",
+                subDistrict: "บางรัก",
+                province: "กรุงเทพมหานคร",
+                zipCode: "10500",
+                fullAddress: formData.cardType === 'PINK_CARD' ? "789 หมู่ 3 บางรัก บางรัก กรุงเทพมหานคร 10500" : "456 หมู่ 2 บางรัก บางรัก กรุงเทพมหานคร 10500",
+                issueDate: "2022-10-10",
+                expiryDate: "2031-10-09",
+                laserId: formData.cardType === 'PINK_CARD' ? "PNK-0000000-01" : "CH2-9876543-21",
+                nationality: formData.cardType === 'PINK_CARD' ? "Myanmar" : "Thai",
+            };
 
-        setFormData({ ...formData, ...mockData });
-        setStage('CARD_SUCCESS'); // Land on result container
-    };
-
-    // 1.3 Manual Submit
-    const handleManualSubmit = () => {
-        if (formData.idNumber && formData.idNumber.replace(/-/g, '').length >= 13) {
-            setStage('CARD_SUCCESS');
-        } else {
-            setAlertDialog({
-                isOpen: true,
-                title: "ข้อมูลไม่ถูกต้อง",
-                description: "กรุณากรอกเลขบัตรประชาชน/เลขบัตรต่างด้าว ให้ถูกต้อง (13 หลัก)",
-                type: "error"
-            });
+            setFormData({ ...formData, ...mockData });
+            setStage('CARD_SUCCESS'); // Land on result container
         }
     };
 
-    const handleDOPAVerify = async () => {
+
+
+    const handleDOPAVerify = async (dataOverride?: any) => {
+        const dataToVerify = dataOverride || formData;
+
         // Validation: All inputs are mandatory
         const requiredFields = [
             { key: 'idNumber', label: 'เลขบัตรประจำตัวประชาชน' },
-            { key: 'laserId', label: 'หมายเลขหลังบัตร (Laser ID)' },
+            ...(dataToVerify.cardType !== 'PINK_CARD' ? [{ key: 'laserId', label: 'หมายเลขหลังบัตร (Laser ID)' }] : []),
             { key: 'firstName', label: 'ชื่อ (Thai)' },
             { key: 'lastName', label: 'นามสกุล (Thai)' },
             { key: 'birthDate', label: 'วันเดือนปีเกิด' },
-            { key: 'expiryDate', label: 'วันที่บัตรหมดอายุ' },
-            { key: 'nationality', label: 'สัญชาติ' }
+            ...(isLifetime ? [] : [{ key: 'expiryDate', label: 'วันที่บัตรหมดอายุ' }])
         ];
 
-        const missingFields = requiredFields.filter(field => !formData[field.key]);
+        const missingFields = requiredFields.filter(field => !dataToVerify[field.key]);
 
         if (missingFields.length > 0) {
             setAlertDialog({
@@ -381,7 +400,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // 1. Check for Deceased status (Mock Trigger: ID ends with '999')
-        const cleanID = (formData.idNumber || "").replace(/-/g, '');
+        const cleanID = (dataToVerify.idNumber || "").replace(/-/g, '');
         if (cleanID.endsWith('999')) {
             setAlertDialog({
                 isOpen: true,
@@ -394,8 +413,8 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         }
 
         // 2. Check Expiry Date
-        if (formData.expiryDate) {
-            const expiry = new Date(formData.expiryDate);
+        if (dataToVerify.expiryDate) {
+            const expiry = new Date(dataToVerify.expiryDate);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -419,7 +438,9 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                     description: `บัตรประจำตัวประชาชนจะหมดอายุในอีก ${diffDays} วัน`,
                     type: "warning"
                 });
-                // For near expiry, we often proceed after warning, but here we stay to let user review
+                // For near expiry, we often proceed after warning
+                // If it's manual, stay on review; if it's dipchip, we might proceed or stay.
+                // Let's stay on review if there's a warning.
                 setStage('CARD_SUCCESS');
                 return;
             }
@@ -478,9 +499,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
     };
 
 
-    const handleManualID = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, idNumber: e.target.value });
-    };
+
 
     const handleFormChange = (field: string, value: string) => {
         let updatedData = { ...formData, [field]: value };
@@ -584,23 +603,33 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                     <div className="max-w-2xl mx-auto pt-4 transition-all duration-500 w-full">
                         <div className="space-y-8 pb-20">
                             {/* Header with Back Button (Only if not processing) */}
-                            {(stage === 'INIT' || stage === 'CARD_SUCCESS') && (
-                                <Button variant="ghost" onClick={handleBackToSelection} className="pl-0 text-foreground hover:text-foreground -mt-4 mb-2">
-                                    <ArrowLeft className="w-4 h-4 mr-2" /> เลือกวิธีอื่น
+                            {(stage === 'INIT' || stage === 'CARD_SUCCESS' || stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        if (stage === 'TAKING_ID_BACK') {
+                                            setStage('TAKING_ID_FRONT');
+                                        } else {
+                                            handleBackToSelection();
+                                        }
+                                    }}
+                                    className="pl-0 text-foreground hover:text-foreground -mt-4 mb-2"
+                                >
+                                    <ArrowLeft className="w-4 h-4 mr-2" /> {stage === 'TAKING_ID_BACK' ? 'กลับไปถ่ายหน้าบัตร' : 'เลือกวิธีอื่น'}
                                 </Button>
                             )}
 
                             {/* STAGE 1: INPUT DATA (Method Specific) */}
-                            {(stage === 'INIT' || stage === 'READING_CARD' || stage === 'TAKING_ID_PHOTO') && (
+                            {(stage === 'INIT' || stage === 'READING_CARD' || stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') && (
                                 <>
-                                    {verificationMethod === 'MANUAL' && stage === 'TAKING_ID_PHOTO' && (
+                                    {verificationMethod === 'MANUAL' && (stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') && (
                                         <div className="space-y-6 animate-in zoom-in-95 duration-500">
                                             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-4">
                                                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0">
                                                     <CreditCard className="w-6 h-6 text-orange-600" />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <h4 className="font-bold text-orange-800 text-sm">ถ่ายรูปหน้าบัตรประชาชน</h4>
+                                                    <h4 className="font-bold text-orange-800 text-sm">{stage === 'TAKING_ID_FRONT' ? 'ขั้นตอนที่ 1: ถ่ายรูปด้านหน้าบัตร' : 'ขั้นตอนที่ 2: ถ่ายรูปด้านหลังบัตร'}</h4>
                                                     <p className="text-orange-700/70 text-xs">วางบัตรให้ตรงกับกรอบที่กำหนด และกดปุ่มถ่ายภาพ</p>
                                                 </div>
                                             </div>
@@ -614,9 +643,15 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                         muted
                                                         className={cn(
                                                             "absolute inset-0 w-full h-full object-cover",
-                                                            !isCameraActive && "hidden"
                                                         )}
                                                     />
+
+                                                    {isProcessingFrontPhoto && (
+                                                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-none">
+                                                            <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+                                                            <p className="text-white font-bold text-lg">กำลังประมวลผลรูปภาพ...</p>
+                                                        </div>
+                                                    )}
 
                                                     {/* Card Overlay */}
                                                     {!cameraError && (
@@ -636,7 +671,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                                 onClick={handleCaptureID}
                                                                 className="bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-full px-10 h-14 text-lg shadow-xl"
                                                             >
-                                                                <Camera className="w-6 h-6 mr-2" /> ถ่ายรูปบัตร
+                                                                <Camera className="w-6 h-6 mr-2" /> {stage === 'TAKING_ID_FRONT' ? 'ถ่ายภาพด้านหน้า' : 'ถ่ายภาพด้านหลัง'}
                                                             </Button>
                                                         </div>
                                                     )}
@@ -698,33 +733,15 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <div className="grid grid-cols-1 gap-2">
-                                                                    <Label>ถ่ายรูปบัตรเพื่อดึงข้อมูล (OCR)</Label>
-                                                                    <Button variant="outline" className="w-full h-12 border-dashed border-2" onClick={handleOCRUpload}>
-                                                                        <Camera className="w-4 h-4 mr-2" /> ถ่ายรูปบัตรประชาชน / บัตรต่างด้าว
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    <Button variant="outline" className="w-full h-28 border-dashed border-2 flex flex-col gap-2 items-center justify-center rounded-2xl hover:border-chaiyo-blue hover:bg-blue-50/30 transition-all" onClick={() => handleOCRUpload('THAI_ID')}>
+                                                                        <Camera className="w-8 h-8 text-chaiyo-blue" />
+                                                                        <span className="text-base font-bold">บัตรประชาชน</span>
                                                                     </Button>
-                                                                </div>
-
-                                                                <div className="relative flex py-2 items-center">
-                                                                    <div className="flex-grow border-t border-gray-200"></div>
-                                                                    <span className="flex-shrink-0 mx-4 text-xs text-gray-400">หรือ กรอกเลขบัตรเพื่อตรวจสอบ</span>
-                                                                    <div className="flex-grow border-t border-gray-200"></div>
-                                                                </div>
-
-                                                                <div className="space-y-2">
-                                                                    <Label>เลขบัตรประจำตัว (13 หลัก)</Label>
-                                                                    <div className="flex gap-2">
-                                                                        <Input
-                                                                            value={formData.idNumber}
-                                                                            onChange={handleManualID}
-                                                                            placeholder="x-xxxx-xxxxx-xx-x"
-                                                                            maxLength={13}
-                                                                            className="font-mono text-lg"
-                                                                        />
-                                                                        <Button className="h-auto" onClick={handleManualSubmit} disabled={!formData.idNumber || formData.idNumber.replace(/-/g, '').length < 13}>
-                                                                            ตรวจสอบ
-                                                                        </Button>
-                                                                    </div>
+                                                                    <Button variant="outline" className="w-full h-28 border-dashed border-2 flex flex-col gap-2 items-center justify-center rounded-2xl hover:border-pink-400 hover:bg-pink-50/30 transition-all" onClick={() => handleOCRUpload('PINK_CARD')}>
+                                                                        <Camera className="w-8 h-8 text-pink-500" />
+                                                                        <span className="text-base font-bold">บัตรต่างด้าวชมพู</span>
+                                                                    </Button>
                                                                 </div>
                                                             </>
                                                         )}
@@ -826,31 +843,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                             <h3 className="text-3xl font-black text-emerald-900 mb-2">ยืนยันตัวตนสำเร็จ</h3>
                                             <p className="text-emerald-700 text-lg max-w-md mx-auto">การตรวจสอบใบหน้าและ DOPA ถูกต้องตรงกัน ระบบได้ยืนยันสถานะลูกค้าเรียบร้อยแล้ว</p>
 
-                                            <div className="flex gap-4 mt-8">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <div className="w-20 h-20 rounded-xl bg-white border-2 border-emerald-200 overflow-hidden flex items-center justify-center">
-                                                        {mockChipPhoto ? (
-                                                            <img src={mockChipPhoto} alt="Chip" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <CreditCard className="w-8 h-8 text-emerald-200" />
-                                                        )}
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-emerald-600 uppercase">จากบัตร</span>
-                                                </div>
-                                                <div className="flex items-center">
-                                                    <div className="h-[2px] w-8 bg-emerald-200"></div>
-                                                </div>
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <div className="w-20 h-20 rounded-xl bg-white border-4 border-emerald-400 overflow-hidden flex items-center justify-center">
-                                                        {mockLivePhoto ? (
-                                                            <img src={mockLivePhoto} alt="Live" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <User className="w-8 h-8 text-emerald-200" />
-                                                        )}
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-emerald-600 uppercase">Live Match</span>
-                                                </div>
-                                            </div>
+
 
                                             <Button size="lg" className="mt-12 w-full max-w-sm bg-emerald-600 hover:bg-emerald-700 text-white h-16 text-xl font-bold rounded-2xl shadow-xl shadow-emerald-200" onClick={handleCreateProfile}>
                                                 ดำเนินการต่อ <ArrowRight className="ml-2 w-6 h-6" />
@@ -909,21 +902,23 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                         )}
                                                     />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                                                        หมายเลขหลังบัตร (Laser ID) <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Input
-                                                        value={formData.laserId || ""}
-                                                        onChange={(e) => handleFormChange('laserId', e.target.value)}
-                                                        readOnly={verificationMethod === 'DIPCHIP'}
-                                                        className={cn(
-                                                            "rounded-xl",
-                                                            verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none shadow-none px-4" : "bg-white border focus:border-chaiyo-blue"
-                                                        )}
-                                                        placeholder="JT0-0000000-00"
-                                                    />
-                                                </div>
+                                                {formData.cardType !== 'PINK_CARD' && (
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
+                                                            หมายเลขหลังบัตร (Laser ID) <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <Input
+                                                            value={formData.laserId || ""}
+                                                            onChange={(e) => handleFormChange('laserId', e.target.value)}
+                                                            readOnly={verificationMethod === 'DIPCHIP'}
+                                                            className={cn(
+                                                                "rounded-xl",
+                                                                verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none shadow-none px-4" : "bg-white border focus:border-chaiyo-blue"
+                                                            )}
+                                                            placeholder="JT0-0000000-00"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Name Row */}
@@ -971,9 +966,9 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                 </div>
                                             </div>
 
-                                            {/* Birth Date & Expiry Row */}
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div className="md:col-span-2 space-y-2">
+                                            {/* Birth Date and Expiry Date Row */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
                                                     <div className="flex items-end justify-between min-h-[20px]">
                                                         <Label className="text-xs text-muted-foreground font-bold">
                                                             วันเดือนปีเกิด <span className="text-red-500">*</span>
@@ -1000,74 +995,30 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                         placeholder={useYearOnly ? "YYYY" : "DD/MM/YYYY"}
                                                     />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <div className="flex items-end h-[20px]">
-                                                        <Label className="text-xs text-muted-foreground font-bold">
-                                                            อายุ
-                                                        </Label>
-                                                    </div>
-                                                    <Input
-                                                        value={(() => {
-                                                            if (!formData.birthDate) return "";
-                                                            const birth = new Date(formData.birthDate);
-                                                            if (isNaN(birth.getTime())) return "";
-                                                            const today = new Date();
-                                                            let age = today.getFullYear() - birth.getFullYear();
-                                                            const m = today.getMonth() - birth.getMonth();
-                                                            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-                                                                age--;
-                                                            }
-                                                            return age > 0 ? age.toString() : "0";
-                                                        })()}
-                                                        readOnly
-                                                        className="rounded-xl bg-gray-50 border-none shadow-none px-4"
-                                                    />
-                                                </div>
-                                            </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">
-                                                    <div className="flex items-end h-[20px]">
+                                                    <div className="flex items-end justify-between min-h-[20px]">
                                                         <Label className="text-xs text-muted-foreground font-bold">
-                                                            วันที่บัตรหมดอายุ <span className="text-red-500">*</span>
+                                                            วันที่บัตรหมดอายุ {!isLifetime && <span className="text-red-500">*</span>}
                                                         </Label>
+                                                        {verificationMethod !== 'DIPCHIP' && formData.cardType !== 'PINK_CARD' && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Checkbox
+                                                                    id="isLifetime"
+                                                                    checked={isLifetime}
+                                                                    onCheckedChange={(checked) => toggleLifetime(!!checked)}
+                                                                />
+                                                                <Label htmlFor="isLifetime" className="text-[10px] font-bold text-muted-foreground cursor-pointer leading-none">ตลอดชีพ</Label>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <Input
-                                                        value={expiryDateDisplay || ""}
+                                                        value={isLifetime ? "-" : (expiryDateDisplay || "")}
                                                         onChange={(e) => handleDateInputChange(e, 'expiryDate', setExpiryDateDisplay)}
-                                                        className="rounded-xl bg-white border focus:border-chaiyo-blue"
-                                                        placeholder="DD/MM/YYYY"
+                                                        className={cn("rounded-xl border", (verificationMethod === 'DIPCHIP' || isLifetime) ? "bg-gray-50 border-gray-200 shadow-none px-4" : "bg-white focus:border-chaiyo-blue")}
+                                                        readOnly={verificationMethod === 'DIPCHIP' || isLifetime}
+                                                        placeholder={isLifetime ? "ตลอดชีพ" : "DD/MM/YYYY"}
                                                     />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <div className="flex items-end h-[20px]">
-                                                        <Label className="text-xs text-muted-foreground font-bold">
-                                                            สัญชาติ <span className="text-red-500">*</span>
-                                                        </Label>
-                                                    </div>
-                                                    {verificationMethod === 'DIPCHIP' ? (
-                                                        <Input
-                                                            value={formData.nationality || "Thai"}
-                                                            readOnly
-                                                            className="rounded-xl bg-gray-50 border-none shadow-none px-4"
-                                                        />
-                                                    ) : (
-                                                        <Select
-                                                            value={formData.nationality || ""}
-                                                            onValueChange={(val) => handleFormChange('nationality', val)}
-                                                        >
-                                                            <SelectTrigger className="rounded-xl bg-white border focus:border-chaiyo-blue w-full">
-                                                                <SelectValue placeholder="เลือกสัญชาติ" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {COUNTRIES.map((country) => (
-                                                                    <SelectItem key={country.value} value={country.value}>
-                                                                        {country.label}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )}
                                                 </div>
                                             </div>
 
@@ -1075,10 +1026,10 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                 <Button
                                                     size="lg"
                                                     className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-16 text-xl font-bold rounded-2xl"
-                                                    onClick={handleDOPAVerify}
-                                                    disabled={!formData.idNumber || formData.idNumber.replace(/-/g, '').length < 13 || !formData.laserId || !formData.firstName || !formData.lastName || !formData.birthDate || !formData.expiryDate || !formData.nationality}
+                                                    onClick={() => handleDOPAVerify()}
+                                                    disabled={!formData.idNumber || formData.idNumber.replace(/-/g, '').length < 13 || (formData.cardType !== 'PINK_CARD' && !formData.laserId) || !formData.firstName || !formData.lastName || !formData.birthDate || (!isLifetime && !formData.expiryDate)}
                                                 >
-                                                    <ShieldAlert className="w-6 h-6 mr-2" /> ตรวจสอบ DOPA
+                                                    <ShieldAlert className="w-6 h-6 mr-2" /> ตรวจสอบ
                                                 </Button>
                                                 <p className="text-[10px] text-muted text-center mt-3">ผลการตรวจสอบจะเชื่อมตรงกับฐานข้อมูล กรมการปกครอง (DOPA)</p>
                                             </div>
