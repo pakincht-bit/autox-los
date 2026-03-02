@@ -533,32 +533,40 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
     const renderSelectionScreen = () => (
         <div className="space-y-6">
             <h2 className="text-xl font-bold text-center mb-8">เลือกวิธีการยืนยันตัวตน</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Option 1: Dipchip */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Option 1: Dipchip (Main Method) */}
                 <Card
-                    className="border-2 border-dashed border-gray-200 hover:border-chaiyo-blue hover:bg-blue-50/30 cursor-pointer transition-all group"
+                    className="md:col-span-2 relative border-2 border-dashed border-gray-200 hover:border-chaiyo-blue hover:bg-blue-50/30 cursor-pointer transition-all group shadow-sm hover:shadow-md"
                     onClick={() => handleSelectMethod('DIPCHIP')}
                 >
-                    <CardContent className="flex flex-col items-center justify-center py-10 text-center h-full">
-                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <CreditCard className="w-8 h-8 text-chaiyo-blue" />
+                    <div className="absolute top-4 right-4">
+                        <Badge className="bg-chaiyo-blue hover:bg-chaiyo-blue text-white px-3 py-1">แนะนำ</Badge>
+                    </div>
+                    <CardContent className="flex flex-col items-center justify-center py-16 text-center h-full">
+                        <div className="w-32 h-24 shadow-lg border border-gray-100 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform p-4">
+                            <img src="/images/card_citizen.svg" alt="Dipchip" className="w-full h-full object-contain" />
                         </div>
-                        <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-chaiyo-blue">บัตรประชาชน (Dipchip)</h3>
-                        <p className="text-sm text-muted mb-4">สำหรับลูกค้าที่มีบัตรประชาชนแบบชิปการ์ด และสามารถอ่านข้อมูลได้</p>
+                        <h3 className="font-bold text-2xl mb-3 text-foreground group-hover:text-chaiyo-blue">บัตรประชาชน (Dipchip)</h3>
+                        <p className="text-base text-muted max-w-sm">สำหรับลูกค้าที่มีบัตรประชาชน และสามารถอ่านข้อมูลได้รวดเร็วและแม่นยำที่สุด</p>
                     </CardContent>
                 </Card>
 
-                {/* Option 2: Manual/OCR (Thai & Non-Thai) */}
+                {/* Option 2: Manual/OCR (Secondary Method) */}
                 <Card
-                    className="border-2 border-dashed border-gray-200 hover:border-orange-400 hover:bg-orange-50/30 cursor-pointer transition-all group"
+                    className="border-2 border-dashed border-gray-200 hover:border-orange-400 hover:bg-orange-50/30 cursor-pointer transition-all group opacity-90 hover:opacity-100"
                     onClick={() => handleSelectMethod('MANUAL')}
                 >
                     <CardContent className="flex flex-col items-center justify-center py-10 text-center h-full">
-                        <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <FileText className="w-8 h-8 text-orange-600" />
+                        <div className="h-20 flex items-center justify-center mb-4 relative w-32 group-hover:scale-110 transition-transform mx-auto">
+                            <div className="absolute left-2 top-2 w-16 h-11 bg-white rounded-lg shadow-sm border border-gray-100 p-1 rotate-[-12deg] overflow-hidden flex items-center justify-center">
+                                <img src="/images/card_alien.svg" alt="Card Alien" className="w-full h-full object-contain opacity-70" />
+                            </div>
+                            <div className="absolute right-2 bottom-2 w-16 h-11 bg-white rounded-lg shadow-md border border-gray-100 p-1 rotate-[8deg] z-10 overflow-hidden flex items-center justify-center">
+                                <img src="/images/card_citizen.svg" alt="Card Citizen" className="w-full h-full object-contain" />
+                            </div>
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-orange-600">ถ่ายรูปบัตร</h3>
-                        <p className="text-sm text-muted mb-4">สำหรับบัตรประชาชนที่ไม่สามารถอ่านชิปได้ หรือ บัตรต่างด้าว (บัตรชมพู/ขาว)</p>
+                        <p className="text-sm text-muted">สำหรับกรณีอ่านบัตรประชาชนไม่สำเร็จ หรือ<br />บัตรต่างด้าว (ชมพู/ขาว)</p>
                     </CardContent>
                 </Card>
             </div>
@@ -734,8 +742,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                             <Card className="border-2 border-dashed bg-white shadow-none border-orange-200 bg-orange-50/20">
                                                 <CardContent className="p-6">
                                                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                                        <FileText className="w-5 h-5 text-orange-600" />
-                                                        กรอกข้อมูล / ถ่ายรูปบัตร
+                                                        ถ่ายรูปบัตร
                                                     </h3>
 
                                                     <div className="space-y-4">

@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { CheckCircle, ShieldAlert, FileText, ChevronDown, XCircle } from "lucide-react";
+import { CheckCircle, ShieldAlert, FileText, ChevronDown, XCircle, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     AlertDialog,
@@ -26,6 +26,7 @@ export const SensitiveDataConsentStep = ({ onAccept, onBack }: SensitiveDataCons
     const [hasReadConsent, setHasReadConsent] = useState(false);
     const [isConsentAccepted, setIsConsentAccepted] = useState(false);
     const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false);
+    const [showStaffBanner, setShowStaffBanner] = useState(true);
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,6 +41,29 @@ export const SensitiveDataConsentStep = ({ onAccept, onBack }: SensitiveDataCons
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
+            {/* Staff Instruction Banner */}
+            {showStaffBanner && (
+                <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-center justify-between gap-4 shadow-sm -mt-2">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
+                            <User className="w-6 h-6 text-orange-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-orange-900 font-bold text-lg mb-0.5">พนักงาน : กรุณายื่นอุปกรณ์ให้ลูกค้า</h3>
+                            <p className="text-orange-700 text-sm">
+                                เพื่อให้ลูกค้าอ่านรายละเอียดและกดยอมรับด้วยตนเอง
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setShowStaffBanner(false)}
+                        className="p-1 hover:bg-orange-100 rounded-lg transition-colors text-orange-500"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
+
             <div className="text-center space-y-2 mb-6">
                 <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <ShieldAlert className="w-8 h-8 text-chaiyo-blue" />
