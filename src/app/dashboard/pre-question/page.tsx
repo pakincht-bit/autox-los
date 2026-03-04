@@ -2909,8 +2909,6 @@ function PreQuestionPageContent() {
 
                                     {/* Right Container: Product Suggestions */}
                                     <div className="space-y-6">
-
-
                                         <div className="flex flex-col gap-6">
                                             {productsToShow.length === 0 ? (
                                                 <div className="text-center py-16 px-4 bg-gray-50 border border-border-strong rounded-2xl flex flex-col items-center justify-center col-span-full">
