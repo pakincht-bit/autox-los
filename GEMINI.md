@@ -102,6 +102,7 @@ Full design rules: `.agent/workflows/design-rules.md` — run `/design-rules` to
 - Height: `h-12`, Background: `bg-white`, Radius: `rounded-xl`.
 - Focus state: `border-chaiyo-blue` with subtle blue ring.
 - Mandatory fields: red asterisk `<span className="text-red-500">*</span>` in `<Label>`.
+- **Amount Inputs**: Use comma formatting (e.g., `1,000.00`) for all currency/amount fields to improve readability.
 
 ### Dialogs & Sheets
 - **No top-right close (X) icon.** Close via footer buttons only.

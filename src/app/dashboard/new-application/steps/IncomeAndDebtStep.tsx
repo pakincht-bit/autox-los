@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DollarSign, Briefcase, Plus, Trash2, Home, CreditCard, Building, PieChart, TrendingUp, TrendingDown, Pencil, Users, ImagePlus, X, Eye, Link } from "lucide-react";
+import { DollarSign, Briefcase, Plus, Trash2, Home, CreditCard, Building, PieChart, TrendingUp, TrendingDown, Pencil, Users, ImagePlus, X, Eye, Link, FileText, UploadCloud, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     Select,
@@ -61,7 +61,13 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
     const [activeTab, setActiveTab] = useState("main");
     const [isSpecialIncomeDialogOpen, setIsSpecialIncomeDialogOpen] = useState(false);
     const [editingSpecialIncome, setEditingSpecialIncome] = useState<SpecialIncomeSource | null>(null);
-    const [itemToDelete, setItemToDelete] = useState<{ id?: string, index?: number, name?: string, type: 'special' | 'reference' | 'photo' } | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<{
+        id?: string,
+        index?: number,
+        occId?: string,
+        name?: string,
+        type: 'special' | 'reference' | 'photo' | 'bankAccount' | 'incomeDocument' | 'saIncomeRow'
+    } | null>(null);
 
     const handleSaveSpecialIncome = (source: SpecialIncomeSource) => {
         const currentIncomes = formData.specialIncomes || [];
@@ -88,6 +94,12 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
             handleRemoveReference(itemToDelete.index);
         } else if (itemToDelete.type === 'photo' && itemToDelete.index !== undefined) {
             handleRemovePhoto(itemToDelete.index);
+        } else if (itemToDelete.type === 'bankAccount' && itemToDelete.occId && itemToDelete.index !== undefined) {
+            handleRemoveBankAccount(itemToDelete.occId, itemToDelete.index);
+        } else if (itemToDelete.type === 'incomeDocument' && itemToDelete.occId && itemToDelete.id) {
+            handleRemoveIncomeDocument(itemToDelete.occId, itemToDelete.id);
+        } else if (itemToDelete.type === 'saIncomeRow' && itemToDelete.occId && itemToDelete.index !== undefined) {
+            handleRemoveSAIncomeRow(itemToDelete.occId, itemToDelete.index);
         }
     };
 
@@ -212,6 +224,160 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         setItemToDelete(null);
     };
 
+    // Income Channels Handlers
+    const toggleIncomeChannel = (occId: string, channel: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const current = occ.incomeChannels || [];
+        const updated = current.includes(channel)
+            ? current.filter((c: string) => c !== channel)
+            : [...current, channel];
+        handleOccupationChange(occId, 'incomeChannels', updated);
+    };
+
+    const handleAddBankAccount = (occId: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentAccounts = occ.bankAccounts || [];
+        handleOccupationChange(occId, 'bankAccounts', [...currentAccounts, { bankName: '', accountNo: '' }]);
+    };
+
+    const handleUpdateBankAccount = (occId: string, index: number, field: string, value: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentAccounts = [...(occ.bankAccounts || [])];
+
+        // Apply mask if it's the account number field
+        let finalValue = value;
+        if (field === 'accountNo') {
+            const numbers = value.replace(/\D/g, '').slice(0, 10);
+            if (numbers.length > 0) {
+                finalValue = numbers.slice(0, 3);
+                if (numbers.length > 3) {
+                    finalValue += "-" + numbers.slice(3, 4);
+                    if (numbers.length > 4) {
+                        finalValue += "-" + numbers.slice(4, 9);
+                        if (numbers.length > 9) {
+                            finalValue += "-" + numbers.slice(9, 10);
+                        }
+                    }
+                }
+            }
+        }
+
+        currentAccounts[index] = { ...currentAccounts[index], [field]: finalValue };
+        handleOccupationChange(occId, 'bankAccounts', currentAccounts);
+    };
+
+    const handleRemoveBankAccount = (occId: string, index: number) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentAccounts = [...(occ.bankAccounts || [])];
+        currentAccounts.splice(index, 1);
+        handleOccupationChange(occId, 'bankAccounts', currentAccounts);
+        setItemToDelete(null);
+    };
+
+    // SA Income Handlers
+    const handleAddSAIncomeRow = (occId: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentIncomes = occ.saIncomes || [];
+        handleOccupationChange(occId, 'saIncomes', [...currentIncomes, { type: '', detail: '', amount: '' }]);
+    };
+
+    const handleUpdateSAIncomeRow = (occId: string, index: number, field: string, value: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentIncomes = [...(occ.saIncomes || [])];
+
+        let finalValue = value;
+        if (field === 'amount') {
+            // Numbers only, handle decimals and round down to 2 places
+            const clean = value.replace(/[^0-9.]/g, '');
+            const parts = clean.split('.');
+            if (parts.length > 2) {
+                finalValue = parts[0] + '.' + parts.slice(1).join('');
+            } else if (parts.length === 2 && parts[1].length > 2) {
+                finalValue = parts[0] + '.' + parts[1].slice(0, 2);
+            } else {
+                finalValue = clean;
+            }
+        }
+
+        currentIncomes[index] = { ...currentIncomes[index], [field]: finalValue };
+
+        // Calculate total income for this occupation
+        const total = currentIncomes.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
+
+        handleOccupationChange(occId, {
+            saIncomes: currentIncomes,
+            totalIncome: total.toString()
+        });
+    };
+
+    const handleRemoveSAIncomeRow = (occId: string, index: number) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentIncomes = [...(occ.saIncomes || [])];
+        currentIncomes.splice(index, 1);
+
+        // Calculate total
+        const total = currentIncomes.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
+
+        handleOccupationChange(occId, {
+            saIncomes: currentIncomes,
+            totalIncome: total.toString()
+        });
+        setItemToDelete(null);
+    };
+
+    const SA_INCOME_TYPES = [
+        { label: "เงินเดือน", value: "salary" },
+        { label: "รายได้ประจำ", value: "fixed_income" },
+        { label: "รายได้อื่นๆ", value: "other_income" },
+        { label: "โบนัส", value: "bonus" },
+    ];
+
+    const handleAddIncomeDocument = (occId: string, docType: string, label: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentDocs = occ.incomeDocuments || [];
+        const newDoc = {
+            id: `doc-${Date.now()}`,
+            type: docType,
+            name: `${label}_${new Date().toLocaleDateString('th-TH')}.pdf`,
+            status: 'success',
+            uploadedAt: new Date().toISOString()
+        };
+        handleOccupationChange(occId, 'incomeDocuments', [...currentDocs, newDoc]);
+    };
+
+    const handleRemoveIncomeDocument = (occId: string, docId: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentDocs = (occ.incomeDocuments || []).filter((d: any) => d.id !== docId);
+        handleOccupationChange(occId, 'incomeDocuments', currentDocs);
+        setItemToDelete(null);
+    };
+
+    const THAI_BANKS = [
+        { label: "ธนาคารกสิกรไทย", value: "KBANK", logo: "/bank-logo/Type=KBank.svg" },
+        { label: "ธนาคารไทยพาณิชย์", value: "SCB", logo: "/bank-logo/Type=SCB.svg" },
+        { label: "ธนาคารกรุงเทพ", value: "BBL", logo: "/bank-logo/Type=BBL.svg" },
+        { label: "ธนาคารกรุงศรีอยุธยา", value: "BAY", logo: "/bank-logo/Type=Bank of Ayudhya (Krungsri).svg" },
+        { label: "ธนาคารกรุงไทย", value: "KTB", logo: "/bank-logo/Type=Krungthai Bank.svg" },
+        { label: "ธนาคารทหารไทยธนชาต", value: "ttb", logo: "/bank-logo/Type=TTB.svg" },
+        { label: "ธนาคารออมสิน", value: "GSB", logo: "/bank-logo/Type=GSB.svg" },
+    ];
+
+    const INCOME_DOC_TYPES = [
+        { id: 'payslip', label: 'สลิปเงินเดือน (Payslip)' },
+        { id: 'statement', label: 'รายการเดินบัญชี (Statement)' },
+        { id: 'tavi50', label: 'ทวิ 50' },
+        { id: 'salary_cert', label: 'หนังสือรับรองเงินเดือน' },
+    ];
+
     return (
         <div className="flex flex-col xl:flex-row gap-6 items-start animate-in fade-in slide-in-from-bottom-2">
             {/* Main Form Container */}
@@ -268,7 +434,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                         size="sm"
                                         onClick={handleAddSecondaryOccupation}
                                         disabled={occupations.filter((o: any) => !o.isMain).length >= 10}
-                                        className="h-10 border-dashed border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50 gap-2 whitespace-nowrap"
+                                        className="h-10 border-dashed gap-2 whitespace-nowrap text-gray-600 hover:text-chaiyo-blue transition-colors"
                                     >
                                         <Plus className="w-4 h-4" />
                                         เพิ่มอาชีพรอง
@@ -436,6 +602,160 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* SA Details Section: Employment Tenure & Income Table */}
+                                    {occ.employmentType === 'SA' && (
+                                        <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <div className="space-y-4">
+                                                <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-border-color">
+                                                    <TrendingUp className="w-5 h-5 text-chaiyo-blue" /> รายละเอียดอายุงานและรายได้
+                                                </h4>
+
+                                                {/* Tenure Grid */}
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">อายุงานปัจจุบัน (ปี) <span className="text-red-500">*</span></Label>
+                                                        <Input
+                                                            type="text"
+                                                            value={occ.currentTenureYear || ""}
+                                                            onChange={(e) => handleOccupationChange(occ.id, "currentTenureYear", e.target.value.replace(/\D/g, ''))}
+                                                            placeholder="0"
+                                                            className="h-11 bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">อายุงานปัจจุบัน (เดือน) <span className="text-red-500">*</span></Label>
+                                                        <Input
+                                                            type="text"
+                                                            value={occ.currentTenureMonth || ""}
+                                                            onChange={(e) => handleOccupationChange(occ.id, "currentTenureMonth", e.target.value.replace(/\D/g, ''))}
+                                                            placeholder="0"
+                                                            className="h-11 bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">อายุงานก่อนหน้า (ปี) <span className="text-red-500">*</span></Label>
+                                                        <Input
+                                                            type="text"
+                                                            value={occ.prevTenureYear || ""}
+                                                            onChange={(e) => handleOccupationChange(occ.id, "prevTenureYear", e.target.value.replace(/\D/g, ''))}
+                                                            placeholder="0"
+                                                            className="h-11 bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">อายุงานก่อนหน้า (เดือน) <span className="text-red-500">*</span></Label>
+                                                        <Input
+                                                            type="text"
+                                                            value={occ.prevTenureMonth || ""}
+                                                            onChange={(e) => handleOccupationChange(occ.id, "prevTenureMonth", e.target.value.replace(/\D/g, ''))}
+                                                            placeholder="0"
+                                                            className="h-11 bg-white"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Income Table */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <Label className="text-sm font-bold text-gray-700">รายการรายได้</Label>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleAddSAIncomeRow(occ.id)}
+                                                        className="h-8 text-xs font-medium"
+                                                    >
+                                                        <Plus className="w-3 h-3 mr-1" /> เพิ่มรายการรายได้
+                                                    </Button>
+                                                </div>
+
+                                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                                    <Table>
+                                                        <TableHeader className="bg-gray-50/50">
+                                                            <TableRow>
+                                                                <TableHead className="w-[30%] text-xs">ประเภทรายได้</TableHead>
+                                                                <TableHead className="w-[40%] text-xs">รายละเอียดรายได้</TableHead>
+                                                                <TableHead className="w-[20%] text-xs">รายได้ (บาท)</TableHead>
+                                                                <TableHead className="w-[10%] text-center text-xs">จัดการ</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {(!occ.saIncomes || occ.saIncomes.length === 0) ? (
+                                                                <TableRow>
+                                                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic text-xs">
+                                                                        ยังไม่มีรายการรายได้ กรุณากดเพิ่มรายการ
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : (
+                                                                occ.saIncomes.map((item: any, idx: number) => (
+                                                                    <TableRow key={idx} className="group transition-colors hover:bg-gray-50/50">
+                                                                        <TableCell className="py-3">
+                                                                            <Select
+                                                                                value={item.type || ""}
+                                                                                onValueChange={(val) => handleUpdateSAIncomeRow(occ.id, idx, 'type', val)}
+                                                                            >
+                                                                                <SelectTrigger className="h-9 text-sm bg-gray-50/30">
+                                                                                    <SelectValue placeholder="เลือกประเภท" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {SA_INCOME_TYPES.map(type => (
+                                                                                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3">
+                                                                            <Input
+                                                                                value={item.detail || ""}
+                                                                                onChange={(e) => handleUpdateSAIncomeRow(occ.id, idx, 'detail', e.target.value)}
+                                                                                placeholder="เช่น ค่าตำแหน่ง, ค่าครองชีพ"
+                                                                                className="h-9 text-sm bg-gray-50/30"
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3">
+                                                                            <Input
+                                                                                type="text"
+                                                                                value={formatNumberWithCommas(item.amount) || ""}
+                                                                                onChange={(e) => handleUpdateSAIncomeRow(occ.id, idx, 'amount', e.target.value)}
+                                                                                placeholder="0.00"
+                                                                                className="h-9 text-sm bg-gray-50/30 text-right font-mono"
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3 text-center">
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 rounded-full"
+                                                                                onClick={() => setItemToDelete({
+                                                                                    index: idx,
+                                                                                    occId: occ.id,
+                                                                                    name: item.detail || (SA_INCOME_TYPES.find(t => t.value === item.type)?.label) || `รายการที่ ${idx + 1}`,
+                                                                                    type: 'saIncomeRow'
+                                                                                })}
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))
+                                                            )}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+
+                                                <div className="flex justify-end pt-2">
+                                                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-4">
+                                                        <Label className="text-chaiyo-blue font-bold">รายได้รวมต่อเดือน:</Label>
+                                                        <div className="text-xl font-black text-blue-700 font-mono">
+                                                            ฿{formatNumberWithCommas(occ.totalIncome || "0")}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* 2. ที่อยู่ที่ทำงาน / กิจการ */}
                                     <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-4">
@@ -720,12 +1040,208 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                     </div>
 
                                     {/* 3. ช่องทางการรับรายได้ */}
-                                    <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-4">
+                                    <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-6">
                                         <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-border-color">
                                             <DollarSign className="w-5 h-5 text-chaiyo-blue" /> ช่องทางการรับรายได้
                                         </h4>
-                                        <div className="p-8 border border-dashed border-gray-200 rounded-xl bg-white flex items-center justify-center">
-                                            <span className="text-muted-foreground">พื้นที่สำหรับฟอร์ม ช่องทางการรับรายได้</span>
+
+                                        <div className="space-y-6">
+                                            {/* Payment Channels Selection */}
+                                            <div className="space-y-3">
+                                                <Label className="text-sm font-bold text-gray-700">ช่องทางการรับเงิน <span className="text-red-500">*</span></Label>
+                                                <div className="flex flex-wrap gap-6 mt-1">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`cash-${occ.id}`}
+                                                            checked={(occ.incomeChannels || []).includes('cash')}
+                                                            onCheckedChange={() => toggleIncomeChannel(occ.id, 'cash')}
+                                                        />
+                                                        <Label htmlFor={`cash-${occ.id}`} className="font-normal cursor-pointer">รับเงินสด</Label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`bank-${occ.id}`}
+                                                            checked={(occ.incomeChannels || []).includes('bank')}
+                                                            onCheckedChange={() => toggleIncomeChannel(occ.id, 'bank')}
+                                                        />
+                                                        <Label htmlFor={`bank-${occ.id}`} className="font-normal cursor-pointer">บัญชีธนาคาร</Label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Bank Accounts Table (Conditional) */}
+                                            {(occ.incomeChannels || []).includes('bank') && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <Label className="text-sm font-bold text-gray-700">รายการบัญชีธนาคาร</Label>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleAddBankAccount(occ.id)}
+                                                            className="h-8 text-xs font-medium"
+                                                        >
+                                                            <Plus className="w-3 h-3 mr-1" /> เพิ่มบัญชี
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                                        <Table>
+                                                            <TableHeader className="bg-gray-50/50">
+                                                                <TableRow>
+                                                                    <TableHead className="w-[40%] text-xs">ธนาคาร</TableHead>
+                                                                    <TableHead className="w-[45%] text-xs">เลขที่บัญชี</TableHead>
+                                                                    <TableHead className="w-[15%]"></TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {(!occ.bankAccounts || occ.bankAccounts.length === 0) ? (
+                                                                    <TableRow>
+                                                                        <TableCell colSpan={3} className="text-center py-8 text-muted-foreground text-sm italic">
+                                                                            ยังไม่มีข้อมูลบัญชีธนาคาร กรุณากดเพิ่มบัญชี
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ) : (
+                                                                    occ.bankAccounts.map((account: any, idx: number) => (
+                                                                        <TableRow key={idx}>
+                                                                            <TableCell>
+                                                                                <Select
+                                                                                    value={account.bankName}
+                                                                                    onValueChange={(val) => handleUpdateBankAccount(occ.id, idx, 'bankName', val)}
+                                                                                >
+                                                                                    <SelectTrigger className="h-9 text-sm bg-gray-50/30">
+                                                                                        <SelectValue placeholder="เลือกธนาคาร">
+                                                                                            {account.bankName && (
+                                                                                                <div className="flex items-center gap-2">
+                                                                                                    <img
+                                                                                                        src={THAI_BANKS.find(b => b.value === account.bankName)?.logo}
+                                                                                                        alt={account.bankName}
+                                                                                                        className="w-5 h-5 object-contain"
+                                                                                                    />
+                                                                                                    <span className="truncate">{THAI_BANKS.find(b => b.value === account.bankName)?.label}</span>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </SelectValue>
+                                                                                    </SelectTrigger>
+                                                                                    <SelectContent>
+                                                                                        {THAI_BANKS.map(bank => (
+                                                                                            <SelectItem key={bank.value} value={bank.value}>
+                                                                                                <div className="flex items-center gap-2">
+                                                                                                    <img src={bank.logo} alt={bank.label} className="w-5 h-5 object-contain shrink-0" />
+                                                                                                    <span>{bank.label}</span>
+                                                                                                </div>
+                                                                                            </SelectItem>
+                                                                                        ))}
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                            </TableCell>
+                                                                            <TableCell>
+                                                                                <Input
+                                                                                    value={account.accountNo}
+                                                                                    onChange={(e) => handleUpdateBankAccount(occ.id, idx, 'accountNo', e.target.value)}
+                                                                                    placeholder="000-0-00000-0"
+                                                                                    className="h-9 text-sm bg-gray-50/30 font-mono tracking-wider"
+                                                                                    maxLength={13} // 10 digits + 3 dashes
+                                                                                />
+                                                                            </TableCell>
+                                                                            <TableCell className="text-right">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 rounded-full"
+                                                                                    onClick={() => setItemToDelete({
+                                                                                        index: idx,
+                                                                                        occId: occ.id,
+                                                                                        name: account.bankName ? `บัญชี ${THAI_BANKS.find(b => b.value === account.bankName)?.label}` : 'บัญชีธนาคาร',
+                                                                                        type: 'bankAccount'
+                                                                                    })}
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </TableCell>
+                                                                        </TableRow>
+                                                                    ))
+                                                                )}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Income Proof Documents Table */}
+                                            <div className="space-y-3 pt-2">
+                                                <Label className="text-sm font-bold text-gray-700">เอกสารรับรองรายได้ <span className="text-red-500">*</span></Label>
+
+                                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                                    <Table>
+                                                        <TableHeader className="bg-gray-50/50">
+                                                            <TableRow>
+                                                                <TableHead className="w-[45%] text-xs">ประเภทเอกสาร</TableHead>
+                                                                <TableHead className="w-[40%] text-xs">ไฟล์ที่อัพโหลด</TableHead>
+                                                                <TableHead className="w-[15%] text-right text-xs">จัดการ</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {INCOME_DOC_TYPES.map((docType) => {
+                                                                const uploadedDocs = (occ.incomeDocuments || []).filter((d: any) => d.type === docType.id);
+
+                                                                return (
+                                                                    <TableRow key={docType.id} className="hover:bg-transparent">
+                                                                        <TableCell className="py-4">
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div className={cn(
+                                                                                    "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                                                                                    uploadedDocs.length > 0 ? "bg-green-50 text-emerald-600" : "bg-gray-100 text-gray-400"
+                                                                                )}>
+                                                                                    {uploadedDocs.length > 0 ? <CheckCircle2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                                                </div>
+                                                                                <span className="font-medium text-gray-700 text-sm whitespace-nowrap">{docType.label}</span>
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {uploadedDocs.length > 0 ? (
+                                                                                <div className="space-y-1">
+                                                                                    {uploadedDocs.map((doc: any) => (
+                                                                                        <div key={doc.id} className="flex items-center gap-2 text-xs text-chaiyo-blue bg-blue-50/50 px-2 py-1 rounded-md border border-blue-100 w-fit max-w-[200px]">
+                                                                                            <span className="truncate">{doc.name}</span>
+                                                                                            <button
+                                                                                                onClick={() => setItemToDelete({
+                                                                                                    id: doc.id,
+                                                                                                    occId: occ.id,
+                                                                                                    name: doc.name,
+                                                                                                    type: 'incomeDocument'
+                                                                                                })}
+                                                                                                className="text-gray-400 hover:text-red-500 ml-1"
+                                                                                            >
+                                                                                                <X className="w-3 h-3" />
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <span className="text-xs text-muted-foreground italic">ยังไม่มีไฟล์</span>
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right">
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => handleAddIncomeDocument(occ.id, docType.id, docType.label)}
+                                                                                className="h-8 text-xs gap-1.5 font-medium"
+                                                                            >
+                                                                                <UploadCloud className="w-3.5 h-3.5" />
+                                                                                อัพโหลด
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                );
+                                                            })}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground italic">* รองรับไฟล์ PDF, JPG, PNG (ขนาดไม่เกิน 10MB)</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </TabsContent>
