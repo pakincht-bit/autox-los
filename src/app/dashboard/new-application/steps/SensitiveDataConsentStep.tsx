@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -29,6 +29,21 @@ export const SensitiveDataConsentStep = ({ onAccept, onBack }: SensitiveDataCons
     const [showStaffBanner, setShowStaffBanner] = useState(true);
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
+
+    const checkScrollable = () => {
+        if (scrollRef.current) {
+            const { scrollHeight, clientHeight } = scrollRef.current;
+            if (scrollHeight <= clientHeight) {
+                setHasReadConsent(true);
+            }
+        }
+    };
+
+    useEffect(() => {
+        checkScrollable();
+        window.addEventListener('resize', checkScrollable);
+        return () => window.removeEventListener('resize', checkScrollable);
+    }, []);
 
     const handleScroll = () => {
         if (scrollRef.current) {

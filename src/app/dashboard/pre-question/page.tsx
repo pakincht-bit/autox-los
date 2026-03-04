@@ -460,14 +460,9 @@ function PreQuestionPageContent() {
     };
 
     const handleCreateApplication = () => {
-        // Just move to the consent step within this page
-        setCurrentStep(3);
-    };
-
-    const handleProceedToApplication = () => {
         // Save current sales talk data to localStorage for prefilling the application form
         localStorage.setItem('salesTalkData', JSON.stringify(formData));
-        router.push("/dashboard/new-application");
+        router.push("/dashboard/new-application/salesheet");
     };
 
     const isStep1Valid = () => {
@@ -3094,95 +3089,7 @@ function PreQuestionPageContent() {
                     })()
                 }
 
-                {/* STEP 3: Salesheet View */}
-                {
-                    currentStep === 3 && (() => {
-                        let pdfPath = "/salesheets/Sale Sheet_รถ บุคคลทั่วไป V8.0 2.pdf";
-                        let pdfRotation = 90;
-                        if (formData.collateralType === 'land') {
-                            pdfPath = "/salesheets/Sales Sheet_ที่ดิน_บุคคลทั่วไปV7_ปกค231.2568.pdf";
-                            pdfRotation = 0;
-                        }
-                        return (
-                            <div className="max-w-6xl mx-auto py-8 animate-in slide-in-from-right-8 duration-300">
-                                <Card className="border border-border-strong shadow-none rounded-2xl bg-white overflow-hidden">
-                                    <CardContent className="p-8 space-y-6">
-                                        {/* Staff Instruction Banner */}
-                                        {showStaffBanner && (
-                                            <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-center justify-between gap-4 shadow-sm relative">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
-                                                        <User className="w-6 h-6 text-orange-600" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-orange-900 font-bold text-lg mb-0.5">พนักงาน : กรุณายื่นอุปกรณ์ให้ลูกค้า</h3>
-                                                        <p className="text-orange-700 text-sm">
-                                                            เพื่อให้ลูกค้าอ่านรายละเอียดและกดยืนยันด้วยตนเอง
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => setShowStaffBanner(false)}
-                                                    className="p-1 hover:bg-orange-100 rounded-lg transition-colors text-orange-500"
-                                                >
-                                                    <X className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        )}
 
-                                        <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-                                            <div className="w-12 h-12 rounded-xl bg-chaiyo-blue/10 flex items-center justify-center">
-                                                <FileText className="w-6 h-6 text-chaiyo-blue" />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-gray-900">เอกสารแนะนำผลิตภัณฑ์ (Salesheet)</h2>
-                                                <p className="text-gray-500 text-sm">กรุณาอธิบายรายละเอียดให้ลูกค้าทราบและให้ลูกค้าอ่านเอกสารก่อนทำรายการต่อ</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-gray-800 rounded-xl overflow-hidden border border-border-strong relative flex items-center justify-center w-full" style={{ height: '80vh' }}>
-                                            <PdfViewer key={pdfPath} url={pdfPath} rotation={pdfRotation} />
-                                        </div>
-
-                                        <div className="flex items-center space-x-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                                            <Checkbox
-                                                id="salesheet-read"
-                                                checked={formData.isSalesheetRead}
-                                                onCheckedChange={(checked) => setFormData({ ...formData, isSalesheetRead: checked === true })}
-                                                className="w-5 h-5 border-chaiyo-blue data-[state=checked]:bg-chaiyo-blue"
-                                            />
-                                            <label
-                                                htmlFor="salesheet-read"
-                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-gray-800"
-                                            >
-                                                ข้าพเจ้าได้อธิบายรายละเอียด Salesheet ให้ลูกค้าทราบ และลูกค้าได้อ่านทำความเข้าใจแล้ว
-                                            </label>
-                                        </div>
-
-                                        <div className="flex justify-between items-center pt-6 border-t border-gray-200">
-                                            <Button
-                                                variant="outline"
-                                                size="xl"
-                                                onClick={() => setCurrentStep(2)}
-                                                className="px-6 font-bold"
-                                            >
-                                                <ChevronLeft className="w-4 h-4 mr-2" /> ย้อนกลับ
-                                            </Button>
-                                            <Button
-                                                size="xl"
-                                                onClick={handleProceedToApplication}
-                                                disabled={!formData.isSalesheetRead}
-                                                className="px-8 font-bold"
-                                            >
-                                                ดำเนินการต่อ <ChevronRight className="w-4 h-4 ml-2" />
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        );
-                    })()
-                }
 
                 {/* Hidden Print Component */}
                 <QuotationPrint

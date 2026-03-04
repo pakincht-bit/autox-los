@@ -156,7 +156,7 @@ export default function DashboardPage() {
                                     className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
                                     onClick={() => {
                                         if (app.status === 'แบบร่าง') {
-                                            router.push('/dashboard/new-application?state=draft');
+                                            router.push(`/dashboard/new-application/${app.id}/customer-info?state=draft`);
                                         } else {
                                             router.push(`/dashboard/applications/${app.id.split('-')[1] || app.id}`);
                                         }

@@ -215,7 +215,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
     return (
         <div className="flex flex-col xl:flex-row gap-6 items-start animate-in fade-in slide-in-from-bottom-2">
             {/* Main Form Container */}
-            <div className="flex-1 space-y-6 w-full">
+            <div className="flex-1 space-y-6 w-full min-w-0">
 
                 {/* ===== SECTION 1: Income (อาชีพและรายได้) ===== */}
                 <Card className="border-border-strong">
@@ -224,13 +224,12 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                             <Briefcase className="w-5 h-5" />
                             อาชีพและรายได้
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">ข้อมูลอาชีพหลัก อาชีพรอง และรายได้ทั้งหมด</p>
                     </CardHeader>
                     <CardContent className="p-6">
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                             <div className="relative flex items-center mb-6 border-b border-border-subtle">
                                 {/* Scrollable Tab List */}
-                                <div className="flex-1 overflow-x-auto no-scrollbar pr-4">
+                                <div className="flex-1 overflow-x-auto no-scrollbar pr-4 min-w-0">
                                     <TabsList className="bg-transparent h-auto p-0 flex space-x-2 w-max pb-3">
                                         {occupations.map((occ: any, index: number) => (
                                             <TabsTrigger
@@ -744,7 +743,6 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                             <CreditCard className="w-5 h-5" />
                             ภาระหนี้สิน
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">ภาระหนี้สินส่วนตัว และภาระหนี้ที่ลูกค้ามีกับเงินไชโย</p>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -833,9 +831,8 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                             <div>
                                 <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
                                     <Users className="w-5 h-5" />
-                                    บุคคลอ้างอิง
+                                    บุคคลอ้างอิง (กรณีไม่มีเอกสารแสดงรายได้)
                                 </CardTitle>
-                                <p className="text-sm text-muted-foreground mt-1">กรณีไม่มีเอกสารแสดงรายได้</p>
                             </div>
                             <Button variant="outline" size="sm" onClick={handleAddReference}>
                                 <Plus className="w-4 h-4 mr-1" /> เพิ่มบุคคลอ้างอิง
@@ -904,9 +901,11 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                     <CardHeader className="bg-blue-50/50 border-b border-border-strong pb-4">
                         <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
                             <ImagePlus className="w-5 h-5" />
-                            อัพโหลดรูปประกอบ
+                            อัพโหลดรูปประกอบ (กรณีที่ไม่มีหลักฐานของรายได้ สามารถอัพโหลดรูปประกอบเพื่อใช้แทนได้
+
+
+                            )
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">กรณีที่ไม่มีหลักฐานของรายได้ สามารถอัพโหลดรูปประกอบเพื่อใช้แทนได้</p>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="flex flex-wrap gap-4">

@@ -82,7 +82,7 @@ export function CustomerHeader({ customer }: CustomerHeaderProps) {
                         </Button>
                         <Button
                             className="gap-2 bg-chaiyo-blue hover:bg-blue-700 shadow-lg shadow-chaiyo-blue/20 flex-1 md:flex-none"
-                            onClick={() => router.push('/dashboard/new-application')}
+                            onClick={() => router.push('/dashboard/new-application/salesheet')}
                         >
                             <FileText className="h-4 w-4" />
                             ขอสินเชื่อใหม่

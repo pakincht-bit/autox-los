@@ -159,7 +159,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                     </Dialog>
                                     <Button
                                         className="h-9 bg-gray-900 text-white font-medium transition-all"
-                                        onClick={() => router.push(`/dashboard/new-application?state=draft&id=${app.applicationNo}`)}
+                                        onClick={() => router.push(`/dashboard/new-application/${app.applicationNo}/customer-info?state=draft`)}
                                     >
                                         <Pencil className="w-4 h-4 mr-1.5" />
                                         แก้ไขคำขอ

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -18,6 +18,21 @@ export const PrivacyConsentStep = ({ onAccept, onBack, collateralType }: Privacy
     const [showStaffBanner, setShowStaffBanner] = useState(true);
 
     const privacyScrollRef = useRef<HTMLDivElement | null>(null);
+
+    const checkScrollable = () => {
+        if (privacyScrollRef.current) {
+            const { scrollHeight, clientHeight } = privacyScrollRef.current;
+            if (scrollHeight <= clientHeight) {
+                setHasReadPrivacy(true);
+            }
+        }
+    };
+
+    useEffect(() => {
+        checkScrollable();
+        window.addEventListener('resize', checkScrollable);
+        return () => window.removeEventListener('resize', checkScrollable);
+    }, []);
 
     const handleScroll = (ref: React.RefObject<HTMLDivElement | null>, setReadState: (val: boolean) => void) => {
         if (ref.current) {

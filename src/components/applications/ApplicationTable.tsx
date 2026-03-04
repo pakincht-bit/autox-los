@@ -49,7 +49,7 @@ export function ApplicationTable({ data }: ApplicationTableProps) {
 
     const handleRowClick = (app: Application) => {
         if (app.status === 'Draft') {
-            router.push('/dashboard/new-application?state=draft');
+            router.push(`/dashboard/new-application/${app.applicationNo}/customer-info?state=draft`);
         } else {
             router.push(`/dashboard/applications/${app.id}`);
         }
