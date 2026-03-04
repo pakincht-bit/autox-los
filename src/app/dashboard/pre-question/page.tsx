@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { ChevronLeft, Printer, FileText, PiggyBank, Briefcase, Car, Camera, Check, Sparkles, Bike, Truck, Tractor, Map, Upload, Eye, EyeOff, X, ChevronRight, Plus, Minus, CreditCard, Gift, Shield, Percent, ArrowRight, Star, User, Banknote, ShieldCheck, AlertTriangle, CheckCircle, ChevronDown } from "lucide-react";
+import { ChevronLeft, Printer, FileText, PiggyBank, Briefcase, Car, Camera, Check, Sparkles, Bike, Truck, Tractor, Map, Upload, Eye, EyeOff, X, ChevronRight, Plus, Minus, CreditCard, Gift, Shield, Percent, ArrowRight, Star, User, Banknote, ShieldCheck, AlertTriangle, CheckCircle, ChevronDown, Calculator, Wallet, Info } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Switch } from "@/components/ui/switch";
@@ -23,7 +23,9 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useSidebar } from "@/components/layout/SidebarContext";
+import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
     CAR_BRANDS,
     MOTO_BRANDS,
@@ -51,6 +53,11 @@ import {
     AlertDialogFooter,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 const TENURE_OPTIONS: Record<string, number[]> = {
     moto: [12, 18, 24, 30, 36],
@@ -91,13 +98,13 @@ function PreQuestionPageContent() {
         loanPurpose: '',
         requestedAmount: '',
         collateralStatus: 'clear',
-        occupationGroup: '',
+        occupationGroup: 'employee',
         jobTitle: '',
         salary: '',
         otherIncome: '',
         monthlyDebt: '',
         specialProject: 'none',
-        borrowerAge: '',
+        borrowerAge: '35',
         collateralCondition: 'yes',
         brand: '',
         model: '',
@@ -145,10 +152,12 @@ function PreQuestionPageContent() {
     // Step 3: Info
     // Step 4: Calculate (Result)
     const [currentStep, setCurrentStep] = useState(initialStep);
+    const [showStaffBanner, setShowStaffBanner] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [aiDetectedFields, setAiDetectedFields] = useState<string[]>([]);
     const [isFetchingRedbook, setIsFetchingRedbook] = useState(false);
     const [isConditionDialogOpen, setIsConditionDialogOpen] = useState(false);
+    const [isBorrowerInfoExpanded, setIsBorrowerInfoExpanded] = useState(false);
     const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(false);
     const [isIncomeDebtExpanded, setIsIncomeDebtExpanded] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -289,6 +298,23 @@ function PreQuestionPageContent() {
         }
         return limit;
     }, [formData, calculatedLandResult]);
+
+    // Ensure requested amount does not exceed final summary limit, and prefill with maxLoan when entering Step 2
+    useEffect(() => {
+        // Prefill when entering Step 2 if not already set
+        if (currentStep === 2 && (!formData.requestedAmount || Number(formData.requestedAmount) === 0) && finalSummaryLimit > 0) {
+            setFormData((prev: any) => ({ ...prev, requestedAmount: String(finalSummaryLimit) }));
+            return;
+        }
+
+        // Cap value if it exceeds limit
+        if (formData.requestedAmount) {
+            const requested = Number(String(formData.requestedAmount).replace(/,/g, '')) || 0;
+            if (requested > finalSummaryLimit) {
+                setFormData((prev: any) => ({ ...prev, requestedAmount: String(finalSummaryLimit) }));
+            }
+        }
+    }, [currentStep, finalSummaryLimit, formData.requestedAmount]);
 
     // Load state from localStorage on mount
     useEffect(() => {
@@ -446,7 +472,7 @@ function PreQuestionPageContent() {
 
     const isStep1Valid = () => {
         // Essential fields for all types
-        if (!formData.collateralType || !formData.occupationGroup || !formData.borrowerAge || !formData.nationality || !formData.requestedAmount || !formData.requestedDuration) return false;
+        if (!formData.collateralType) return false;
 
         // Vehicle (Car, Moto, Truck, Agri)
         if (['car', 'moto', 'truck', 'agri'].includes(formData.collateralType)) {
@@ -456,9 +482,6 @@ function PreQuestionPageContent() {
             // Sub-model is mandatory ONLY if there are sub-models available for that model
             const subModelOptions = SUB_MODELS_BY_MODEL[formData.model] || [];
             if (subModelOptions.length > 0 && !formData.subModel) return false;
-
-            // Also require an appraisal price (suggests user has performed Redbook look-up or manual entry)
-            if (!(Number(formData.appraisalPrice) > 0)) return false;
         }
 
         // Land / Condo
@@ -467,17 +490,6 @@ function PreQuestionPageContent() {
 
             // Specialized Mandatory check for Trajong Deed: Province must be selected
             if (formData.landDeedType === 'trajong_deed' && !formData.landProvince) return false;
-
-            if (formData.landDeedType === 'orchor2') {
-                // Mandatory: Condo Unit price AND Balcony price from at least 1 visible source
-                const hasUnit = (formData.condoUnitAppraisals as any[] || []).some(a => !a.hidden && Number(a.price) > 0);
-                const hasBalcony = (formData.condoBalconyAppraisals as any[] || []).some(a => !a.hidden && Number(a.price) > 0);
-                if (!hasUnit || !hasBalcony) return false;
-            } else {
-                // Mandatory: Land appraisal price from at least 1 visible source
-                const hasLand = (formData.landAppraisals as any[] || []).some(a => !a.hidden && Number(a.price) > 0);
-                if (!hasLand) return false;
-            }
         }
 
         return true;
@@ -500,6 +512,17 @@ function PreQuestionPageContent() {
             if (hasYesAnswer) {
                 setIsConditionDialogOpen(true);
                 return;
+            }
+
+            // Mock calculating appraisal price on step change
+            if (['car', 'moto', 'truck', 'agri'].includes(formData.collateralType)) {
+                if (!formData.appraisalPrice || formData.appraisalPrice === 0) {
+                    setFormData((prev: any) => ({
+                        ...prev,
+                        redbookPrice: 475000,
+                        appraisalPrice: 475000
+                    }));
+                }
             }
         }
         setCurrentStep(prev => prev + 1);
@@ -739,7 +762,7 @@ function PreQuestionPageContent() {
 
                         {[
                             { id: 1, label: "แบบสอบถามเบื้องต้น", icon: FileText },
-                            { id: 2, label: "แนะนำสินค้า", icon: Sparkles },
+                            { id: 2, label: "คำนวณสินเชื่อ / แนะนำสินค้า", icon: Calculator },
                             { id: 3, label: "เอกสารและความยินยอม", icon: ShieldCheck }
                         ].map((step) => {
                             const isActive = currentStep === step.id;
@@ -785,13 +808,9 @@ function PreQuestionPageContent() {
                         </div>
 
                         {/* Section 1: Collateral Info */}
-                        <div className="relative border-l-[2px] border-gray-200 ml-4 pl-8 pb-12">
-                            <div className="absolute -left-[18px] top-0 w-8 h-8 bg-white rounded-full border-[2px] border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
-                                1
-                            </div>
+                        <div className="relative pb-12">
 
                             <div className="space-y-6 -mt-1">
-                                <h3 className="text-xl font-bold text-gray-900">ข้อมูลหลักประกัน</h3>
 
                                 <div className="space-y-4">
                                     <Label>ประเภทหลักประกัน <span className="text-red-500">*</span></Label>
@@ -954,14 +973,9 @@ function PreQuestionPageContent() {
                                     <div className="border border-border-strong rounded-xl bg-white overflow-hidden divide-y divide-gray-200">
                                         {(formData.collateralType === 'car' || formData.collateralType === 'moto' || formData.collateralType === 'truck' || formData.collateralType === 'agri') ? (
                                             <div className="flex flex-col">
-                                                {/* Redbook Form Section Header */}
-                                                <div className="px-6 pt-6 pb-2">
-                                                    <div className="flex items-center gap-2 mb-">
-                                                        <h3 className="text-lg font-bold text-gray-900">ข้อมูลหลักประกันจากฐานข้อมูล Redbook</h3>
-                                                    </div>
-                                                </div>
 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-6 pt-4">
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-6 pt-7">
                                                     <div className="space-y-2">
                                                         <div className="flex items-center justify-between">
                                                             <Label>ยี่ห้อ <span className="text-red-500">*</span></Label>
@@ -1002,23 +1016,6 @@ function PreQuestionPageContent() {
                                                     </div>
                                                     <div className="space-y-2">
                                                         <div className="flex items-center justify-between">
-                                                            <Label>รุ่นย่อย <span className="text-red-500">*</span></Label>
-                                                        </div>
-                                                        <Combobox
-                                                            options={SUB_MODELS_BY_MODEL[formData.model] || []}
-                                                            value={formData.subModel}
-                                                            onValueChange={(val) => {
-                                                                setFormData({ ...formData, subModel: val });
-                                                                setAiDetectedFields((prev: any[]) => prev.filter(f => f !== 'subModel'));
-                                                            }}
-                                                            placeholder="เลือกรุ่นย่อย..."
-                                                            searchPlaceholder="ค้นหารุ่นย่อย..."
-                                                            emptyText="ไม่พบรุ่นที่ค้นหา"
-                                                            className={!formData.model ? "opacity-50 pointer-events-none" : ""}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center justify-between">
                                                             <Label>ปีจดทะเบียน <span className="text-red-500">*</span></Label>
                                                         </div>
                                                         <Combobox
@@ -1034,6 +1031,24 @@ function PreQuestionPageContent() {
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label>รุ่นย่อย <span className="text-red-500">*</span></Label>
+                                                        </div>
+                                                        <Combobox
+                                                            options={SUB_MODELS_BY_MODEL[formData.model] || []}
+                                                            value={formData.subModel}
+                                                            onValueChange={(val) => {
+                                                                setFormData({ ...formData, subModel: val });
+                                                                setAiDetectedFields((prev: any[]) => prev.filter(f => f !== 'subModel'));
+                                                            }}
+                                                            placeholder="เลือกรุ่นย่อย..."
+                                                            searchPlaceholder="ค้นหารุ่นย่อย..."
+                                                            emptyText="ไม่พบรุ่นที่ค้นหา"
+                                                            className={!formData.model ? "opacity-50 pointer-events-none" : ""}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
                                                         <Label>สถานะหลักประกัน <span className="text-red-500">*</span></Label>
                                                         <Select value={formData.collateralStatus || 'clear'} onValueChange={(val) => setFormData({ ...formData, collateralStatus: val })}>
                                                             <SelectTrigger className="bg-white"><SelectValue placeholder="เลือกสถานะ" /></SelectTrigger>
@@ -1044,26 +1059,6 @@ function PreQuestionPageContent() {
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
-                                                </div>
-
-                                                <div className="px-6 pb-6 pt-2 flex justify-end">
-                                                    <Button
-                                                        variant="default"
-                                                        className="bg-chaiyo-blue hover:bg-blue-800 text-white font-bold"
-                                                        onClick={handleFetchRedbook}
-                                                        disabled={isFetchingRedbook || !formData.brand || !formData.model || !formData.year}
-                                                    >
-                                                        {isFetchingRedbook ? (
-                                                            <>
-                                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                                                                กำลังดึงข้อมูล...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                ดึงข้อมูล Redbook
-                                                            </>
-                                                        )}
-                                                    </Button>
                                                 </div>
                                             </div>
                                         ) : (
@@ -1543,100 +1538,10 @@ function PreQuestionPageContent() {
 
                                             </div>
                                         )}
-                                        {/* Pricing Summary Section */}
-                                        {formData.collateralType !== 'land' && (formData.aiPrice > 0 || formData.redbookPrice > 0 || formData.appraisalPrice > 0) && (
-                                            <div className="p-6 bg-gradient-to-r from-gray-50 to-white">
-                                                <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                                    สรุปราคาประเมินเบื้องต้น
-                                                </h4>
-                                                <div className="grid grid-cols-1 gap-4">
-                                                    <div className="p-4 rounded-xl bg-chaiyo-blue text-gray-900 border border-border-strong space-y-1">
-                                                        <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">Final Appraisal Price</p>
-                                                        <p className="text-2xl font-bold text-white">
-                                                            ฿{formData.collateralType === 'land'
-                                                                ? (calculatedLandResult?.finalAppraisalPrice?.toLocaleString() || '0')
-                                                                : (formData.appraisalPrice?.toLocaleString() || '0')
-                                                            }
-                                                        </p>
-                                                        <p className="text-[9px] text-blue-100 italic">
-                                                            {formData.collateralType === 'land'
-                                                                ? (calculatedLandResult?.isLandOnly ? '* ที่ดิน หลังคำนวณ LTV' : '* (ที่ดิน + สิ่งปลูกสร้าง) หลังคำนวณ LTV')
-                                                                : '* อ้างอิงวงเงินแนะนำ'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
                                         {/* End of Form and Pricing Summary Card (Card 2) */}
                                     </div>
 
-                                    {/* Dynamic Collateral Questions Card (Card 3) - Wrapped in Accordion */}
-                                    {(() => {
-                                        let questions = COLLATERAL_QUESTIONS[formData.collateralType] || [];
 
-                                        // Special logic for Land: Filter by Deed Type per screenshot requirements
-                                        if (formData.collateralType === 'land') {
-                                            if (formData.landDeedType === 'orchor2') {
-                                                questions = []; // Hide all questions for OrChor 2
-                                            }
-                                        }
-
-                                        if (questions.length === 0) return null;
-
-                                        return (
-                                            <div className="border border-border-strong rounded-2xl bg-white overflow-hidden">
-                                                {/* Accordion Header */}
-                                                <button
-                                                    onClick={() => setIsQuestionsExpanded(!isQuestionsExpanded)}
-                                                    className={cn(
-                                                        "w-full p-6 flex items-center justify-between text-left transition-colors hover:bg-gray-50",
-                                                        isQuestionsExpanded ? "bg-gray-50/50" : "bg-white"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-3">
-
-                                                        <div>
-                                                            <h4 className="text-lg font-bold text-gray-900">การประเมินสภาพทรัพย์สินเพิ่มเติม</h4>
-                                                        </div>
-                                                    </div>
-                                                    <div className={cn(
-                                                        "w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-transform duration-300",
-                                                        isQuestionsExpanded ? "rotate-180" : ""
-                                                    )}>
-                                                        <ChevronDown className="w-5 h-5 text-gray-500" />
-                                                    </div>
-                                                </button>
-
-                                                {/* Accordion Content */}
-                                                <div className={cn(
-                                                    "divide-y divide-gray-100 transition-all duration-300 ease-in-out",
-                                                    isQuestionsExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
-                                                )}>
-                                                    {questions.map((q) => (
-                                                        <div key={q.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/40">
-                                                            <div>
-                                                                <Label className=" font-bold">{q.text}</Label>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 bg-white border border-border-strong p-1.5 rounded-xl shrink-0">
-                                                                <button
-                                                                    onClick={() => setFormData({ ...formData, collateralQuestions: { ...formData.collateralQuestions, [q.id]: 'yes' } })}
-                                                                    className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'yes' ? "bg-gray-200 text-gray-700" : "text-gray-500 hover:bg-gray-100")}
-                                                                >
-                                                                    ใช่
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => setFormData({ ...formData, collateralQuestions: { ...formData.collateralQuestions, [q.id]: 'no' } })}
-                                                                    className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'no' ? "bg-chaiyo-blue text-white" : "text-gray-500 hover:bg-gray-100")}
-                                                                >
-                                                                    ไม่ใช่
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
 
                                 </div>
 
@@ -1644,116 +1549,166 @@ function PreQuestionPageContent() {
                         </div>
 
                         {/* Section 2: Borrower Info */}
-                        <div className="relative border-l-[2px] border-transparent ml-4 pl-8 pb-4">
-                            <div className="absolute -left-[18px] top-0 w-8 h-8 bg-white rounded-full border-[2px] border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
-                                2
-                            </div>
+                        <div className="relative pb-4">
 
-                            <div className="space-y-6 -mt-1">
-                                <h3 className="text-xl font-bold text-gray-900">ข้อมูลทั่วไป</h3>
-
-                                <div className="border border-border-strong rounded-xl bg-white overflow-hidden p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                                        <div className="space-y-2 md:col-span-2">
-                                            <Label>กลุ่มลูกค้า <span className="text-red-500">*</span></Label>
-                                            <Select
-                                                value={formData.customerGroup || 'thai'}
-                                                onValueChange={(val) => {
-                                                    let nationality = 'thai';
-                                                    let specialProject = 'none';
-
-                                                    if (val === 'ethnic') {
-                                                        nationality = 'ethnic';
-                                                    } else if (val === 'b2b_payroll') {
-                                                        specialProject = 'b2b_payroll';
-                                                    }
-
-                                                    setFormData({
-                                                        ...formData,
-                                                        customerGroup: val,
-                                                        nationality,
-                                                        specialProject
-                                                    });
-                                                }}
-                                            >
-                                                <SelectTrigger className="bg-white">
-                                                    <SelectValue placeholder="เลือกกลุ่มลูกค้า" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="thai">คนไทย</SelectItem>
-                                                    <SelectItem value="ethnic">กลุ่มชาติพันธุ์</SelectItem>
-                                                    <SelectItem value="b2b_payroll">พนักงานบริษัทพันธมิตร (B2B Payroll)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label>กลุ่มอาชีพ <span className="text-red-500">*</span></Label>
-                                            <Select value={formData.occupationGroup} onValueChange={(val) => setFormData({ ...formData, occupationGroup: val })}>
-                                                <SelectTrigger className="bg-white"><SelectValue placeholder="เลือกกลุ่มอาชีพ" /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="employee">พนักงานประจำ</SelectItem>
-                                                    <SelectItem value="business_owner">เจ้าของกิจการ</SelectItem>
-                                                    <SelectItem value="farmer">เกษตรกร</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label>อายุผู้กู้ (ปี) <span className="text-red-500">*</span></Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="เช่น 35"
-                                                value={formData.borrowerAge || ''}
-                                                onChange={(e) => setFormData({ ...formData, borrowerAge: e.target.value })}
-
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Requested Amount Card */}
-                                <div className="border border-border-strong rounded-xl bg-white overflow-hidden p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-4">
-                                            <Label className="text-sm font-bold text-gray-700">วงเงินที่ต้องการ <span className="text-red-500">*</span></Label>
-                                            <div className="relative">
-                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">฿</div>
-                                                <Input
-                                                    type="text"
-                                                    placeholder="ระบุวงเงินที่ต้องการ"
-                                                    value={formData.requestedAmount ? Number(formData.requestedAmount).toLocaleString() : ''}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value.replace(/,/g, '');
-                                                        if (!isNaN(Number(value))) {
-                                                            setFormData({ ...formData, requestedAmount: value });
-                                                        }
-                                                    }}
-                                                    className=" pl-10 text-right text-base font-mono border-1 focus:border-chaiyo-blue transition-all"
-                                                />
+                            <div className="space-y-3 -mt-1">
+                                <h3 className="text-xl font-bold text-gray-900">ข้อมูลเพิ่มเติม</h3>
+                                <div className="border border-border-strong rounded-2xl bg-white overflow-hidden">
+                                    {/* Accordion Header */}
+                                    <button
+                                        onClick={() => setIsBorrowerInfoExpanded(!isBorrowerInfoExpanded)}
+                                        className={cn(
+                                            "w-full p-6 flex items-center justify-between text-left transition-colors hover:bg-gray-50",
+                                            isBorrowerInfoExpanded ? "bg-gray-50/50" : "bg-white"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-gray-900">ข้อมูลลูกค้า</h4>
                                             </div>
                                         </div>
+                                        <div className={cn(
+                                            "w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-transform duration-300",
+                                            isBorrowerInfoExpanded ? "rotate-180" : ""
+                                        )}>
+                                            <ChevronDown className="w-5 h-5 text-gray-500" />
+                                        </div>
+                                    </button>
 
-                                        <div className="space-y-4">
-                                            <Label className="text-sm font-bold text-gray-700">จำนวนงวดที่ต้องการ <span className="text-red-500">*</span></Label>
-                                            <Select
-                                                value={formData.requestedDuration?.toString()}
-                                                onValueChange={(val) => setFormData({ ...formData, requestedDuration: parseInt(val) })}
-                                            >
-                                                <SelectTrigger className="bg-white text-base h-12 rounded-xl">
-                                                    <SelectValue placeholder="เลือกจำนวนงวด" />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-h-[300px] overflow-y-auto">
-                                                    {(TENURE_OPTIONS[formData.collateralType] || []).map((months) => (
-                                                        <SelectItem key={months} value={months.toString()}>
-                                                            {months} งวด
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                    {/* Accordion Content */}
+                                    <div className={cn(
+                                        "transition-all duration-300 ease-in-out overflow-hidden",
+                                        isBorrowerInfoExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
+                                    )}>
+                                        <div className="p-6 pt-0 border-t border-gray-100 mt-0">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 pt-6">
+                                                <div className="space-y-2 md:col-span-2">
+                                                    <Label>กลุ่มลูกค้า</Label>
+                                                    <Select
+                                                        value={formData.customerGroup || 'thai'}
+                                                        onValueChange={(val) => {
+                                                            let nationality = 'thai';
+                                                            let specialProject = 'none';
+
+                                                            if (val === 'ethnic') {
+                                                                nationality = 'ethnic';
+                                                            } else if (val === 'b2b_payroll') {
+                                                                specialProject = 'b2b_payroll';
+                                                            }
+
+                                                            setFormData({
+                                                                ...formData,
+                                                                customerGroup: val,
+                                                                nationality,
+                                                                specialProject
+                                                            });
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="bg-white">
+                                                            <SelectValue placeholder="เลือกกลุ่มลูกค้า" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="thai">คนไทย</SelectItem>
+                                                            <SelectItem value="ethnic">กลุ่มชาติพันธุ์</SelectItem>
+                                                            <SelectItem value="b2b_payroll">พนักงานบริษัทพันธมิตร (B2B Payroll)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>กลุ่มอาชีพ</Label>
+                                                    <Select value={formData.occupationGroup} onValueChange={(val) => setFormData({ ...formData, occupationGroup: val })}>
+                                                        <SelectTrigger className="bg-white"><SelectValue placeholder="เลือกกลุ่มอาชีพ" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="employee">พนักงานประจำ</SelectItem>
+                                                            <SelectItem value="business_owner">เจ้าของกิจการ</SelectItem>
+                                                            <SelectItem value="farmer">เกษตรกร</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>อายุผู้กู้ (ปี)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="เช่น 35"
+                                                        value={formData.borrowerAge || ''}
+                                                        onChange={(e) => setFormData({ ...formData, borrowerAge: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Dynamic Collateral Questions Card (Card 3) - Moved to this section */}
+                                {(() => {
+                                    let questions = COLLATERAL_QUESTIONS[formData.collateralType] || [];
+
+                                    // Special logic for Land: Filter by Deed Type per screenshot requirements
+                                    if (formData.collateralType === 'land') {
+                                        if (formData.landDeedType === 'orchor2') {
+                                            questions = []; // Hide all questions for OrChor 2
+                                        }
+                                    }
+
+                                    if (questions.length === 0) return null;
+
+                                    return (
+                                        <div className="border border-border-strong rounded-2xl bg-white overflow-hidden">
+                                            {/* Accordion Header */}
+                                            <button
+                                                onClick={() => setIsQuestionsExpanded(!isQuestionsExpanded)}
+                                                className={cn(
+                                                    "w-full p-6 flex items-center justify-between text-left transition-colors hover:bg-gray-50",
+                                                    isQuestionsExpanded ? "bg-gray-50/50" : "bg-white"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div>
+                                                        <h4 className="text-lg font-bold text-gray-900">การประเมินสภาพทรัพย์สินเพิ่มเติม</h4>
+                                                    </div>
+                                                </div>
+                                                <div className={cn(
+                                                    "w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-transform duration-300",
+                                                    isQuestionsExpanded ? "rotate-180" : ""
+                                                )}>
+                                                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                                                </div>
+                                            </button>
+
+                                            {/* Accordion Content */}
+                                            <div className={cn(
+                                                "divide-y divide-gray-100 transition-all duration-300 ease-in-out",
+                                                isQuestionsExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
+                                            )}>
+                                                {questions.map((q) => (
+                                                    <div key={q.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/40">
+                                                        <div>
+                                                            <Label className=" font-bold">{q.text}</Label>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 bg-white border border-border-strong p-1.5 rounded-xl shrink-0">
+                                                            <button
+                                                                onClick={() => setFormData({ ...formData, collateralQuestions: { ...formData.collateralQuestions, [q.id]: 'yes' } })}
+                                                                className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'yes' ? "bg-gray-200 text-gray-700" : "text-gray-500 hover:bg-gray-100")}
+                                                            >
+                                                                ใช่
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setFormData({ ...formData, collateralQuestions: { ...formData.collateralQuestions, [q.id]: 'no' } })}
+                                                                className={cn("px-5 py-2 rounded-lg text-sm font-bold transition-all", formData.collateralQuestions?.[q.id] === 'no' ? "bg-chaiyo-blue text-white" : "text-gray-500 hover:bg-gray-100")}
+                                                            >
+                                                                ไม่ใช่
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Requested Amount Card Removed (Moved to Step 2) */}
 
                                 {/* New Section: Income and Debt Breakdown */}
                                 <div className="border border-border-strong rounded-2xl bg-white overflow-hidden">
@@ -1767,7 +1722,7 @@ function PreQuestionPageContent() {
                                     >
                                         <div className="flex items-center gap-3">
                                             <div>
-                                                <h4 className="text-lg font-bold text-gray-900">แหล่งที่มารายได้และภาระหนี้สิน (ถ้ามี)</h4>
+                                                <h4 className="text-lg font-bold text-gray-900">แหล่งที่มารายได้และภาระหนี้สิน</h4>
                                             </div>
                                         </div>
                                         <div className={cn(
@@ -2656,10 +2611,15 @@ function PreQuestionPageContent() {
                             // Deed type filtering
                             if (p.deedTypeExclude && p.deedTypeExclude.includes(formData.landDeedType)) return false;
 
-                            // Requested amount filtering
-                            if (p.maxAmount && formData.requestedAmount) {
-                                const requested = Number(formData.requestedAmount.replace(/,/g, '')) || 0;
-                                if (requested > p.maxAmount) return false;
+                            // Requested amount filtering: <= 200k use Pledge (with maxAmount), > 200k use Mortgage (no maxAmount)
+                            if (formData.requestedAmount) {
+                                const requested = Number(String(formData.requestedAmount).replace(/,/g, '')) || 0;
+                                if (requested <= 200000) {
+                                    if (!p.maxAmount) return false;
+                                } else {
+                                    if (p.maxAmount) return false;
+                                    if (requested > 5000000) return false;
+                                }
                             }
 
                             if (p.specialProject === 'b2b_payroll') {
@@ -2670,513 +2630,469 @@ function PreQuestionPageContent() {
                             return true;
                         });
 
+                        const hasBalloonOpt = ['truck', 'agri', 'land'].includes(formData.collateralType);
+
+                        // Select which list of products to show based on collateral AND selected plan
+                        let productsToShow = formData.collateralType === 'moto' ? eligibleMotoProducts :
+                            formData.collateralType === 'car' ? eligibleCarProducts :
+                                formData.collateralType === 'truck' ? eligibleTruckProducts :
+                                    formData.collateralType === 'agri' ? eligibleAgriProducts :
+                                        eligibleLandProducts;
+
+                        // Filter products to match selected plan (monthly vs one-time/balloon)
+                        productsToShow = productsToShow.filter(p => {
+                            const isOneTimeProduct = p.name.toUpperCase().includes('ONE TIME') || p.name.toUpperCase().includes('ONE-TIME') || p.name.includes('สัญญารายปี');
+                            return selectedPlan === 'balloon' ? isOneTimeProduct : !isOneTimeProduct;
+                        });
+
                         return (
-                            <div className="max-w-6xl mx-auto print:hidden space-y-8 animate-in slide-in-from-right-8 duration-300 pb-20">
+                            <div className="max-w-7xl mx-auto print:hidden space-y-8 animate-in slide-in-from-right-8 duration-300 pb-20">
                                 {/* Header */}
                                 <div className="space-y-1">
-                                    <h2 className="text-2xl font-bold text-gray-800">ผลิตภัณฑ์ที่แนะนำ</h2>
-                                    <p className="text-gray-500">เลือกผลิตภัณฑ์ที่เหมาะสมกับลูกค้าเพื่อดูรายการเอกสารที่ต้องใช้</p>
+                                    <h2 className="text-3xl font-bold text-gray-800">คำนวณสินเชื่อ / แนะนำสินค้า</h2>
+                                    <p className="text-gray-500">คำนวณค่างวดและเลือกผลิตภัณฑ์ที่เหมาะสม</p>
                                 </div>
 
-                                {['moto', 'car', 'truck', 'agri', 'land'].includes(formData.collateralType) ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                                        {(
-                                            formData.collateralType === 'moto' ? eligibleMotoProducts :
-                                                formData.collateralType === 'car' ? eligibleCarProducts :
-                                                    formData.collateralType === 'truck' ? eligibleTruckProducts :
-                                                        formData.collateralType === 'agri' ? eligibleAgriProducts :
-                                                            eligibleLandProducts
-                                        ).map(product => (
-                                            <div key={product.code} className="bg-white rounded-3xl overflow-hidden border border-border-strong relative group w-full flex flex-col hover:shadow-sm transition-shadow">
-                                                <div className="p-6 text-white relative overflow-hidden transition-colors bg-chaiyo-blue">
-                                                    {(() => {
-                                                        const CollateralIcon = PRODUCTS.find(p => p.id === formData.collateralType)?.icon || Sparkles;
-                                                        return (
-                                                            <>
-                                                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-                                                                <div className="absolute -top-6 -right-6 opacity-20 pointer-events-none rotate-12">
-                                                                    <CollateralIcon className="w-32 h-32" />
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                    {/* Left Container: Calculator */}
+                                    <div className="bg-white rounded-2xl border border-border-strong p-8 space-y-8 h-fit">
+
+
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <Label className="text-base font-bold text-gray-700">สินเชื่อที่ต้องการ <span className="text-red-500">*</span></Label>
+                                            </div>
+                                            <div className="relative">
+                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">฿</div>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="ระบุวงเงินที่ต้องการ"
+                                                    value={formData.requestedAmount ? Number(formData.requestedAmount).toLocaleString() : ''}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value.replace(/,/g, '');
+                                                        if (value === '') {
+                                                            setFormData({ ...formData, requestedAmount: '' });
+                                                            return;
+                                                        }
+                                                        if (!isNaN(Number(value))) {
+                                                            const numValue = Number(value);
+                                                            if (numValue > maxLoan) {
+                                                                setFormData({ ...formData, requestedAmount: String(maxLoan) });
+                                                            } else {
+                                                                setFormData({ ...formData, requestedAmount: value });
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="pl-10 text-right text-lg font-mono border focus:border-chaiyo-blue transition-all h-14 rounded-xl"
+                                                />
+                                            </div>
+                                            <div className="pt-4 px-2">
+                                                <Slider
+                                                    value={[Number(formData.requestedAmount) || Math.min(maxLoan, 100000)]}
+                                                    max={maxLoan}
+                                                    min={10000}
+                                                    step={1000}
+                                                    onValueChange={(vals) => setFormData({ ...formData, requestedAmount: vals[0] })}
+                                                    className="[&_[role=slider]]:bg-chaiyo-blue [&_[role=slider]]:border-chaiyo-blue [&_[role=slider]]:w-5 [&_[role=slider]]:h-5"
+                                                />
+                                                <div className="flex justify-between text-xs text-gray-400 mt-3 font-medium">
+                                                    <span>10,000</span>
+                                                    <div className="flex items-center gap-1.5 text-chaiyo-blue">
+                                                        <span>วงเงินสูงสุด: {maxLoan.toLocaleString()}</span>
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <button className="p-1 hover:bg-blue-50 rounded-full transition-colors">
+                                                                    <Info className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-80 p-0 overflow-hidden border-none shadow-xl" align="end">
+                                                                <div className="bg-chaiyo-blue p-3 text-white">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Calculator className="w-4 h-4" />
+                                                                        <span className="font-bold text-sm">รายละเอียดการคำนวณวงเงิน</span>
+                                                                    </div>
                                                                 </div>
-                                                            </>
-                                                        );
-                                                    })()}
-                                                    <div className="flex justify-between items-start relative z-10">
-                                                        <div className="flex flex-col gap-2">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <div className="px-3 py-1 rounded-full bg-white/20 text-xs font-bold backdrop-blur-sm border border-white/10 tracking-widest">
-                                                                    {product.code}
-                                                                </div>
-                                                            </div>
-                                                            <h3 className="text-xl font-bold">{product.name}</h3>
-                                                        </div>
-
-                                                        <div className="text-right bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 shadow-lg -mt-1 -mr-1">
-                                                            <p className="text-blue-100 text-[10px] font-bold uppercase tracking-wider mb-0.5">วงเงินแนะนำ</p>
-                                                            <div className="flex items-baseline justify-end gap-1">
-                                                                <span className="text-2xl font-black text-white leading-none">
-                                                                    {maxLoan.toLocaleString()}
-                                                                </span>
-                                                                <span className="text-[10px] font-bold text-white/70">บาท</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-3 gap-1 mt-6 pt-4 border-t border-white/10">
-                                                        <div className="pr-1">
-                                                            <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ระยะเวลา</p>
-                                                            <p className="font-bold text-sm leading-tight text-white">{formData.requestedDuration} <span className="text-[10px] font-normal opacity-75">เดือน</span></p>
-                                                        </div>
-                                                        <div className="border-x border-white/10 px-1 text-center">
-                                                            <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ผ่อนต่อเดือน</p>
-                                                            <p className="font-bold text-sm leading-tight text-white">
-                                                                {(() => {
-                                                                    const isOneTime = product.name.toUpperCase().includes('ONE TIME') || product.name.toUpperCase().includes('ONE-TIME');
-                                                                    const installment = isOneTime
-                                                                        ? calcBalloonMonthly(maxLoan)
-                                                                        : calcMonthly(maxLoan, formData.requestedDuration || 12);
-                                                                    return installment.toLocaleString();
-                                                                })()}
-                                                                <span className="text-[10px] font-normal opacity-75 ml-0.5">บาท</span>
-                                                            </p>
-                                                        </div>
-                                                        <div className="pl-1 text-right">
-                                                            <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ดอกเบี้ย</p>
-                                                            <div className="flex items-center justify-end gap-1">
-                                                                <p className={cn("font-bold text-sm leading-tight whitespace-nowrap", product.interestRate === '19.00%' ? "text-amber-300" : "text-white")}>
-                                                                    {product.interestRate}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="p-6 bg-white flex-1 flex flex-col">
-                                                    <h4 className="font-bold text-sm text-gray-800 mb-4 flex items-center gap-2">
-                                                        จุดเด่นผลิตภัณฑ์
-                                                    </h4>
-                                                    <ul className="space-y-1 mb-2 flex-1">
-                                                        {[...product.features]
-                                                            .sort((a, b) => {
-                                                                const isASpecial = a.includes('บัตรเงินไชโย') || a.includes('ประกัน');
-                                                                const isBSpecial = b.includes('บัตรเงินไชโย') || b.includes('ประกัน');
-                                                                if (isASpecial && !isBSpecial) return 1;
-                                                                if (!isASpecial && isBSpecial) return -1;
-                                                                return 0;
-                                                            })
-                                                            .map((feature, i) => {
-                                                                const isCard = feature.includes('บัตรเงินไชโย');
-                                                                const isInsurance = feature.includes('ประกัน');
-                                                                const isSpecial = isCard || isInsurance;
-
-                                                                return (
-                                                                    <li key={i} className={cn(
-                                                                        "text-sm flex items-start gap-3 p-2 rounded-xl transition-all",
-                                                                        isCard ? "bg-amber-50 border border-amber-100 mt-2" :
-                                                                            isInsurance ? "bg-blue-50 border border-blue-100 mt-2" :
-                                                                                "text-gray-600",
-                                                                        isSpecial && i > 0 && "mt-3"
-                                                                    )}>
-                                                                        <div className={cn(
-                                                                            "mt-0.5 rounded-full p-0.5 shrink-0",
-                                                                            isCard ? "bg-amber-100" :
-                                                                                isInsurance ? "bg-blue-100" :
-                                                                                    "bg-emerald-100"
-                                                                        )}>
-                                                                            {isCard ? (
-                                                                                <Gift className="w-3 h-3 text-amber-600" strokeWidth={3} />
-                                                                            ) : isInsurance ? (
-                                                                                <ShieldCheck className="w-3 h-3 text-blue-600" strokeWidth={3} />
-                                                                            ) : (
-                                                                                <Check className="w-3 h-3 text-emerald-600" strokeWidth={3} />
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="flex-1">
-                                                                            <span className={cn(
-                                                                                "leading-snug font-medium",
-                                                                                isCard ? "text-amber-900" :
-                                                                                    isInsurance ? "text-blue-900" :
-                                                                                        "text-gray-700"
-                                                                            )}>
-                                                                                {feature}
-                                                                            </span>
-
-                                                                        </div>
-                                                                        {isCard && (
-                                                                            <div className="shrink-0 ml-auto">
-                                                                                <img
-                                                                                    src="/images/chaiyo-card.svg"
-                                                                                    alt="Chaiyo Card"
-                                                                                    className="w-16 h-auto drop-shadow-sm"
-                                                                                />
+                                                                <div className="p-4 bg-white space-y-4">
+                                                                    {formData.collateralType === 'land' && calculatedLandResult ? (
+                                                                        <div className="space-y-3">
+                                                                            <div className="space-y-2">
+                                                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ส่วนประกอบหลักประกัน</p>
+                                                                                <div className="flex justify-between text-sm">
+                                                                                    <span className="text-gray-500">ที่ดิน ({calculatedLandResult.chosenLand.label})</span>
+                                                                                    <span className="font-mono font-bold text-gray-900">{calculatedLandResult.chosenLand.limit.toLocaleString()}</span>
+                                                                                </div>
+                                                                                {!calculatedLandResult.isLandOnly && (
+                                                                                    <div className="flex justify-between text-sm">
+                                                                                        <span className="text-gray-500">สิ่งปลูกสร้าง ({calculatedLandResult.chosenBuilding.label})</span>
+                                                                                        <span className="font-mono font-bold text-gray-900">{calculatedLandResult.chosenBuilding.limit.toLocaleString()}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="pt-2 border-t border-dashed flex justify-between text-sm font-bold">
+                                                                                    <span className="text-gray-900">รวมวงเงินประเมิน</span>
+                                                                                    <span className="font-mono text-blue-600">{calculatedLandResult.finalAppraisalPrice.toLocaleString()}</span>
+                                                                                </div>
                                                                             </div>
-                                                                        )}
-                                                                    </li>
-                                                                );
-                                                            })}
-                                                    </ul>
-                                                    <div className="mt-2 grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
-                                                        <Button size="lg" onClick={handleCreateApplication} className="w-full font-bold bg-chaiyo-blue text-white hover:bg-blue-800">เลือก</Button>
-                                                        <Button size="lg" variant="outline" onClick={handlePrint} className="w-full font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-2"> ดู Salesheet</Button>
+
+                                                                            <div className="space-y-2 pt-2 border-t border-gray-100">
+                                                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">เงื่อนไขและข้อจำกัด</p>
+                                                                                <div className="flex justify-between text-sm">
+                                                                                    <span className="text-gray-500">LTV Cap ({(calculatedLandResult.capLtv * 100).toFixed(0)}%)</span>
+                                                                                    <span className="font-mono text-gray-600">{(calculatedLandResult.basePriceTotal * calculatedLandResult.capLtv).toLocaleString()}</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between text-sm">
+                                                                                    <span className="text-gray-500">Absolute Cap</span>
+                                                                                    <span className="font-mono text-gray-600">{calculatedLandResult.isLandOnly ? "220,000" : "5,000,000"}</span>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="p-3 bg-blue-50 rounded-lg flex justify-between items-center">
+                                                                                <span className="text-xs font-bold text-chaiyo-blue">สรุปวงเงินสูงสุด</span>
+                                                                                <span className="font-mono font-black text-chaiyo-blue">{maxLoan.toLocaleString()}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="space-y-3">
+                                                                            <div className="flex justify-between text-sm">
+                                                                                <span className="text-gray-500">ราคาประเมินกลาง</span>
+                                                                                <span className="font-mono font-bold text-gray-900">{Number(formData.appraisalPrice || 0).toLocaleString()}</span>
+                                                                            </div>
+
+                                                                            <div className="space-y-2 pt-2 border-t border-gray-100">
+                                                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ตัวคูณ LTV</p>
+                                                                                <div className="flex justify-between text-sm">
+                                                                                    <span className="text-gray-500">ฐาน LTV ปกติ</span>
+                                                                                    <span className="font-mono text-gray-600">80%</span>
+                                                                                </div>
+                                                                                {formData.specialProject === 'b2b_payroll' && (
+                                                                                    <div className="flex justify-between text-sm text-emerald-600 font-medium">
+                                                                                        <span>โบนัส B2B Payroll</span>
+                                                                                        <span className="font-mono">+10%</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {formData.branchRegion === 'isan' && formData.occupationGroup === 'business_owner' && (
+                                                                                    <div className="flex justify-between text-sm text-red-500 font-medium">
+                                                                                        <span>กลุ่มเสี่ยง Isan Business Owner</span>
+                                                                                        <span className="font-mono">-5%</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="pt-2 border-t border-dashed flex justify-between text-sm font-bold">
+                                                                                    <span className="text-gray-900">LTV สุทธิ</span>
+                                                                                    <span className="font-mono text-blue-600">
+                                                                                        {(() => {
+                                                                                            let baseLTV = 0.80;
+                                                                                            if (formData.specialProject === 'b2b_payroll') baseLTV += 0.10;
+                                                                                            if (formData.branchRegion === 'isan' && formData.occupationGroup === 'business_owner') baseLTV -= 0.05;
+                                                                                            return (Math.min(baseLTV, 1.20) * 100).toFixed(0);
+                                                                                        })()}%
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="p-3 bg-blue-50 rounded-lg flex justify-between items-center">
+                                                                                <span className="text-xs font-bold text-chaiyo-blue">สรุปวงเงินสูงสุด</span>
+                                                                                <span className="font-mono font-black text-chaiyo-blue">{maxLoan.toLocaleString()}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    <p className="text-[10px] text-gray-400 leading-relaxed italic">* อ้างอิงตามเกณฑ์การพิจารณาสินเชื่อเบื้องต้นของบริษัทฯ วงเงินอนุมัติจริงอาจเปลี่ยนแปลงตามเงื่อนไขอื่นๆ</p>
+                                                                </div>
+                                                            </PopoverContent>
+                                                        </Popover>
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
-                                        {(
-                                            formData.collateralType === 'moto' ? eligibleMotoProducts :
-                                                formData.collateralType === 'car' ? eligibleCarProducts :
-                                                    formData.collateralType === 'truck' ? eligibleTruckProducts :
-                                                        formData.collateralType === 'agri' ? eligibleAgriProducts :
-                                                            eligibleLandProducts
-                                        ).length === 0 && (
-                                                <div className="col-span-1 md:col-span-2 text-center py-16 px-4 bg-gray-50 border border-border-strong rounded-3xl flex flex-col items-center justify-center">
+                                        </div>
+
+                                        {hasBalloonOpt && (
+                                            <div className="space-y-4">
+                                                <Label className="text-base font-bold text-gray-700">รูปแบบการผ่อนชำระ <span className="text-red-500">*</span></Label>
+                                                <RadioGroup
+                                                    value={selectedPlan}
+                                                    onValueChange={(val) => {
+                                                        setSelectedPlan(val as 'monthly' | 'balloon');
+                                                        let newDuration = 12;
+                                                        if (val === 'balloon') {
+                                                            newDuration = 1;
+                                                        } else {
+                                                            const opts = TENURE_OPTIONS[formData.collateralType]?.filter(d => d >= 12) || [12];
+                                                            newDuration = opts[0] || 12;
+                                                        }
+                                                        setFormData({ ...formData, requestedDuration: newDuration });
+                                                    }}
+                                                    className="grid grid-cols-2 gap-3 pt-2"
+                                                >
+                                                    <div>
+                                                        <RadioGroupItem value="monthly" id="monthly" className="peer sr-only" />
+                                                        <Label
+                                                            htmlFor="monthly"
+                                                            className="flex flex-col items-center justify-between rounded-xl border border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-chaiyo-blue peer-data-[state=checked]:bg-blue-50 [&:has([data-state=checked])]:border-chaiyo-blue cursor-pointer transition-all"
+                                                        >
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <div className={cn(
+                                                                    "w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center transition-all",
+                                                                    selectedPlan === 'monthly' ? "border-chaiyo-blue border-[5px]" : ""
+                                                                )} />
+                                                                <span className={cn(
+                                                                    "font-bold text-sm",
+                                                                    selectedPlan === 'monthly' ? "text-chaiyo-blue" : "text-gray-500"
+                                                                )}>ผ่อนรายเดือน</span>
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-600 text-center font-normal">ชำระค่างวดเท่ากันทุกเดือน</p>
+                                                        </Label>
+                                                    </div>
+
+                                                    <div>
+                                                        <RadioGroupItem value="balloon" id="balloon" className="peer sr-only" />
+                                                        <Label
+                                                            htmlFor="balloon"
+                                                            className="flex flex-col items-center justify-between rounded-xl border border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-chaiyo-blue peer-data-[state=checked]:bg-blue-50 [&:has([data-state=checked])]:border-chaiyo-blue cursor-pointer transition-all"
+                                                        >
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <div className={cn(
+                                                                    "w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center transition-all",
+                                                                    selectedPlan === 'balloon' ? "border-chaiyo-blue border-[5px]" : ""
+                                                                )} />
+                                                                <span className={cn(
+                                                                    "font-bold text-sm",
+                                                                    selectedPlan === 'balloon' ? "text-chaiyo-blue" : "text-gray-500"
+                                                                )}>โปะงวดสุดท้าย</span>
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-600 text-center font-normal">ผ่อนสบาย จ่ายปิดงวดสุดท้าย</p>
+                                                        </Label>
+                                                    </div>
+                                                </RadioGroup>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-4">
+                                            <Label className="text-base font-bold text-gray-700">ระยะเวลาผ่อนชำระ (เดือน) <span className="text-red-500">*</span></Label>
+                                            <div className="grid grid-cols-4 gap-2 pt-2">
+                                                {(() => {
+                                                    let durations = TENURE_OPTIONS[formData.collateralType] || [];
+                                                    if (hasBalloonOpt && selectedPlan === 'balloon') {
+                                                        durations = [1, 2, 3, 4];
+                                                    } else {
+                                                        durations = (TENURE_OPTIONS[formData.collateralType] || []).filter(d => d >= 12);
+                                                    }
+                                                    return durations.map((months) => {
+                                                        const amount = Number(formData.requestedAmount) || 0;
+                                                        const installment = selectedPlan === 'balloon' ? calcBalloonMonthly(amount) : calcMonthly(amount, months);
+
+                                                        return (
+                                                            <button
+                                                                key={months}
+                                                                onClick={() => setFormData({ ...formData, requestedDuration: months })}
+                                                                className={cn(
+                                                                    "flex flex-col items-center justify-center py-2.5 px-1 rounded-xl border transition-all h-fit min-h-[64px]",
+                                                                    formData.requestedDuration === months
+                                                                        ? "border-chaiyo-blue bg-blue-50 text-chaiyo-blue shadow-sm"
+                                                                        : "border-gray-100 bg-white text-gray-600 hover:border-gray-200 hover:bg-gray-50"
+                                                                )}
+                                                            >
+                                                                <span className="text-base font-bold leading-tight">{months} <span className="text-[10px] font-normal">ด.</span></span>
+                                                                <span className={cn(
+                                                                    "text-[10px] font-bold mt-1",
+                                                                    formData.requestedDuration === months ? "text-chaiyo-blue" : "text-gray-400"
+                                                                )}>
+                                                                    {installment.toLocaleString()} บาท
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
+
+
+
+                                        </div>
+                                    </div>
+
+                                    {/* Right Container: Product Suggestions */}
+                                    <div className="space-y-6">
+
+
+                                        <div className="flex flex-col gap-6">
+                                            {productsToShow.length === 0 ? (
+                                                <div className="text-center py-16 px-4 bg-gray-50 border border-border-strong rounded-2xl flex flex-col items-center justify-center col-span-full">
                                                     <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mb-4">
                                                         <FileText className="w-8 h-8 text-gray-400" />
                                                     </div>
                                                     <h3 className="text-lg font-bold text-gray-800 mb-2">ไม่พบผลิตภัณฑ์ที่เหมาะสม</h3>
-                                                    <p className="text-gray-500">กรุณาปรับเปลี่ยนเงื่อนไขเช่น อายุ สัญชาติ หรือสถานะหลักประกัน เพื่อดูผลิตภัณฑ์อื่น ๆ</p>
+                                                    <p className="text-gray-500 text-sm">กรุณาปรับเปลี่ยนเงื่อนไขเช่น อายุ สัญชาติ รูปแบบผ่อน หรือวงเงินกู้ เพื่อดูผลิตภัณฑ์อื่น ๆ</p>
                                                 </div>
-                                            )}
-                                    </div>
-                                ) : (
-                                    <Tabs
-                                        defaultValue="monthly"
-                                        value={selectedPlan}
-                                        onValueChange={(val) => setSelectedPlan(val as 'monthly' | 'balloon')}
-                                        className="w-full"
-                                    >
-                                        <TabsList className="grid w-full grid-cols-2 mb-8 h-14 bg-gray-100 p-1.5 rounded-2xl">
-                                            <TabsTrigger
-                                                value="monthly"
-                                                className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-chaiyo-blue text-gray-500 font-bold h-full text-base transition-all"
-                                            >
-                                                ผ่อนชำระรายเดือน
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="balloon"
-                                                className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-amber-600 text-gray-500 font-bold h-full text-base transition-all"
-                                            >
-                                                โปะงวดท้าย (One-Time)
-                                            </TabsTrigger>
-                                        </TabsList>
-
-                                        <div className="grid grid-cols-1 max-w-lg mx-auto gap-6 items-start">
-                                            {/* Column 1: Product Card */}
-                                            <div className="w-full">
-                                                <TabsContent value="monthly" className="mt-0 animate-in fade-in zoom-in-95 duration-300">
-                                                    {/* Option 1: Monthly Installment */}
-                                                    <div className="bg-white rounded-3xl overflow-hidden border border-border-strong relative group w-full">
-                                                        {/* Header - Product & Key Figures */}
-                                                        <div className="p-6 text-white relative overflow-hidden transition-colors bg-gradient-to-r from-chaiyo-blue to-blue-600">
-                                                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                                            ) : (
+                                                productsToShow.map(product => (
+                                                    <div key={product.code} className="bg-white rounded-2xl overflow-hidden border border-border-strong relative group w-full flex flex-col hover:shadow-md transition-all duration-300">
+                                                        <div className="p-6 text-white relative overflow-hidden bg-chaiyo-blue transition-colors">
+                                                            {(() => {
+                                                                const CollateralIcon = PRODUCTS.find(p => p.id === formData.collateralType)?.icon || Sparkles;
+                                                                return (
+                                                                    <>
+                                                                        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                                                                        <div className="absolute -bottom-4 -right-4 opacity-10 pointer-events-none rotate-12">
+                                                                            <CollateralIcon className="w-24 h-24" />
+                                                                        </div>
+                                                                    </>
+                                                                );
+                                                            })()}
                                                             <div className="flex justify-between items-start relative z-10">
-                                                                <div>
+                                                                <div className="flex flex-col gap-1.5">
                                                                     <div className="flex items-center gap-2 mb-1">
-                                                                        <p className="text-white/80 text-xs font-bold uppercase tracking-wider">{loanProduct.tagline}</p>
-                                                                        <div className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10">
-                                                                            {selectedProduct?.label}
+                                                                        <div className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10 tracking-widest uppercase">
+                                                                            {product.code}
+                                                                        </div>
+                                                                        {parseFloat(product.interestRate) < 23.99 && (
+                                                                            <div className="px-2.5 py-0.5 rounded-full bg-chaiyo-gold text-chaiyo-blue text-[10px] font-bold shadow-sm flex items-center gap-1 animate-pulse">
+                                                                                <Star className="w-3 h-3 fill-chaiyo-blue" />
+                                                                                ดอกเบี้ยพิเศษ
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <h3 className="text-xl font-bold pr-4">{product.name}</h3>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* วงเงิน Hero Strip */}
+                                                            <div className="mt-5 bg-white/15 backdrop-blur-md rounded-xl p-4 border border-white/20">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+
+                                                                        <div>
+                                                                            <p className="text-xs font-bold uppercase tracking-wider text-blue-200">วงเงินที่ต้องการ</p>
                                                                         </div>
                                                                     </div>
-                                                                    <h3 className="text-2xl font-bold">ผ่อนชำระรายเดือน</h3>
-                                                                </div>
-
-                                                                <div className="text-right bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 shadow-lg -mt-1 -mr-1">
-                                                                    <p className="text-blue-100 text-[10px] font-bold uppercase tracking-wider mb-0.5">วงเงินแนะนำ</p>
-                                                                    <div className="flex items-baseline justify-end gap-1">
-                                                                        <span className="text-2xl font-black text-white leading-none">
-                                                                            {maxLoan.toLocaleString()}
+                                                                    <div className="flex items-baseline gap-1.5">
+                                                                        <span className="text-3xl font-black text-white leading-none tracking-tight">
+                                                                            {Number(formData.requestedAmount || 0).toLocaleString()}
                                                                         </span>
-                                                                        <span className="text-[10px] font-bold text-white/70">บาท</span>
+                                                                        <span className="text-sm font-bold text-white/70">บาท</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
-                                                            {/* Key Stats Bar */}
-                                                            <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/10">
+                                                            <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/10">
                                                                 <div className="pr-1 text-left">
+                                                                    <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ค่างวดประมาณ</p>
+                                                                    <p className="font-bold text-md leading-tight text-white">
+                                                                        {(() => {
+                                                                            const amount = Number(formData.requestedAmount) || 0;
+                                                                            const duration = Number(formData.requestedDuration) || 12;
+                                                                            if (selectedPlan === 'balloon') {
+                                                                                return calcBalloonMonthly(amount).toLocaleString();
+                                                                            }
+                                                                            return calcMonthly(amount, duration).toLocaleString();
+                                                                        })()}
+                                                                        <span className="text-[10px] font-normal opacity-80 ml-1">บาท</span>
+                                                                    </p>
+                                                                </div>
+                                                                <div className="px-1 text-center border-l border-white/10">
                                                                     <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ระยะเวลา</p>
-                                                                    <p className="font-bold text-base leading-tight">{formData.requestedDuration} <span className="text-[10px] font-normal opacity-75">เดือน</span></p>
+                                                                    <p className="font-bold text-md leading-tight text-white">{formData.requestedDuration} <span className="text-[10px] font-normal opacity-80">เดือน</span></p>
                                                                 </div>
-                                                                <div className="px-1 text-center border-x border-white/10">
-                                                                    <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ผ่อนต่อเดือน</p>
-                                                                    <p className="font-bold text-base leading-tight">
-                                                                        {calcMonthly(maxLoan, formData.requestedDuration || 12).toLocaleString()}
-                                                                        <span className="text-[10px] font-normal opacity-75 ml-1">บาท</span>
-                                                                    </p>
-                                                                </div>
-                                                                <div className="pl-1 text-right">
-                                                                    <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ดอกเบี้ยคงที่</p>
-                                                                    <p className="font-bold text-base leading-tight">23.99% <span className="text-[10px] font-normal opacity-75">ต่อปี</span></p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Payment Method Details */}
-                                                        <div className="p-6 bg-white">
-                                                            <div className="flex items-center gap-3 mb-4">
-                                                                <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors bg-blue-50">
-                                                                    <PiggyBank className="w-5 h-5 text-blue-600" />
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-bold text-lg text-gray-800">ชำระแบบผ่อนรายเดือน</h4>
-                                                                    <p className="text-xs text-gray-500">ผ่อนเท่ากันทุกงวด นานสูงสุด 60 เดือน</p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="rounded-xl p-4 border border-border-strong">
-                                                                <p className="text-xs font-medium text-gray-500 mb-3">ค่างวดที่แนะนำ (Estimated Installment)</p>
-                                                                <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col items-center">
-                                                                    <div className="text-xs text-blue-600 mb-1">ระยะเวลา {formData.requestedDuration} เดือน</div>
-                                                                    <div className="text-3xl font-black text-chaiyo-blue tracking-tight">
-                                                                        {calcMonthly(maxLoan, formData.requestedDuration).toLocaleString()}
-                                                                        <span className="text-[10px] font-bold text-gray-500 ml-2">บาท/เดือน</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Bundle Deal Inside Monthly Card */}
-                                                            <div className="mt-4 bg-gray-50 border border-border-strong rounded-xl p-4 relative overflow-hidden">
-
-                                                                <div className="flex items-start gap-4 relative z-10">
-                                                                    <div className="shrink-0">
-                                                                        <img
-                                                                            src="/images/chaiyo-card.svg"
-                                                                            alt="Chaiyo Card"
-                                                                            className="w-28 h-auto rounded-lg"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="flex-1">
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <h5 className="font-bold text-gray-800 text-sm">รับฟรี! บัตรเงินไชโย</h5>
-                                                                            <span className="bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                                                                                <Gift className="w-2.5 h-2.5" /> Bundle
-                                                                            </span>
-                                                                        </div>
-                                                                        <p className="text-xs text-gray-600 leading-relaxed">
-                                                                            วงเงินหมุนเวียนพร้อมใช้ จ่ายเงินต้นไปแล้วเท่าไร กดใช้เพิ่มได้เท่านั้น ไม่มีค่าธรรมเนียม
+                                                                <div className="pl-1 text-right border-l border-white/10">
+                                                                    <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ดอกเบี้ย</p>
+                                                                    <div className="flex items-center justify-end gap-1">
+                                                                        <p className={cn("font-bold text-md leading-tight whitespace-nowrap text-white")}>
+                                                                            {product.interestRate}
                                                                         </p>
                                                                     </div>
                                                                 </div>
                                                             </div>
-
-                                                            {/* Bundle Deal: Free Insurance */}
-                                                            <div className="mt-3 bg-gray-50 border border-border-strong rounded-xl p-4 relative overflow-hidden">
-
-                                                                <div className="flex items-start gap-4 relative z-10">
-                                                                    <div className="shrink-0">
-                                                                        <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                                                                            <ShieldCheck className="w-7 h-7 text-blue-600" />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex-1">
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <h5 className="font-bold text-gray-800 text-sm">ฟรี! ประกันวงเงินสินเชื่อ</h5>
-                                                                            <span className="bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                                                                                <Gift className="w-2.5 h-2.5" /> Special
-                                                                            </span>
-                                                                        </div>
-                                                                        <p className="text-xs text-gray-600 leading-relaxed">
-                                                                            รับความคุ้มครองทันที คุ้มครองวงเงินสินเชื่อ อุ่นใจตลอดสัญญา ไม่มีค่าใช้จ่ายเพิ่มเติม
-                                                                        </p>
+                                                        </div>
+                                                        <div className="p-6 bg-white flex-1 flex flex-col">
+                                                            {selectedPlan === 'balloon' && (
+                                                                <div className="bg-blue-50/50 py-3 px-4 rounded-xl border border-blue-100/50 flex flex-col items-center mb-6">
+                                                                    <div className="text-[10px] font-bold text-chaiyo-blue mb-0.5 uppercase tracking-wider">เงินต้นคงเหลือชำระงวดสุดท้าย</div>
+                                                                    <div className="text-2xl font-black text-chaiyo-blue tracking-tight leading-none">
+                                                                        {Number(formData.requestedAmount || 0).toLocaleString()}
+                                                                        <span className="text-[10px] font-bold text-gray-400 ml-1.5 uppercase">บาท</span>
                                                                     </div>
                                                                 </div>
-                                                            </div>
+                                                            )}
 
-                                                            {/* Action Buttons for Monthly Plan */}
-                                                            <div className="mt-6 grid grid-cols-2 gap-3">
-                                                                <Button
-                                                                    size="xl"
-                                                                    onClick={handleCreateApplication}
-                                                                    className="w-full font-bold"
-                                                                >
-                                                                    ดำเนินการต่อ
-                                                                </Button>
-                                                                <Button
-                                                                    size="xl"
-                                                                    onClick={handlePrint}
-                                                                    variant="outline"
-                                                                    className="w-full font-bold"
-                                                                >
-                                                                    <Printer className="w-4 h-4" /> พิมพ์ Salesheets
-                                                                </Button>
-                                                            </div>
-                                                            <div className="mt-4 text-xs text-gray-400 space-y-1 text-center">
-                                                                <p>1) กู้เท่าที่จำเป็นและชำระคืนไหว</p>
-                                                                <p>2) หากเลือกระยะเวลาในการผ่อนนาน จะทำให้เสียดอกเบี้ยรวมทั้งสัญญาเพิ่มขึ้น</p>
+                                                            <ul className="space-y-3 flex-1">
+                                                                {[...product.features]
+                                                                    .filter(feature => feature.includes('บัตรเงินไชโย') || feature.includes('ประกันคุ้มครองวงเงินสินเชื่อ')) // Only show these
+                                                                    .map((feature, i) => {
+                                                                        const isCard = feature.includes('บัตรเงินไชโย');
+                                                                        const isInsurance = feature.includes('ประกันคุ้มครองวงเงินสินเชื่อ');
+                                                                        return (
+                                                                            <li key={i} className={cn(
+                                                                                "text-sm flex items-start gap-3 p-3 rounded-xl transition-all border",
+                                                                                isCard ? "bg-amber-50/50 border-amber-100" :
+                                                                                    isInsurance ? "bg-blue-50/50 border-blue-100" :
+                                                                                        "bg-emerald-50/50 border-emerald-100"
+                                                                            )}>
+                                                                                <div className={cn(
+                                                                                    "mt-0.5 rounded-full p-1 shrink-0",
+                                                                                    isCard ? "bg-amber-100" :
+                                                                                        isInsurance ? "bg-blue-100" :
+                                                                                            "bg-emerald-100"
+                                                                                )}>
+                                                                                    {isCard ? (
+                                                                                        <Gift className="w-4 h-4 text-amber-600" strokeWidth={2.5} />
+                                                                                    ) : isInsurance ? (
+                                                                                        <ShieldCheck className="w-4 h-4 text-blue-600" strokeWidth={2.5} />
+                                                                                    ) : (
+                                                                                        <Check className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex-1">
+                                                                                    <span className={cn(
+                                                                                        "leading-snug font-bold text-sm",
+                                                                                        isCard ? "text-amber-900" :
+                                                                                            isInsurance ? "text-blue-900" :
+                                                                                                "text-emerald-900"
+                                                                                    )}>
+                                                                                        {feature.includes('บัตรเงินไชโย') ? 'ฟรี! บัตรเงินไชโย' : 'ฟรี! ประกันคุ้มครองวงเงินสินเชื่อ'}
+                                                                                    </span>
+                                                                                    <p className="text-xs text-gray-500 mt-0.5 font-normal leading-relaxed">
+                                                                                        {feature.includes('บัตรเงินไชโย')
+                                                                                            ? 'วงเงินหมุนเวียนพร้อมใช้ จ่ายเงินต้นไปแล้วเท่าไร กดใช้เพิ่มได้เท่านั้น ไม่มีค่าธรรมเนียม'
+                                                                                            : 'รับความคุ้มครองทันที คุ้มครองวงเงินสินเชื่อ อุ่นใจตลอดสัญญา ไม่มีค่าใช้จ่ายเพิ่มเติม'
+                                                                                        }
+                                                                                    </p>
+                                                                                </div>
+                                                                                {isCard && (
+                                                                                    <div className="shrink-0 ml-2">
+                                                                                        <img
+                                                                                            src="/images/chaiyo-card.svg"
+                                                                                            alt="Chaiyo Card"
+                                                                                            className="w-16 h-auto drop-shadow-sm rounded"
+                                                                                        />
+                                                                                    </div>
+                                                                                )}
+                                                                            </li>
+                                                                        );
+                                                                    })}
+                                                            </ul>
+                                                            <div className="mt-4 grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+                                                                <Button size="lg" onClick={handleCreateApplication} className="w-full font-bold bg-chaiyo-blue text-white hover:bg-blue-800 rounded-xl h-12 shadow-sm">เลือก</Button>
+                                                                <Button size="lg" variant="outline" onClick={handlePrint} className="w-full font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2 rounded-xl h-12"> <Eye className="w-4 h-4" /> ดู Salesheet</Button>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </TabsContent>
-
-                                                <TabsContent value="balloon" className="mt-0 animate-in fade-in zoom-in-95 duration-300">
-                                                    {/* Option 2: Balloon Payment */}
-                                                    <div className="bg-white rounded-3xl overflow-hidden border border-border-strong relative group w-full">
-                                                        {/* Header - Product & Key Figures (Amber Variant) */}
-                                                        <div className="p-6 text-gray-900 border-b border-gray-200 relative overflow-hidden transition-colors bg-gray-50">
-                                                            <div className="flex justify-between items-start relative z-10">
-                                                                <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{loanProduct.tagline}</p>
-                                                                        <div className="px-2 py-0.5 rounded-full bg-gray-200 text-[10px] font-bold border border-gray-300">
-                                                                            {selectedProduct?.label}
-                                                                        </div>
-                                                                    </div>
-                                                                    <h3 className="text-2xl font-bold">โปะงวดท้าย (One-Time)</h3>
-                                                                </div>
-
-                                                                <div className="text-right bg-white/50 backdrop-blur-md rounded-2xl p-3 border border-gray-200 shadow-sm -mt-1 -mr-1">
-                                                                    <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">วงเงินแนะนำ</p>
-                                                                    <div className="flex items-baseline justify-end gap-1">
-                                                                        <span className="text-2xl font-black text-chaiyo-blue leading-none">
-                                                                            {maxLoan.toLocaleString()}
-                                                                        </span>
-                                                                        <span className="text-[10px] font-bold text-gray-400">บาท</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Key Stats Bar */}
-                                                            <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-gray-200">
-                                                                <div className="pr-1 text-left">
-                                                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">ระยะเวลา</p>
-                                                                    <p className="font-bold text-base leading-tight text-gray-900">{formData.requestedDuration} <span className="text-[10px] font-normal opacity-75 text-gray-500">เดือน</span></p>
-                                                                </div>
-                                                                <div className="px-1 text-center border-x border-gray-200">
-                                                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">ผ่อนต่อเดือน</p>
-                                                                    <p className="font-bold text-base leading-tight text-gray-900">
-                                                                        {calcBalloonMonthly(maxLoan).toLocaleString()}
-                                                                        <span className="text-[10px] font-normal opacity-75 text-gray-500 ml-1">บาท</span>
-                                                                    </p>
-                                                                </div>
-                                                                <div className="pl-1 text-right">
-                                                                    <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">ดอกเบี้ยคงที่</p>
-                                                                    <p className="font-bold text-base leading-tight text-gray-900">23.99% <span className="text-[10px] font-normal opacity-75 text-gray-500">ต่อปี</span></p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Payment Method Details */}
-                                                        <div className="p-6 bg-white">
-                                                            <div className="flex items-center gap-3 mb-4">
-                                                                <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors bg-amber-50">
-                                                                    <Star className="w-5 h-5 text-amber-600" />
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-bold text-lg text-gray-800">โปะงวดท้าย (One-Time)</h4>
-                                                                    <p className="text-xs text-gray-500">ผ่อนสบาย จ่ายเฉพาะดอกเบี้ย แล้วปิดงวดยอดสุดท้าย</p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 space-y-3">
-                                                                <div className="flex justify-between items-center text-sm p-2 bg-white rounded-lg border border-amber-100">
-                                                                    <span className="text-gray-600">ผ่อนชำระต่อเดือน (เฉพาะดอกเบี้ย)</span>
-                                                                    <span className="font-bold text-amber-700 text-lg">{calcBalloonMonthly(maxLoan).toLocaleString()} บาท</span>
-                                                                </div>
-                                                                <div className="flex justify-between items-center text-sm px-2">
-                                                                    <span className="text-gray-500 text-xs">เงินต้นคงเหลือ (ชำระงวดสุดท้าย)</span>
-                                                                    <span className="font-semibold text-gray-700">{maxLoan.toLocaleString()} บาท</span>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Action Buttons for Balloon Plan */}
-                                                            <div className="mt-6 grid grid-cols-2 gap-3">
-                                                                <Button
-                                                                    size="xl"
-                                                                    onClick={handleCreateApplication}
-                                                                    className="w-full bg-amber-500 hover:bg-amber-600 font-bold"
-                                                                >
-                                                                    ดำเนินการต่อ
-                                                                </Button>
-                                                                <Button
-                                                                    size="xl"
-                                                                    onClick={handlePrint}
-                                                                    variant="outline"
-                                                                    className="w-full font-bold border-amber-500/20 text-amber-600 hover:bg-amber-50 hover:border-amber-500/40"
-                                                                >
-                                                                    <Printer className="w-4 h-4" /> พิมพ์ Salesheets
-                                                                </Button>
-                                                            </div>
-                                                            <div className="mt-4 text-xs text-gray-400 space-y-1 text-center">
-                                                                <p>1) กู้เท่าที่จำเป็นและชำระคืนไหว</p>
-                                                                <p>2) หากเลือกระยะเวลาในการผ่อนนาน จะทำให้เสียดอกเบี้ยรวมทั้งสัญญาเพิ่มขึ้น</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </TabsContent>
-                                            </div>
-
-
-                                            {/* Column 2: Document Checklist (Hidden for now) */}
-                                            {/* <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm animate-in fade-in duration-500 h-full"> */}
-                                            {/* <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm animate-in fade-in duration-500 h-full">
-                                    <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
-                                        <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
-                                            <FileText className="w-5 h-5 text-emerald-600" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-800">{documentChecklist.label}</h3>
-                                            <p className="text-xs text-gray-500">เอกสารที่ต้องใช้สำหรับ: <span className="font-semibold text-chaiyo-blue">{selectedPlan === 'monthly' ? 'แบบผ่อนรายเดือน' : 'แบบโปะงวดท้าย (One-Time)'}</span></p>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
-                                    {typeof documentChecklist.items[0] === 'string' ? (
-                                        <div className="grid grid-cols-1 gap-x-6 gap-y-2">
-                                            {(documentChecklist.items as string[]).map((item, idx) => (
-                                                <div key={idx} className="flex items-start gap-3 py-2 px-3">
-                                                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-chaiyo-blue shrink-0" />
-                                                    <span className="text-sm text-gray-700 leading-snug whitespace-pre-line">{item}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-6">
-                                            {(documentChecklist.items as SectionGroup[]).map((section, idx) => (
-                                                <div key={idx}>
-                                                    <h4 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                                                        <div className="w-1.5 h-4 bg-chaiyo-blue rounded-full"></div>
-                                                        {section.title}
-                                                    </h4>
-                                                    <div className="grid grid-cols-1 gap-x-6 gap-y-2 pl-2">
-                                                        {section.items.map((subItem, subIdx) => (
-                                                            <div key={subIdx} className="flex items-start gap-2.5 py-1">
-                                                                <div className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-                                                                <span className="text-sm text-gray-600 leading-snug">{subItem}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    <div className="pt-3 border-t border-gray-200 mt-auto">
-                                        <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                                            <Sparkles className="w-3.5 h-3.5" />
-                                            เอกสารที่แนะนำนี้สร้างขึ้นจากข้อมูลที่ได้รับโดยอัตโนมัติ สามารถปรับเปลี่ยนได้ตามเงื่อนไขของสาขา
-                                        </p>
-                                    </div>
-                                </div> */}
-                                        </div>
-                                    </Tabs>
-                                )}
+                                </div>
 
                                 {/* Actions Bar */}
-                                <div className="bg-white p-4 rounded-xl border border-border-strong flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div className="bg-white p-6 rounded-2xl border border-border-strong flex flex-col md:flex-row justify-between items-center gap-4 mt-8">
                                     <Button
                                         variant="outline"
                                         size="xl"
                                         onClick={prevStep}
-                                        className="w-full md:w-auto px-6 font-bold"
+                                        className="w-full md:w-auto px-8 font-bold rounded-xl border"
                                     >
                                         <ChevronLeft className="w-4 h-4 mr-2" />
-                                        แก้ไขข้อมูล
-                                    </Button>
-                                    <Button
-                                        size="xl"
-                                        onClick={() => setCurrentStep(3)}
-                                        className="w-full md:w-auto px-10 font-bold bg-chaiyo-blue hover:bg-chaiyo-blue/90"
-                                    >
-                                        ดำเนินการต่อ <ChevronRight className="w-4 h-4 ml-2" />
+                                        ย้อนกลับ
                                     </Button>
                                 </div>
                             </div>
                         );
+
                     })()
                 }
 
@@ -3191,8 +3107,31 @@ function PreQuestionPageContent() {
                         }
                         return (
                             <div className="max-w-6xl mx-auto py-8 animate-in slide-in-from-right-8 duration-300">
-                                <Card className="border border-border-strong shadow-none rounded-[2rem] bg-white overflow-hidden">
+                                <Card className="border border-border-strong shadow-none rounded-2xl bg-white overflow-hidden">
                                     <CardContent className="p-8 space-y-6">
+                                        {/* Staff Instruction Banner */}
+                                        {showStaffBanner && (
+                                            <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-center justify-between gap-4 shadow-sm relative">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
+                                                        <User className="w-6 h-6 text-orange-600" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-orange-900 font-bold text-lg mb-0.5">พนักงาน : กรุณายื่นอุปกรณ์ให้ลูกค้า</h3>
+                                                        <p className="text-orange-700 text-sm">
+                                                            เพื่อให้ลูกค้าอ่านรายละเอียดและกดยืนยันด้วยตนเอง
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setShowStaffBanner(false)}
+                                                    className="p-1 hover:bg-orange-100 rounded-lg transition-colors text-orange-500"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
                                             <div className="w-12 h-12 rounded-xl bg-chaiyo-blue/10 flex items-center justify-center">
                                                 <FileText className="w-6 h-6 text-chaiyo-blue" />

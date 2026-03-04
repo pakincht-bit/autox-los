@@ -77,7 +77,6 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
     const [stream, setStream] = useState<MediaStream | null>(null);
 
     // --- DATE LOGIC ---
-    const [useYearOnly, setUseYearOnly] = useState(false);
     const [isLifetime, setIsLifetime] = useState(false);
     const [dateDisplay, setDateDisplay] = useState("");
     // --- DATE DISPLAY STATES ---
@@ -86,6 +85,21 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
     const formatToThaiBE = (dateString: string | undefined) => {
         if (!dateString) return "";
+
+        // Support partial dates (YYYY-MM-DD where MM or DD can be 00)
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+            const y = parseInt(parts[0]);
+            const m = parts[1];
+            const d = parts[2];
+            if (!isNaN(y)) {
+                const thaiYear = y + 543;
+                const displayDay = d === '00' ? '--' : d;
+                const displayMonth = m === '00' ? '--' : m;
+                return `${displayDay}/${displayMonth}/${thaiYear}`;
+            }
+        }
+
         try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) return "";
@@ -98,19 +112,11 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
     useEffect(() => {
         if (formData.birthDate) {
-            const date = new Date(formData.birthDate);
-            if (!isNaN(date.getTime())) {
-                const thaiYear = date.getFullYear() + 543;
-                if (useYearOnly) {
-                    setDateDisplay(`${thaiYear}`);
-                } else {
-                    setDateDisplay(`${format(date, "dd/MM")}/${thaiYear}`);
-                }
-            }
+            setDateDisplay(formatToThaiBE(formData.birthDate));
         } else {
             setDateDisplay("");
         }
-    }, [formData.birthDate, useYearOnly]);
+    }, [formData.birthDate]);
 
     useEffect(() => {
         setIssueDateDisplay(formatToThaiBE(formData.issueDate));
@@ -121,56 +127,42 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
     }, [formData.expiryDate]);
 
     const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: string, setDisplay: (val: string) => void) => {
-        let val = e.target.value.replace(/\D/g, ''); // Keep only numbers
-
-        if (field === 'birthDate' && useYearOnly) {
-            if (val.length > 4) val = val.slice(0, 4);
-            setDisplay(val);
-            if (val.length === 4) {
-                let y = parseInt(val);
-                let realYearAD = y > 2400 ? y - 543 : y;
-                handleFormChange(field, `${realYearAD}-01-01`);
-            }
-            return;
-        }
+        let rawVal = e.target.value;
+        let val = rawVal.replace(/[^0-9-]/g, ''); // Keep numbers and -
 
         if (val.length > 8) val = val.slice(0, 8);
 
-        // Ensure day (DD) is not over 31
-        if (val.length >= 2) {
-            const d = parseInt(val.slice(0, 2), 10);
-            if (d > 31) val = "31" + val.slice(2);
+        let formattedVal = "";
+        if (val.length > 0) {
+            formattedVal = val.slice(0, 2);
+            if (val.length > 2) {
+                formattedVal += '/' + val.slice(2, 4);
+                if (val.length > 4) {
+                    formattedVal += '/' + val.slice(4, 8);
+                }
+            }
         }
-
-        // Ensure month (MM) is not over 12
-        if (val.length >= 4) {
-            const m = parseInt(val.slice(2, 4), 10);
-            if (m > 12) val = val.slice(0, 2) + "12" + val.slice(4);
-        }
-
-        let formattedVal = val;
-        if (val.length >= 3) formattedVal = val.slice(0, 2) + '/' + val.slice(2);
-        if (val.length >= 5) formattedVal = formattedVal.slice(0, 5) + '/' + formattedVal.slice(5);
 
         setDisplay(formattedVal);
 
         if (val.length === 8) {
-            const d = parseInt(val.slice(0, 2), 10);
-            const m = parseInt(val.slice(2, 4), 10);
-            let y = parseInt(val.slice(4, 8), 10);
+            const dStr = val.slice(0, 2);
+            const mStr = val.slice(2, 4);
+            let yStr = val.slice(4, 8);
+
+            const d = dStr === '--' ? '00' : dStr;
+            const m = mStr === '--' ? '00' : mStr;
+            let y = parseInt(yStr, 10);
 
             // Auto-convert A.D. to B.E. (if year < 2400, assume it's A.D. and add 543)
             if (y < 2400) {
                 const convertedY = y + 543;
                 y = convertedY;
-                setDisplay(`${val.slice(0, 2)}/${val.slice(2, 4)}/${convertedY}`);
+                setDisplay(`${dStr}/${mStr}/${convertedY}`);
             }
 
-            const realYearAD = y > 2400 ? y - 543 : y;
-            const dateObj = new Date(realYearAD, m - 1, d);
-            if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
-                handleFormChange(field, format(dateObj, "yyyy-MM-dd"));
-            }
+            const realYearAD = y - 543;
+            handleFormChange(field, `${realYearAD}-${m}-${d}`);
         }
     };
 
@@ -180,11 +172,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
         }
     };
 
-    const toggleYearOnly = (checked: boolean) => {
-        setUseYearOnly(checked);
-        setDateDisplay("");
-        handleFormChange('birthDate', ""); // Clear date when switching modes to avoid confusion
-    };
+
 
     const toggleLifetime = (checked: boolean) => {
         setIsLifetime(checked);
@@ -382,7 +370,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
         // Validation: All inputs are mandatory
         const requiredFields = [
-            { key: 'idNumber', label: 'เลขบัตรประจำตัวประชาชน' },
+            { key: 'idNumber', label: formData.cardType === 'PINK_CARD' ? 'เลขประจำตัว' : 'เลขบัตรประจำตัวประชาชน' },
             ...(dataToVerify.cardType !== 'PINK_CARD' ? [{ key: 'laserId', label: 'หมายเลขหลังบัตร (Laser ID)' }] : []),
             { key: 'firstName', label: 'ชื่อ (Thai)' },
             { key: 'lastName', label: 'นามสกุล (Thai)' },
@@ -739,7 +727,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
                                     {verificationMethod === 'MANUAL' && (
                                         <div className="space-y-4">
-                                            <Card className="border-2 border-dashed bg-white shadow-none border-orange-200 bg-orange-50/20">
+                                            <Card className="border-none">
                                                 <CardContent className="p-6">
                                                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                                                         ถ่ายรูปบัตร
@@ -910,7 +898,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                                                        เลขบัตรประจำตัวประชาชน <span className="text-red-500">*</span>
+                                                        {formData.cardType === 'PINK_CARD' ? "เลขประจำตัว" : "เลขบัตรประจำตัวประชาชน"} <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
                                                         value={formData.idNumber || ""}
@@ -993,16 +981,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                         <Label className="text-xs text-muted-foreground font-bold">
                                                             วันเดือนปีเกิด <span className="text-red-500">*</span>
                                                         </Label>
-                                                        {verificationMethod !== 'DIPCHIP' && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Checkbox
-                                                                    id="yearOnly"
-                                                                    checked={useYearOnly}
-                                                                    onCheckedChange={(checked) => toggleYearOnly(!!checked)}
-                                                                />
-                                                                <Label htmlFor="yearOnly" className="text-[10px] font-bold text-muted-foreground cursor-pointer leading-none">ทราบเฉพาะปีเกิด</Label>
-                                                            </div>
-                                                        )}
+
                                                     </div>
                                                     <Input
                                                         value={dateDisplay || ""}
@@ -1012,7 +991,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                                             "rounded-xl",
                                                             verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white border focus:border-chaiyo-blue"
                                                         )}
-                                                        placeholder={useYearOnly ? "YYYY" : "DD/MM/YYYY"}
+                                                        placeholder="DD/MM/YYYY"
                                                     />
                                                 </div>
 

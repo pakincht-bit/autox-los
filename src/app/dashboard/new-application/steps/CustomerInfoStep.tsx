@@ -315,75 +315,60 @@ const MARITAL_STATUSES = [
 
 export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProps) {
     // --- Date State & Logic ---
-    const [useYearOnly, setUseYearOnly] = useState(false);
     const [dateDisplay, setDateDisplay] = useState("");
 
     useEffect(() => {
         if (formData.birthDate) {
-            const date = new Date(formData.birthDate);
-            if (!isNaN(date.getTime())) {
-                const year = date.getFullYear();
-                const thaiYear = year + 543;
-
-                if (useYearOnly) {
-                    setDateDisplay(`${thaiYear}`);
-                } else {
-                    const day = format(date, "dd");
-                    const month = format(date, "MM");
-                    setDateDisplay(`${day}/${month}/${thaiYear}`);
+            const dateStr = formData.birthDate;
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0]);
+                const m = parts[1];
+                const d = parts[2];
+                if (!isNaN(y)) {
+                    const thaiYear = y + 543;
+                    const displayDay = d === '00' ? '--' : d;
+                    const displayMonth = m === '00' ? '--' : m;
+                    setDateDisplay(`${displayDay}/${displayMonth}/${thaiYear}`);
                 }
             }
         } else {
             setDateDisplay("");
         }
-    }, [formData.birthDate, useYearOnly]);
+    }, [formData.birthDate]);
 
     const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/\D/g, ''); // Keep only numbers
+        let val = e.target.value.replace(/[^0-9-]/g, ''); // Keep numbers and -
+        if (val.length > 8) val = val.slice(0, 8);
 
-        if (useYearOnly) {
-            if (val.length > 4) val = val.slice(0, 4);
-            setDateDisplay(val);
-
-            if (val.length === 4) {
-                let y = parseInt(val);
-                let realYearAD = y;
-                if (y > 2400) realYearAD = y - 543;
-                handleChange('birthDate', `${realYearAD}-01-01`);
-            }
-        } else {
-            if (val.length > 8) val = val.slice(0, 8);
-            let formattedVal = val;
-            if (val.length >= 3) formattedVal = val.slice(0, 2) + '/' + val.slice(2);
-            if (val.length >= 5) formattedVal = formattedVal.slice(0, 5) + '/' + formattedVal.slice(5);
-            setDateDisplay(formattedVal);
-
-            if (val.length === 8) {
-                const d = parseInt(val.slice(0, 2));
-                const m = parseInt(val.slice(2, 4));
-                const y = parseInt(val.slice(4, 8));
-                let realYearAD = y;
-                if (y > 2400) realYearAD = y - 543;
-
-                const dateObj = new Date(realYearAD, m - 1, d);
-                if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
-                    handleChange('birthDate', format(dateObj, "yyyy-MM-dd"));
+        let formattedVal = "";
+        if (val.length > 0) {
+            formattedVal = val.slice(0, 2);
+            if (val.length > 2) {
+                formattedVal += '/' + val.slice(2, 4);
+                if (val.length > 4) {
+                    formattedVal += '/' + val.slice(4, 8);
                 }
             }
         }
-    };
+        setDateDisplay(formattedVal);
 
-    const handleDateBlur = () => {
-        if (formData.birthDate) {
-            const date = new Date(formData.birthDate);
-            const thaiYear = date.getFullYear() + 543;
-            if (useYearOnly) {
-                setDateDisplay(`${thaiYear}`);
-            } else {
-                setDateDisplay(`${format(date, "dd/MM")}/${thaiYear}`);
-            }
+        if (val.length === 8) {
+            const dStr = val.slice(0, 2);
+            const mStr = val.slice(2, 4);
+            const yStr = val.slice(4, 8);
+
+            const d = dStr === '--' ? '00' : dStr;
+            const m = mStr === '--' ? '00' : mStr;
+            let y = parseInt(yStr);
+            let realYearAD = y;
+            if (y > 2400) realYearAD = y - 543;
+
+            handleChange('birthDate', `${realYearAD}-${m}-${d}`);
         }
     };
+
+
 
     // --- OTP State & Logic ---
     const [showOtpInput, setShowOtpInput] = useState(false);
@@ -562,137 +547,121 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
     };
 
     // --- Co-Borrower Date Logic ---
-    const [coBorrowerUseYearOnly, setCoBorrowerUseYearOnly] = useState(false);
+
     const [coBorrowerDateDisplay, setCoBorrowerDateDisplay] = useState("");
 
     useEffect(() => {
         if (newCoBorrower.birthDate) {
-            const date = new Date(newCoBorrower.birthDate);
-            if (!isNaN(date.getTime())) {
-                const year = date.getFullYear();
-                const thaiYear = year + 543;
-                if (coBorrowerUseYearOnly) {
-                    setCoBorrowerDateDisplay(`${thaiYear}`);
-                } else {
-                    const day = format(date, "dd");
-                    const month = format(date, "MM");
-                    setCoBorrowerDateDisplay(`${day}/${month}/${thaiYear}`);
+            const dateStr = newCoBorrower.birthDate;
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0]);
+                const m = parts[1];
+                const d = parts[2];
+                if (!isNaN(y)) {
+                    const thaiYear = y + 543;
+                    const displayDay = d === '00' ? '--' : d;
+                    const displayMonth = m === '00' ? '--' : m;
+                    setCoBorrowerDateDisplay(`${displayDay}/${displayMonth}/${thaiYear}`);
                 }
             }
         } else {
             setCoBorrowerDateDisplay("");
         }
-    }, [newCoBorrower.birthDate, coBorrowerUseYearOnly]);
+    }, [newCoBorrower.birthDate]);
 
     const handleCoBorrowerDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (coBorrowerUseYearOnly) {
-            if (val.length > 4) val = val.slice(0, 4);
-            setCoBorrowerDateDisplay(val);
-            if (val.length === 4) {
-                let y = parseInt(val);
-                let realYearAD = y;
-                if (y > 2400) realYearAD = y - 543;
-                setNewCoBorrower((prev: any) => ({ ...prev, birthDate: `${realYearAD}-01-01` }));
-            }
-        } else {
-            if (val.length > 8) val = val.slice(0, 8);
-            let formattedVal = val;
-            if (val.length >= 3) formattedVal = val.slice(0, 2) + '/' + val.slice(2);
-            if (val.length >= 5) formattedVal = formattedVal.slice(0, 5) + '/' + formattedVal.slice(5);
-            setCoBorrowerDateDisplay(formattedVal);
+        let val = e.target.value.replace(/[^0-9-]/g, '');
+        if (val.length > 8) val = val.slice(0, 8);
 
-            if (val.length === 8) {
-                const d = parseInt(val.slice(0, 2));
-                const m = parseInt(val.slice(2, 4));
-                const y = parseInt(val.slice(4, 8));
-                let realYearAD = y;
-                if (y > 2400) realYearAD = y - 543;
-                const dateObj = new Date(realYearAD, m - 1, d);
-                if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
-                    setNewCoBorrower((prev: any) => ({ ...prev, birthDate: format(dateObj, "yyyy-MM-dd") }));
+        let formattedVal = "";
+        if (val.length > 0) {
+            formattedVal = val.slice(0, 2);
+            if (val.length > 2) {
+                formattedVal += '/' + val.slice(2, 4);
+                if (val.length > 4) {
+                    formattedVal += '/' + val.slice(4, 8);
                 }
             }
+        }
+        setCoBorrowerDateDisplay(formattedVal);
+
+        if (val.length === 8) {
+            const dStr = val.slice(0, 2);
+            const mStr = val.slice(2, 4);
+            const yStr = val.slice(4, 8);
+
+            const d = dStr === '--' ? '00' : dStr;
+            const m = mStr === '--' ? '00' : mStr;
+            let y = parseInt(yStr);
+            let realYearAD = y;
+            if (y > 2400) realYearAD = y - 543;
+
+            setNewCoBorrower((prev: any) => ({ ...prev, birthDate: `${realYearAD}-${m}-${d}` }));
         }
     };
 
     const handleCoBorrowerDateBlur = () => {
-        if (newCoBorrower.birthDate) {
-            const date = new Date(newCoBorrower.birthDate);
-            const thaiYear = date.getFullYear() + 543;
-            if (coBorrowerUseYearOnly) {
-                setCoBorrowerDateDisplay(`${thaiYear}`);
-            } else {
-                setCoBorrowerDateDisplay(`${format(date, "dd/MM")}/${thaiYear}`);
-            }
-        }
+        // Handled by input change and useEffect for display
     };
 
     // --- Guarantor Date Logic ---
-    const [guarantorUseYearOnly, setGuarantorUseYearOnly] = useState(false);
+
     const [guarantorDateDisplay, setGuarantorDateDisplay] = useState("");
 
     useEffect(() => {
         if (newGuarantor.birthDate) {
-            const date = new Date(newGuarantor.birthDate);
-            if (!isNaN(date.getTime())) {
-                const year = date.getFullYear();
-                const thaiYear = year + 543;
-                if (guarantorUseYearOnly) {
-                    setGuarantorDateDisplay(`${thaiYear}`);
-                } else {
-                    const day = format(date, "dd");
-                    const month = format(date, "MM");
-                    setGuarantorDateDisplay(`${day}/${month}/${thaiYear}`);
+            const dateStr = newGuarantor.birthDate;
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0]);
+                const m = parts[1];
+                const d = parts[2];
+                if (!isNaN(y)) {
+                    const thaiYear = y + 543;
+                    const displayDay = d === '00' ? '--' : d;
+                    const displayMonth = m === '00' ? '--' : m;
+                    setGuarantorDateDisplay(`${displayDay}/${displayMonth}/${thaiYear}`);
                 }
             }
         } else {
             setGuarantorDateDisplay("");
         }
-    }, [newGuarantor.birthDate, guarantorUseYearOnly]);
+    }, [newGuarantor.birthDate]);
 
     const handleGuarantorDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (guarantorUseYearOnly) {
-            if (val.length > 4) val = val.slice(0, 4);
-            setGuarantorDateDisplay(val);
-            if (val.length === 4) {
-                let y = parseInt(val);
-                let realYearAD = y;
-                if (y > 2400) realYearAD = y - 543;
-                setNewGuarantor((prev: any) => ({ ...prev, birthDate: `${realYearAD}-01-01` }));
-            }
-        } else {
-            if (val.length > 8) val = val.slice(0, 8);
-            let formattedVal = val;
-            if (val.length >= 3) formattedVal = val.slice(0, 2) + '/' + val.slice(2);
-            if (val.length >= 5) formattedVal = formattedVal.slice(0, 5) + '/' + formattedVal.slice(5);
-            setGuarantorDateDisplay(formattedVal);
+        let val = e.target.value.replace(/[^0-9-]/g, '');
+        if (val.length > 8) val = val.slice(0, 8);
 
-            if (val.length === 8) {
-                const d = parseInt(val.slice(0, 2));
-                const m = parseInt(val.slice(2, 4));
-                const y = parseInt(val.slice(4, 8));
-                let realYearAD = y;
-                if (y > 2400) realYearAD = y - 543;
-                const dateObj = new Date(realYearAD, m - 1, d);
-                if (!isNaN(dateObj.getTime()) && dateObj.getDate() === d) {
-                    setNewGuarantor((prev: any) => ({ ...prev, birthDate: format(dateObj, "yyyy-MM-dd") }));
+        let formattedVal = "";
+        if (val.length > 0) {
+            formattedVal = val.slice(0, 2);
+            if (val.length > 2) {
+                formattedVal += '/' + val.slice(2, 4);
+                if (val.length > 4) {
+                    formattedVal += '/' + val.slice(4, 8);
                 }
             }
+        }
+        setGuarantorDateDisplay(formattedVal);
+
+        if (val.length === 8) {
+            const dStr = val.slice(0, 2);
+            const mStr = val.slice(2, 4);
+            const yStr = val.slice(4, 8);
+
+            const d = dStr === '--' ? '00' : dStr;
+            const m = mStr === '--' ? '00' : mStr;
+            let y = parseInt(yStr);
+            let realYearAD = y;
+            if (y > 2400) realYearAD = y - 543;
+
+            setNewGuarantor((prev: any) => ({ ...prev, birthDate: `${realYearAD}-${m}-${d}` }));
         }
     };
 
     const handleGuarantorDateBlur = () => {
-        if (newGuarantor.birthDate) {
-            const date = new Date(newGuarantor.birthDate);
-            const thaiYear = date.getFullYear() + 543;
-            if (guarantorUseYearOnly) {
-                setGuarantorDateDisplay(`${thaiYear}`);
-            } else {
-                setGuarantorDateDisplay(`${format(date, "dd/MM")}/${thaiYear}`);
-            }
-        }
+        // Handled by input change and useEffect for display
     };
 
     // Helper: Update main form data
@@ -734,7 +703,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                 // For now, let's just display as full date and let user change if needed, 
                 // or infer if it was originally year only if we had that flag.
                 // Let's assume full date for editing for now to be safe.
-                setCoBorrowerUseYearOnly(false);
+
                 const day = format(date, "dd");
                 const month = format(date, "MM");
                 setCoBorrowerDateDisplay(`${day}/${month}/${thaiYear}`);
@@ -843,7 +812,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
             if (!isNaN(date.getTime())) {
                 const year = date.getFullYear();
                 const thaiYear = year + 543;
-                setGuarantorUseYearOnly(false);
+
                 const day = format(date, "dd");
                 const month = format(date, "MM");
                 setGuarantorDateDisplay(`${day}/${month}/${thaiYear}`);
@@ -1041,20 +1010,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                 </div>
 
                                 <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <Label>วันเดือนปีเกิด <span className="text-red-500">*</span></Label>
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id="yearOnly"
-                                                checked={useYearOnly}
-                                                onCheckedChange={(checked) => setUseYearOnly(checked as boolean)}
-                                                disabled
-                                            />
-                                            <Label htmlFor="yearOnly" className="text-xs text-muted-foreground font-normal cursor-pointer">
-                                                ทราบแค่ปีเกิด
-                                            </Label>
-                                        </div>
-                                    </div>
+                                    <Label>วันเดือนปีเกิด <span className="text-red-500">*</span></Label>
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input
@@ -1069,15 +1025,13 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                     <Input
                                         value={(() => {
                                             if (!formData.birthDate) return "";
-                                            const birth = new Date(formData.birthDate);
-                                            if (isNaN(birth.getTime())) return "";
+                                            const parts = formData.birthDate.split('-');
+                                            if (parts.length < 1) return "";
+                                            const y = parseInt(parts[0]);
+                                            if (isNaN(y)) return "";
                                             const today = new Date();
-                                            let age = today.getFullYear() - birth.getFullYear();
-                                            const m = today.getMonth() - birth.getMonth();
-                                            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-                                                age--;
-                                            }
-                                            return age > 0 ? age.toString() : "0";
+                                            let age = today.getFullYear() - y;
+                                            return age >= 0 ? age.toString() : "0";
                                         })()}
                                         disabled
                                         className="bg-gray-50 text-gray-600 h-11"
@@ -1134,7 +1088,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>เลขที่บัตรประจำตัว <span className="text-red-500">*</span></Label>
+                                    <Label>{formData.cardType === 'PINK_CARD' ? "เลขประจำตัว" : "เลขที่บัตรประจำตัว"} <span className="text-red-500">*</span></Label>
                                     <Input
                                         value={formData.idNumber}
                                         disabled
@@ -2119,7 +2073,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                     <TableHeader className="bg-gray-50">
                                         <TableRow className="hover:bg-gray-50">
                                             <TableHead className="w-[35%] py-3">ชื่อ-นามสกุล</TableHead>
-                                            <TableHead className="w-[30%] py-3">เลขบัตรประชาชน</TableHead>
+                                            <TableHead className="w-[30%] py-3">{formData.cardType === 'PINK_CARD' ? 'เลขประจำตัว' : 'เลขบัตรประชาชน'}</TableHead>
                                             <TableHead className="w-[25%] py-3">ความสัมพันธ์</TableHead>
                                             <TableHead className="w-[10%] py-3"></TableHead>
                                         </TableRow>
@@ -2230,7 +2184,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                                     </Select>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label>เลขบัตรประชาชน</Label>
+                                                    <Label>{formData.cardType === 'PINK_CARD' ? 'เลขประจำตัว' : 'เลขบัตรประชาชน'}</Label>
                                                     <Input
                                                         className="font-mono"
                                                         value={newCoBorrower.idNumber}
@@ -2290,28 +2244,16 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                                 </div>
 
                                                 <div className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label>วันเกิด</Label>
-                                                        <div className="flex items-center space-x-2">
-                                                            <Checkbox
-                                                                id="coBorrowerYearOnly"
-                                                                checked={coBorrowerUseYearOnly}
-                                                                onCheckedChange={(checked) => setCoBorrowerUseYearOnly(checked as boolean)}
-                                                            />
-                                                            <Label htmlFor="coBorrowerYearOnly" className="text-xs text-muted-foreground font-normal cursor-pointer">
-                                                                ทราบแค่ปีเกิด
-                                                            </Label>
-                                                        </div>
-                                                    </div>
+                                                    <Label>วันเกิด</Label>
                                                     <div className="relative">
                                                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                                         <Input
                                                             value={coBorrowerDateDisplay}
                                                             onChange={handleCoBorrowerDateInputChange}
                                                             onBlur={handleCoBorrowerDateBlur}
-                                                            placeholder={coBorrowerUseYearOnly ? "พ.ศ. เกิด (เช่น 2533)" : "วัน/เดือน/ปี (พ.ศ.)"}
+                                                            placeholder="วัน/เดือน/ปี (พ.ศ.)"
                                                             className="pl-9 font-mono"
-                                                            maxLength={coBorrowerUseYearOnly ? 4 : 10}
+                                                            maxLength={10}
                                                         />
                                                     </div>
                                                 </div>
@@ -2532,7 +2474,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                     <TableHeader className="bg-gray-50">
                                         <TableRow className="hover:bg-gray-50">
                                             <TableHead className="w-[35%] py-3">ชื่อ-นามสกุล</TableHead>
-                                            <TableHead className="w-[30%] py-3">เลขบัตรประชาชน</TableHead>
+                                            <TableHead className="w-[30%] py-3">{formData.cardType === 'PINK_CARD' ? 'เลขประจำตัว' : 'เลขบัตรประชาชน'}</TableHead>
                                             <TableHead className="w-[25%] py-3">ความสัมพันธ์</TableHead>
                                             <TableHead className="w-[10%] py-3"></TableHead>
                                         </TableRow>
@@ -2645,7 +2587,7 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                                     </Select>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label>เลขบัตรประชาชน</Label>
+                                                    <Label>{formData.cardType === 'PINK_CARD' ? 'เลขประจำตัว' : 'เลขบัตรประชาชน'}</Label>
                                                     <Input
                                                         className="font-mono"
                                                         value={newGuarantor.idNumber}
@@ -2705,28 +2647,16 @@ export function CustomerInfoStep({ formData, setFormData }: CustomerInfoStepProp
                                                 </div>
 
                                                 <div className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label>วันเกิด</Label>
-                                                        <div className="flex items-center space-x-2">
-                                                            <Checkbox
-                                                                id="guarantorYearOnly"
-                                                                checked={guarantorUseYearOnly}
-                                                                onCheckedChange={(checked) => setGuarantorUseYearOnly(checked as boolean)}
-                                                            />
-                                                            <Label htmlFor="guarantorYearOnly" className="text-xs text-muted-foreground font-normal cursor-pointer">
-                                                                ทราบแค่ปีเกิด
-                                                            </Label>
-                                                        </div>
-                                                    </div>
+                                                    <Label>วันเกิด</Label>
                                                     <div className="relative">
                                                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                                         <Input
                                                             value={guarantorDateDisplay}
                                                             onChange={handleGuarantorDateInputChange}
                                                             onBlur={handleGuarantorDateBlur}
-                                                            placeholder={guarantorUseYearOnly ? "พ.ศ. เกิด (เช่น 2533)" : "วัน/เดือน/ปี (พ.ศ.)"}
+                                                            placeholder="วัน/เดือน/ปี (พ.ศ.)"
                                                             className="pl-9 font-mono"
-                                                            maxLength={guarantorUseYearOnly ? 4 : 10}
+                                                            maxLength={10}
                                                         />
                                                     </div>
                                                 </div>

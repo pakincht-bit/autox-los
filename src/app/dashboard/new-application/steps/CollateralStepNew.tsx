@@ -134,14 +134,14 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
             let fields = ['appraisalPrice', 'brand', 'model', 'year'];
 
             if (formData.collateralType === 'car') {
-                mockData = { ...mockData, brand: 'Toyota', model: 'Camry', year: '2019', subModel: 'HEV Premium' };
+                mockData = { ...mockData, brand: 'Toyota', model: 'Camry', year: '2562', subModel: 'HEV Premium' };
                 fields.push('subModel');
             } else if (formData.collateralType === 'moto') {
-                mockData = { ...mockData, brand: 'Honda', model: 'Wave 125i', year: '2021', appraisalPrice: 35000 };
+                mockData = { ...mockData, brand: 'Honda', model: 'Wave 125i', year: '2564', appraisalPrice: 35000 };
             } else if (formData.collateralType === 'truck') {
-                mockData = { ...mockData, brand: 'Isuzu', model: 'D-Max', year: '2020', appraisalPrice: 500000 };
+                mockData = { ...mockData, brand: 'Isuzu', model: 'D-Max', year: '2563', appraisalPrice: 500000 };
             } else if (formData.collateralType === 'agri') {
-                mockData = { ...mockData, brand: 'Kubota', model: 'L5018', year: '2022', appraisalPrice: 600000 };
+                mockData = { ...mockData, brand: 'Kubota', model: 'L5018', year: '2565', appraisalPrice: 600000 };
             }
 
             setFormData((prev: any) => ({ ...prev, ...mockData }));
