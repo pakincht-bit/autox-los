@@ -188,3 +188,8 @@ export const YEARS = Array.from({ length: 30 }, (_, i) => {
     const year = new Date().getFullYear() + 543 - i;
     return { value: year.toString(), label: year.toString() };
 });
+
+export const YEARS_AD = Array.from({ length: 30 }, (_, i) => {
+    const year = new Date().getFullYear() - i;
+    return { value: year.toString(), label: year.toString() };
+});

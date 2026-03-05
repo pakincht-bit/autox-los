@@ -1,0 +1,80 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/Button";
+import { ChevronLeft } from "lucide-react";
+
+export default function NotFoundPage() {
+    return (
+        <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-6 md:p-12">
+            <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                {/* Left Column: Larger Character */}
+                <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="relative w-full aspect-square md:h-[500px] flex items-center justify-center"
+                >
+                    <motion.div
+                        animate={{
+                            y: [0, -10, 0],
+                        }}
+                        transition={{
+                            duration: 4,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                        }}
+                        className="relative w-full h-full"
+                    >
+                        <Image
+                            src="/character/horse-confusing.png"
+                            alt="Not Found"
+                            fill
+                            className="object-contain"
+                            priority
+                        />
+                    </motion.div>
+                </motion.div>
+
+                {/* Right Column: Text & Actions */}
+                <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+                    className="flex flex-col items-start text-left"
+                >
+                    <div className="inline-block px-3 py-1 bg-amber-50 text-status-pending text-xs font-bold rounded-full mb-6 uppercase tracking-wider">
+                        Error 404: Not Found
+                    </div>
+
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 font-[family-name:var(--font-ibm-plex-thai)] leading-tight">
+                        ไม่พบหน้าที่ท่านต้องการ
+                    </h1>
+
+                    <p className="text-xl text-gray-500 mb-10 font-[family-name:var(--font-ibm-plex-thai)] leading-relaxed max-w-md">
+                        ขออภัย เราไม่สามารถค้นหาหน้าหรือเส้นทางที่ท่านต้องการได้ กรุณาตรวจสอบ URL อีกครั้ง หรือกลับสู่หน้าหลัก
+                    </p>
+
+                    <div className="w-full max-w-xs space-y-4">
+                        <Button
+                            asChild
+                            size="xl"
+                            className="w-full rounded-2xl shadow-lg shadow-chaiyo-blue/20"
+                        >
+                            <Link href="/" className="flex items-center justify-center">
+                                <ChevronLeft className="w-5 h-5 mr-2" />
+                                กลับสู่หน้าหลัก
+                            </Link>
+                        </Button>
+
+                        <p className="text-sm text-gray-400 font-[family-name:var(--font-ibm-plex-thai)] pl-2">
+                            © {new Date().getFullYear() + 543} AutoX Co., Ltd.
+                        </p>
+                    </div>
+                </motion.div>
+            </div>
+        </div>
+    );
+}

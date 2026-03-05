@@ -314,7 +314,7 @@ export default function ApplicationDetailPage({ params }: { params: { id: string
                                                         <div className="space-y-3">
                                                             <InfoItem label="ยี่ห้อ" value={app.collateral?.brand || "-"} />
                                                             <InfoItem label="รุ่น" value={app.collateral?.model || "-"} />
-                                                            <InfoItem label="ปีจดทะเบียน" value={app.collateral?.year || "-"} />
+                                                            <InfoItem label="ปีรถ" value={app.collateral?.year || "-"} />
                                                             <InfoItem label="สี" value={app.collateral?.color || "-"} />
                                                             <InfoItem label="ประเภท" value={app.collateral?.subType || "-"} />
                                                         </div>

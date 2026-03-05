@@ -513,7 +513,7 @@ export function ReviewStep({ formData, setFormData, onSubmit, onEdit }: ReviewSt
                                     </div>
                                 )}
                                 <div className="flex justify-between">
-                                    <span className="text-muted">ปีจดทะเบียน</span>
+                                    <span className="text-muted">ปีรถ</span>
                                     <span className="font-medium text-right">{formData.year || "-"}</span>
                                 </div>
                                 <div className="flex justify-between">

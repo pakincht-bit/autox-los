@@ -20,6 +20,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    TableFooter,
 } from "@/components/ui/Table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -66,7 +67,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         index?: number,
         occId?: string,
         name?: string,
-        type: 'special' | 'reference' | 'photo' | 'bankAccount' | 'incomeDocument' | 'saIncomeRow'
+        type: 'special' | 'reference' | 'photo' | 'bankAccount' | 'incomeDocument' | 'saIncomeRow' | 'seIncomeRow' | 'seCostRow'
     } | null>(null);
 
     const handleSaveSpecialIncome = (source: SpecialIncomeSource) => {
@@ -100,6 +101,10 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
             handleRemoveIncomeDocument(itemToDelete.occId, itemToDelete.id);
         } else if (itemToDelete.type === 'saIncomeRow' && itemToDelete.occId && itemToDelete.index !== undefined) {
             handleRemoveSAIncomeRow(itemToDelete.occId, itemToDelete.index);
+        } else if (itemToDelete.type === 'seIncomeRow' && itemToDelete.occId && itemToDelete.index !== undefined) {
+            handleRemoveSEIncomeRow(itemToDelete.occId, itemToDelete.index);
+        } else if (itemToDelete.type === 'seCostRow' && itemToDelete.occId && itemToDelete.index !== undefined) {
+            handleRemoveSECostRow(itemToDelete.occId, itemToDelete.index);
         }
     };
 
@@ -339,6 +344,202 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         { label: "โบนัส", value: "bonus" },
     ];
 
+    // SE Income Handlers
+    const calculateSEMonthlyIncome = (item: any) => {
+        const amount = Number(item.salesAmount) || 0;
+        if (!item.frequency) return 0;
+        if (item.frequency === 'daily') {
+            const days = Number(item.daysPerMonth) || 0;
+            return amount * days;
+        }
+        if (item.frequency === 'weekly') {
+            const weeks = Number(item.weeksPerMonth) || 0;
+            return amount * weeks;
+        }
+        if (item.frequency === 'monthly') return amount;
+        if (item.frequency === 'quarterly') return amount / 3;
+        if (item.frequency === 'yearly') return amount / 12;
+        return 0;
+    };
+
+    const handleAddSEIncomeRow = (occId: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentIncomes = occ.seIncomes || [];
+        handleOccupationChange(occId, 'seIncomes', [...currentIncomes, {
+            frequency: '',
+            daysPerMonth: '',
+            weeksPerMonth: '',
+            operatingHours: [],
+            salesAmount: '',
+            calculatedMonthly: '0'
+        }]);
+    };
+
+    const handleUpdateSEIncomeRow = (occId: string, index: number, updates: Record<string, any>) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentIncomes = [...(occ.seIncomes || [])];
+
+        let currentRow = { ...currentIncomes[index] };
+
+        for (const [field, value] of Object.entries(updates)) {
+            let finalValue = value;
+            if (field === 'salesAmount' || field === 'daysPerMonth' || field === 'weeksPerMonth') {
+                const clean = String(value).replace(/[^0-9.]/g, '');
+                if (field === 'salesAmount') {
+                    const parts = clean.split('.');
+                    if (parts.length > 2) {
+                        finalValue = parts[0] + '.' + parts.slice(1).join('');
+                    } else if (parts.length === 2 && parts[1].length > 2) {
+                        finalValue = parts[0] + '.' + parts[1].slice(0, 2);
+                    } else {
+                        finalValue = clean;
+                    }
+                } else {
+                    finalValue = clean; // Whole numbers for days/weeks
+                }
+            }
+            currentRow[field] = finalValue;
+        }
+
+        // Update calculated monthly for this row specifically
+        currentRow.calculatedMonthly = calculateSEMonthlyIncome(currentRow).toString();
+        currentIncomes[index] = currentRow;
+
+        // Calculate total income for this occupation
+        const total = currentIncomes.reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0);
+
+        handleOccupationChange(occId, {
+            seIncomes: currentIncomes,
+            totalIncome: total.toString()
+        });
+    };
+
+    const handleRemoveSEIncomeRow = (occId: string, index: number) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentIncomes = [...(occ.seIncomes || [])];
+        currentIncomes.splice(index, 1);
+
+        // Calculate total
+        const total = currentIncomes.reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0);
+
+        handleOccupationChange(occId, {
+            seIncomes: currentIncomes,
+            totalIncome: total.toString()
+        });
+        setItemToDelete(null);
+    };
+
+    const SE_INCOME_FREQUENCIES = [
+        { label: "ยอดขายรายวัน", value: "daily" },
+        { label: "ยอดขายรายสัปดาห์", value: "weekly" },
+        { label: "ยอดขายรายเดือน", value: "monthly" },
+        { label: "ยอดขายรายไตรมาส", value: "quarterly" },
+        { label: "ยอดขายรายปี", value: "yearly" },
+    ];
+
+    const SE_OPERATING_HOURS = [
+        { label: "ช่วงเช้า", value: "morning" },
+        { label: "ช่วงกลางวัน", value: "afternoon" },
+        { label: "ช่วงเย็น", value: "evening" },
+        { label: "ช่วงกลางคืน", value: "night" },
+    ];
+
+    // SE Cost Handlers
+    const calculateSEMonthlyCost = (item: any) => {
+        const amount = Number(item.costAmount) || 0;
+        if (!item.frequency) return 0;
+        if (item.frequency === 'daily') {
+            const days = Number(item.daysPerMonth) || 0;
+            return amount * days;
+        }
+        if (item.frequency === 'weekly') {
+            const weeks = Number(item.weeksPerMonth) || 0;
+            return amount * weeks;
+        }
+        if (item.frequency === 'monthly') return amount;
+        if (item.frequency === 'quarterly') return amount / 3;
+        if (item.frequency === 'yearly') return amount / 12;
+        return 0;
+    };
+
+    const handleAddSECostRow = (occId: string) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentCosts = occ.seCosts || [];
+        handleOccupationChange(occId, 'seCosts', [...currentCosts, {
+            type: '',
+            customType: '',
+            frequency: '',
+            daysPerMonth: '',
+            weeksPerMonth: '',
+            costAmount: '',
+            calculatedMonthly: '0'
+        }]);
+    };
+
+    const handleUpdateSECostRow = (occId: string, index: number, updates: Record<string, any>) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentCosts = [...(occ.seCosts || [])];
+
+        let currentRow = { ...currentCosts[index] };
+
+        for (const [field, value] of Object.entries(updates)) {
+            let finalValue = value;
+            if (field === 'costAmount' || field === 'daysPerMonth' || field === 'weeksPerMonth') {
+                const clean = String(value).replace(/[^0-9.]/g, '');
+                if (field === 'costAmount') {
+                    const parts = clean.split('.');
+                    if (parts.length > 2) {
+                        finalValue = parts[0] + '.' + parts.slice(1).join('');
+                    } else if (parts.length === 2 && parts[1].length > 2) {
+                        finalValue = parts[0] + '.' + parts[1].slice(0, 2);
+                    } else {
+                        finalValue = clean;
+                    }
+                } else {
+                    finalValue = clean; // Whole numbers for days/weeks
+                }
+            }
+            currentRow[field] = finalValue;
+        }
+
+        // Update calculated monthly for this row specifically
+        currentRow.calculatedMonthly = calculateSEMonthlyCost(currentRow).toString();
+        currentCosts[index] = currentRow;
+
+        handleOccupationChange(occId, 'seCosts', currentCosts);
+    };
+
+    const handleRemoveSECostRow = (occId: string, index: number) => {
+        const occ = occupations.find((o: any) => o.id === occId);
+        if (!occ) return;
+        const currentCosts = [...(occ.seCosts || [])];
+        currentCosts.splice(index, 1);
+
+        handleOccupationChange(occId, 'seCosts', currentCosts);
+        setItemToDelete(null);
+    };
+
+    const SE_COST_TYPES = [
+        { label: "ค่าวัตถุดิบ", value: "material" },
+        { label: "ค่าเช่า", value: "rent" },
+        { label: "ค่าจ้าง", value: "wage" },
+        { label: "ค่าใช้จ่ายอื่นๆ", value: "other" },
+        { label: "ระบุเพิ่ม", value: "custom" },
+    ];
+
+    const SE_COST_FREQUENCIES = [
+        { label: "ต้นทุนรายวัน", value: "daily" },
+        { label: "ต้นทุนรายสัปดาห์", value: "weekly" },
+        { label: "ต้นทุนรายเดือน", value: "monthly" },
+        { label: "ต้นทุนรายไตรมาส", value: "quarterly" },
+        { label: "ต้นทุนรายปี", value: "yearly" },
+    ];
+
     const handleAddIncomeDocument = (occId: string, docType: string, label: string) => {
         const occ = occupations.find((o: any) => o.id === occId);
         if (!occ) return;
@@ -485,6 +686,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                                     <SelectContent>
                                                         <SelectItem value="occ1">Mockup อาชีพที่ 1</SelectItem>
                                                         <SelectItem value="occ2">Mockup อาชีพที่ 2</SelectItem>
+                                                        <SelectItem value="FARMER">เกษตรกร</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -757,6 +959,417 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                         </div>
                                     )}
 
+                                    {/* SE Details Section: รายละเอียดกิจการ */}
+                                    {occ.employmentType === 'SE' && occ.occupationCode !== 'FARMER' && (
+                                        <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-border-color">
+                                                <Building className="w-5 h-5 text-chaiyo-blue" /> รายละเอียดกิจการ
+                                            </h4>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                                <div className="space-y-3">
+                                                    <Label>สถานะกิจการปัจจุบัน <span className="text-red-500">*</span></Label>
+                                                    <RadioGroup
+                                                        value={occ.businessStatus || ""}
+                                                        onValueChange={(val) => handleOccupationChange(occ.id, "businessStatus", val)}
+                                                        className="flex gap-6 pt-1"
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="active" id={`${occ.id}-se-active`} />
+                                                            <Label htmlFor={`${occ.id}-se-active`} className="font-normal cursor-pointer">ดำเนินกิจการอยู่</Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="closed" id={`${occ.id}-se-closed`} />
+                                                            <Label htmlFor={`${occ.id}-se-closed`} className="font-normal cursor-pointer">ปิดกิจการ</Label>
+                                                        </div>
+                                                    </RadioGroup>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>กิจการครอบครัว <span className="text-red-500">*</span></Label>
+                                                    <Select
+                                                        value={occ.familyBusiness || ""}
+                                                        onValueChange={(val) => {
+                                                            handleOccupationChange(occ.id, {
+                                                                familyBusiness: val,
+                                                                familyBusinessOther: ""
+                                                            });
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="h-11 bg-white">
+                                                            <SelectValue placeholder="เลือก..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="YES">ใช่</SelectItem>
+                                                            <SelectItem value="NO">ไม่ใช่</SelectItem>
+                                                            <SelectItem value="OTHER">อื่นๆ</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {occ.familyBusiness === "OTHER" && (
+                                                        <Input
+                                                            value={occ.familyBusinessOther || ""}
+                                                            onChange={(e) => handleOccupationChange(occ.id, "familyBusinessOther", e.target.value)}
+                                                            placeholder="โปรดระบุ"
+                                                            className="h-11 bg-white mt-2"
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>ประเภทกิจการ <span className="text-red-500">*</span></Label>
+                                                    <Select
+                                                        value={occ.businessType || ""}
+                                                        onValueChange={(val) => handleOccupationChange(occ.id, "businessType", val)}
+                                                    >
+                                                        <SelectTrigger className="h-11 bg-white">
+                                                            <SelectValue placeholder="เลือกประเภทกิจการ" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="type1">การเกษตร</SelectItem>
+                                                            <SelectItem value="type2">การพาณิชย์</SelectItem>
+                                                            <SelectItem value="type3">การบริการ</SelectItem>
+                                                            <SelectItem value="type4">การผลิต</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>จำนวนพนักงาน (คน)</Label>
+                                                    <Input
+                                                        type="text"
+                                                        value={occ.employeeCount || ""}
+                                                        onChange={(e) => handleOccupationChange(occ.id, "employeeCount", e.target.value.replace(/\D/g, ''))}
+                                                        placeholder="0"
+                                                        className="h-11 bg-white"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>อายุกิจการ (ปี) <span className="text-red-500">*</span></Label>
+                                                    <Input
+                                                        type="text"
+                                                        value={occ.businessAgeYear || ""}
+                                                        onChange={(e) => handleOccupationChange(occ.id, "businessAgeYear", e.target.value.replace(/\D/g, ''))}
+                                                        placeholder="0"
+                                                        className="h-11 bg-white"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* SE Income Data Section */}
+                                            <div className="space-y-4 pt-6 mt-6 border-t border-border-color">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                        <TrendingUp className="w-4 h-4 text-emerald-600" /> ข้อมูลรายได้ของกิจการ
+                                                    </h4>
+                                                </div>
+
+                                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                                    <Table>
+                                                        <TableHeader className="bg-gray-50/50">
+                                                            <TableRow>
+                                                                <TableHead className="w-[20%] text-xs">ความถี่</TableHead>
+                                                                <TableHead className="w-[20%] text-xs">จำนวนวัน/สัปดาห์</TableHead>
+                                                                <TableHead className="w-[30%] text-xs">เวลาทำการ</TableHead>
+                                                                <TableHead className="w-[30%] text-xs text-right pr-6">ยอดขาย (บาท)</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {(() => {
+                                                                const item = occ.seIncomes?.[0] || {};
+                                                                const idx = 0;
+                                                                return (
+                                                                    <TableRow className="group transition-colors hover:bg-gray-50/50">
+                                                                        <TableCell className="py-3">
+                                                                            <Select
+                                                                                value={item.frequency || ""}
+                                                                                onValueChange={(val) => {
+                                                                                    const rowUpdates: any = { frequency: val };
+                                                                                    // Clear dependent fields if switching
+                                                                                    if (val !== 'daily') rowUpdates.daysPerMonth = '';
+                                                                                    if (val !== 'weekly') rowUpdates.weeksPerMonth = '';
+                                                                                    handleUpdateSEIncomeRow(occ.id, idx, rowUpdates);
+                                                                                }}
+                                                                            >
+                                                                                <SelectTrigger className="h-9 text-xs bg-gray-50/30">
+                                                                                    <SelectValue placeholder="เลือกความถี่" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {SE_INCOME_FREQUENCIES.map(freq => (
+                                                                                        <SelectItem key={freq.value} value={freq.value} className="text-xs">{freq.label}</SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3">
+                                                                            {item.frequency === 'daily' && (
+                                                                                <Input
+                                                                                    type="text"
+                                                                                    value={item.daysPerMonth || ""}
+                                                                                    onChange={(e) => handleUpdateSEIncomeRow(occ.id, idx, { daysPerMonth: e.target.value })}
+                                                                                    placeholder="จำนวนวัน"
+                                                                                    className="h-9 text-xs bg-gray-50/30"
+                                                                                />
+                                                                            )}
+                                                                            {item.frequency === 'weekly' && (
+                                                                                <Input
+                                                                                    type="text"
+                                                                                    value={item.weeksPerMonth || ""}
+                                                                                    onChange={(e) => handleUpdateSEIncomeRow(occ.id, idx, { weeksPerMonth: e.target.value })}
+                                                                                    placeholder="จำนวนสัปดาห์"
+                                                                                    className="h-9 text-xs bg-gray-50/30"
+                                                                                />
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3">
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                {SE_OPERATING_HOURS.map(hour => {
+                                                                                    const isChecked = (item.operatingHours || []).includes(hour.value);
+                                                                                    return (
+                                                                                        <div key={hour.value} className="flex items-center space-x-1.5">
+                                                                                            <Checkbox
+                                                                                                id={`hour-${occ.id}-${idx}-${hour.value}`}
+                                                                                                checked={isChecked}
+                                                                                                onCheckedChange={() => {
+                                                                                                    const currentHours = item.operatingHours || [];
+                                                                                                    const newHours = isChecked
+                                                                                                        ? currentHours.filter((h: string) => h !== hour.value)
+                                                                                                        : [...currentHours, hour.value];
+                                                                                                    handleUpdateSEIncomeRow(occ.id, idx, { operatingHours: newHours });
+                                                                                                }}
+                                                                                                className="h-3.5 w-3.5 rounded-sm"
+                                                                                            />
+                                                                                            <Label htmlFor={`hour-${occ.id}-${idx}-${hour.value}`} className="text-[11px] font-normal cursor-pointer leading-none text-gray-600">
+                                                                                                {hour.label}
+                                                                                            </Label>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3 pr-6">
+                                                                            <Input
+                                                                                type="text"
+                                                                                value={formatNumberWithCommas(item.salesAmount) || ""}
+                                                                                onChange={(e) => handleUpdateSEIncomeRow(occ.id, idx, { salesAmount: e.target.value })}
+                                                                                placeholder="0.00"
+                                                                                className="h-9 text-xs bg-gray-50/30 text-right font-mono"
+                                                                            />
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                );
+                                                            })()}
+                                                        </TableBody>
+                                                        <TableFooter>
+                                                            <TableRow className="bg-emerald-50/50 hover:bg-emerald-50/50">
+                                                                <TableCell colSpan={3} className="text-right font-bold text-emerald-700 py-4">
+                                                                    รวมยอดขายต่อเดือน:
+                                                                </TableCell>
+                                                                <TableCell className="text-right pr-6 py-4">
+                                                                    <div className="text-lg font-black text-emerald-700 font-mono">
+                                                                        ฿{formatNumberWithCommas(
+                                                                            (occ.seIncomes || []).reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0)
+                                                                        )}
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        </TableFooter>
+                                                    </Table>
+                                                </div>
+                                            </div>
+
+                                            {/* SE Cost Data Section */}
+                                            <div className="space-y-4 pt-6 mt-6 border-t border-border-color">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                        <TrendingDown className="w-4 h-4 text-orange-600" /> ข้อมูลต้นทุนของกิจการ
+                                                    </h4>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleAddSECostRow(occ.id)}
+                                                        className="h-8 text-xs font-medium"
+                                                    >
+                                                        <Plus className="w-3 h-3 mr-1" /> เพิ่มรายการต้นทุน
+                                                    </Button>
+                                                </div>
+
+                                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                                    <Table>
+                                                        <TableHeader className="bg-gray-50/50">
+                                                            <TableRow>
+                                                                <TableHead className="w-[20%] text-xs">ประเภทต้นทุน</TableHead>
+                                                                <TableHead className="w-[15%] text-xs">ความถี่</TableHead>
+                                                                <TableHead className="w-[15%] text-xs">จำนวนวัน/สัปดาห์</TableHead>
+                                                                <TableHead className="w-[25%] text-xs">ต้นทุน (บาท)</TableHead>
+                                                                <TableHead className="w-[15%] text-xs text-right">รวมต่อเดือน</TableHead>
+                                                                <TableHead className="w-[10%] text-center text-xs">จัดการ</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {(!occ.seCosts || occ.seCosts.length === 0) ? (
+                                                                <TableRow>
+                                                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground italic text-xs">
+                                                                        ยังไม่มีข้อมูลต้นทุน กรุณากดเพิ่มรายการ
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : (
+                                                                occ.seCosts.map((item: any, idx: number) => (
+                                                                    <TableRow key={idx} className="group transition-colors hover:bg-gray-50/50">
+                                                                        <TableCell className="py-3">
+                                                                            <div className="space-y-2">
+                                                                                <Select
+                                                                                    value={item.type || ""}
+                                                                                    onValueChange={(val) => {
+                                                                                        const rowUpdates: any = { type: val };
+                                                                                        if (val !== 'custom') {
+                                                                                            rowUpdates.customType = '';
+                                                                                        }
+                                                                                        handleUpdateSECostRow(occ.id, idx, rowUpdates);
+                                                                                    }}
+                                                                                >
+                                                                                    <SelectTrigger className="h-9 text-xs bg-gray-50/30">
+                                                                                        <SelectValue placeholder="เลือกประเภท" />
+                                                                                    </SelectTrigger>
+                                                                                    <SelectContent>
+                                                                                        {SE_COST_TYPES.map(type => (
+                                                                                            <SelectItem key={type.value} value={type.value} className="text-xs">{type.label}</SelectItem>
+                                                                                        ))}
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                                {item.type === 'custom' && (
+                                                                                    <Input
+                                                                                        type="text"
+                                                                                        value={item.customType || ""}
+                                                                                        onChange={(e) => handleUpdateSECostRow(occ.id, idx, { customType: e.target.value })}
+                                                                                        placeholder="ระบุชื่อต้นทุน"
+                                                                                        className="h-9 text-xs bg-gray-50/30"
+                                                                                    />
+                                                                                )}
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3 align-top">
+                                                                            <Select
+                                                                                value={item.frequency || ""}
+                                                                                onValueChange={(val) => {
+                                                                                    const rowUpdates: any = { frequency: val };
+                                                                                    // Clear dependent fields if switching
+                                                                                    if (val !== 'daily') rowUpdates.daysPerMonth = '';
+                                                                                    if (val !== 'weekly') rowUpdates.weeksPerMonth = '';
+                                                                                    handleUpdateSECostRow(occ.id, idx, rowUpdates);
+                                                                                }}
+                                                                            >
+                                                                                <SelectTrigger className="h-9 text-xs bg-gray-50/30">
+                                                                                    <SelectValue placeholder="เลือกความถี่" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {SE_COST_FREQUENCIES.map(freq => (
+                                                                                        <SelectItem key={freq.value} value={freq.value} className="text-xs">{freq.label}</SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3 align-top">
+                                                                            {item.frequency === 'daily' && (
+                                                                                <Input
+                                                                                    type="text"
+                                                                                    value={item.daysPerMonth || ""}
+                                                                                    onChange={(e) => handleUpdateSECostRow(occ.id, idx, { daysPerMonth: e.target.value })}
+                                                                                    placeholder="จำนวนวัน"
+                                                                                    className="h-9 text-xs bg-gray-50/30"
+                                                                                />
+                                                                            )}
+                                                                            {item.frequency === 'weekly' && (
+                                                                                <Input
+                                                                                    type="text"
+                                                                                    value={item.weeksPerMonth || ""}
+                                                                                    onChange={(e) => handleUpdateSECostRow(occ.id, idx, { weeksPerMonth: e.target.value })}
+                                                                                    placeholder="จำนวนสัปดาห์"
+                                                                                    className="h-9 text-xs bg-gray-50/30"
+                                                                                />
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3 align-top">
+                                                                            <Input
+                                                                                type="text"
+                                                                                value={formatNumberWithCommas(item.costAmount) || ""}
+                                                                                onChange={(e) => handleUpdateSECostRow(occ.id, idx, { costAmount: e.target.value })}
+                                                                                placeholder="0.00"
+                                                                                className="h-9 text-xs bg-gray-50/30 text-right font-mono"
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3 pr-4 align-top">
+                                                                            <div className="text-right text-sm font-mono font-bold text-orange-600 mt-1">
+                                                                                {formatNumberWithCommas(item.calculatedMonthly || "0")}
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="py-3 text-center align-top">
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 rounded-full mt-0.5"
+                                                                                onClick={() => setItemToDelete({
+                                                                                    index: idx,
+                                                                                    occId: occ.id,
+                                                                                    name: `รายการต้นทุนที่ ${idx + 1}`,
+                                                                                    type: 'seCostRow'
+                                                                                })}
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))
+                                                            )}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+
+                                                <div className="flex justify-end pt-2">
+                                                    <div className="bg-orange-50/50 border border-orange-100 rounded-xl px-4 py-3 flex items-center gap-4">
+                                                        <Label className="text-orange-700 font-bold">รวมต้นทุนต่อเดือน:</Label>
+                                                        <div className="text-xl font-black text-orange-700 font-mono">
+                                                            ฿{formatNumberWithCommas(
+                                                                (occ.seCosts || []).reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0)
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Net Income Summary Box */}
+                                            <div className="pt-6 mt-6 border-t border-border-color">
+                                                <div className="bg-chaiyo-blue/5 border border-chaiyo-blue/20 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-white p-2 rounded-lg shadow-sm border border-chaiyo-blue/10 text-chaiyo-blue">
+                                                            <DollarSign className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-sm font-bold text-gray-800">รายได้สุทธิต่อเดือน</h4>
+                                                            <p className="text-xs text-muted-foreground mt-0.5">รวมยอดขาย ลบ รวมต้นทุน</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        {(() => {
+                                                            const totalIncome = (occ.seIncomes || []).reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0);
+                                                            const totalCost = (occ.seCosts || []).reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0);
+                                                            const netIncome = totalIncome - totalCost;
+                                                            return (
+                                                                <div className={cn(
+                                                                    "text-2xl font-black font-mono",
+                                                                    netIncome < 0 ? "text-red-500" : "text-chaiyo-blue"
+                                                                )}>
+                                                                    ฿{formatNumberWithCommas(netIncome)}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* 2. ที่อยู่ที่ทำงาน / กิจการ */}
                                     <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-4">
                                         <div className={cn(
@@ -812,24 +1425,26 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                                             />
                                                         </div>
 
-                                                        <div className="space-y-3">
-                                                            <Label>สถานะกิจการปัจจุบัน {(occ.employmentType === 'SA' || occ.employmentType === 'SE') && <span className="text-red-500">*</span>}</Label>
-                                                            <RadioGroup
-                                                                value={displayData.businessStatus || ""}
-                                                                onValueChange={(val) => handleOccupationChange(occ.id, "businessStatus", val)}
-                                                                className="flex gap-6 pt-1"
-                                                                disabled={isLinked}
-                                                            >
-                                                                <div className="flex items-center space-x-2">
-                                                                    <RadioGroupItem value="active" id={`${occ.id}-active`} disabled={isLinked} />
-                                                                    <Label htmlFor={`${occ.id}-active`} className="font-normal cursor-pointer">ดำเนินกิจการอยู่</Label>
-                                                                </div>
-                                                                <div className="flex items-center space-x-2">
-                                                                    <RadioGroupItem value="closed" id={`${occ.id}-closed`} disabled={isLinked} />
-                                                                    <Label htmlFor={`${occ.id}-closed`} className="font-normal cursor-pointer">ปิดกิจการ</Label>
-                                                                </div>
-                                                            </RadioGroup>
-                                                        </div>
+                                                        {!(occ.employmentType === 'SE' && occ.occupationCode !== 'FARMER') && (
+                                                            <div className="space-y-3">
+                                                                <Label>สถานะกิจการปัจจุบัน {(occ.employmentType === 'SA' || occ.employmentType === 'SE') && <span className="text-red-500">*</span>}</Label>
+                                                                <RadioGroup
+                                                                    value={displayData.businessStatus || ""}
+                                                                    onValueChange={(val) => handleOccupationChange(occ.id, "businessStatus", val)}
+                                                                    className="flex gap-6 pt-1"
+                                                                    disabled={isLinked}
+                                                                >
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <RadioGroupItem value="active" id={`${occ.id}-active`} disabled={isLinked} />
+                                                                        <Label htmlFor={`${occ.id}-active`} className="font-normal cursor-pointer">ดำเนินกิจการอยู่</Label>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <RadioGroupItem value="closed" id={`${occ.id}-closed`} disabled={isLinked} />
+                                                                        <Label htmlFor={`${occ.id}-closed`} className="font-normal cursor-pointer">ปิดกิจการ</Label>
+                                                                    </div>
+                                                                </RadioGroup>
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     <div className="space-y-4">

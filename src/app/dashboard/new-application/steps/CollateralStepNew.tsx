@@ -23,7 +23,8 @@ import {
     AGRI_BRANDS,
     MODELS_BY_BRAND,
     SUB_MODELS_BY_MODEL,
-    YEARS
+    YEARS,
+    YEARS_AD
 } from "@/data/vehicle-data";
 
 interface CollateralStepProps {
@@ -336,7 +337,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                     </div>
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <Label>ปีจดทะเบียน</Label>
+                                            <Label>ปีรถ</Label>
                                             {aiDetectedFields.includes('year') && (
                                                 <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-none text-[10px] font-bold">
                                                     AI EXTRACTED
@@ -344,7 +345,7 @@ export function CollateralStep({ formData, setFormData, isExistingCustomer = fal
                                             )}
                                         </div>
                                         <Combobox
-                                            options={YEARS}
+                                            options={YEARS_AD}
                                             value={formData.year}
                                             onValueChange={(val) => {
                                                 setFormData({ ...formData, year: val });
