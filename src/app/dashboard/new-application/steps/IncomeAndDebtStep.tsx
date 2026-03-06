@@ -37,15 +37,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/Dialog";
-import { Info, HelpCircle } from "lucide-react";
+import { Info, HelpCircle, Link } from "lucide-react";
+import { AddressForm } from "@/components/application/AddressForm";
 
 interface IncomeAndDebtStepProps {
     formData: any;
@@ -1545,261 +1538,66 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                     )}
 
                                     {/* 2. ที่อยู่ที่ทำงาน / กิจการ */}
-                                    <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-4">
-                                        <div className={cn(
-                                            "flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border-color",
-                                            occ.isSameAsMainAddress && "opacity-80"
-                                        )}>
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="text-base font-bold text-gray-800 flex items-center gap-2">
-                                                    <Home className="w-5 h-5 text-chaiyo-blue" /> ที่อยู่ที่ทำงาน / กิจการ
-                                                </h4>
-                                                {occ.isSameAsMainAddress && (
-                                                    <div className="flex items-center gap-1 bg-blue-50 text-chaiyo-blue text-[10px] px-2 py-0.5 rounded-full border border-blue-100 font-medium">
-                                                        <Link className="w-3 h-3" /> เชื่อมโยงกับอาชีพหลัก
+                                    <AddressForm
+                                        title="ที่อยู่ที่ทำงาน / กิจการ"
+                                        prefix="work"
+                                        formData={occ.isSameAsMainAddress ? (formData.occupations?.find((o: any) => o.id === 'main') || {}) : occ}
+                                        onChange={(field, val) => handleOccupationChange(occ.id, field, val)}
+                                        disabled={!!occ.isSameAsMainAddress}
+                                        headerChildren={
+                                            <div className={cn(
+                                                "flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 mb-4 border-b border-border-color",
+                                                occ.isSameAsMainAddress && "opacity-80"
+                                            )}>
+                                                <div className="flex items-center gap-2">
+                                                    {occ.isSameAsMainAddress && (
+                                                        <div className="flex items-center gap-1 bg-blue-50 text-chaiyo-blue text-[10px] px-2 py-0.5 rounded-full border border-blue-100 font-medium">
+                                                            <Link className="w-3 h-3" /> เชื่อมโยงกับอาชีพหลัก
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {!occ.isMain && (
+                                                    <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-border-color shadow-sm">
+                                                        <Checkbox
+                                                            id={`same-as-main-${occ.id}`}
+                                                            checked={occ.isSameAsMainAddress || false}
+                                                            onCheckedChange={(checked) => {
+                                                                const isChecked = !!checked;
+                                                                handleOccupationChange(occ.id, "isSameAsMainAddress", isChecked);
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor={`same-as-main-${occ.id}`}
+                                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-chaiyo-blue"
+                                                        >
+                                                            เหมือนที่อยู่อาชีพหลัก
+                                                        </label>
                                                     </div>
                                                 )}
                                             </div>
-                                            {!occ.isMain && (
-                                                <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-border-color shadow-sm">
-                                                    <Checkbox
-                                                        id={`same-as-main-${occ.id}`}
-                                                        checked={occ.isSameAsMainAddress || false}
-                                                        onCheckedChange={(checked) => {
-                                                            const isChecked = !!checked;
-                                                            handleOccupationChange(occ.id, "isSameAsMainAddress", isChecked);
-                                                        }}
-                                                    />
-                                                    <label
-                                                        htmlFor={`same-as-main-${occ.id}`}
-                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-chaiyo-blue"
-                                                    >
-                                                        เหมือนที่อยู่อาชีพหลัก
-                                                    </label>
-                                                </div>
-                                            )}
-                                        </div>
-                                        {(() => {
-                                            // Live sync logic: use main occupation values if linked
-                                            const mainOcc = formData.occupations?.find((o: any) => o.id === 'main') || {};
-                                            const displayData = occ.isSameAsMainAddress ? mainOcc : occ;
-                                            const isLinked = !!occ.isSameAsMainAddress;
-
-                                            return (
-                                                <div className={cn("space-y-6 pt-2 transition-opacity", isLinked && "opacity-75 pointer-events-none select-none")}>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <div className="space-y-2">
-                                                            <Label>ชื่อบริษัท / กิจการ {occ.employmentType === 'SA' && <span className="text-red-500">*</span>}</Label>
-                                                            <Input
-                                                                value={displayData.companyName || ""}
-                                                                onChange={(e) => handleOccupationChange(occ.id, "companyName", e.target.value)}
-                                                                placeholder="ระบุชื่อบริษัท หรือชื่อกิจการ"
-                                                                className="h-11 bg-white"
-                                                                disabled={isLinked}
-                                                            />
-                                                        </div>
-
-                                                        {!(occ.employmentType === 'SE' && occ.occupationCode !== 'FARMER') && (
-                                                            <div className="space-y-3">
-                                                                <Label>สถานะกิจการปัจจุบัน {(occ.employmentType === 'SA' || occ.employmentType === 'SE') && <span className="text-red-500">*</span>}</Label>
-                                                                <RadioGroup
-                                                                    value={displayData.businessStatus || ""}
-                                                                    onValueChange={(val) => handleOccupationChange(occ.id, "businessStatus", val)}
-                                                                    className="flex gap-6 pt-1"
-                                                                    disabled={isLinked}
-                                                                >
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <RadioGroupItem value="active" id={`${occ.id}-active`} disabled={isLinked} />
-                                                                        <Label htmlFor={`${occ.id}-active`} className="font-normal cursor-pointer">ดำเนินกิจการอยู่</Label>
-                                                                    </div>
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <RadioGroupItem value="closed" id={`${occ.id}-closed`} disabled={isLinked} />
-                                                                        <Label htmlFor={`${occ.id}-closed`} className="font-normal cursor-pointer">ปิดกิจการ</Label>
-                                                                    </div>
-                                                                </RadioGroup>
-                                                            </div>
-                                                        )}
+                                        }
+                                        footerChildren={
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                                    <div className="space-y-2">
+                                                        <Label>บริเวณใกล้เคียง/จุดสังเกต</Label>
+                                                        <Input
+                                                            value={(occ.isSameAsMainAddress ? (formData.occupations?.find((o: any) => o.id === 'main') || {}).workLandmark : occ.workLandmark) || ""}
+                                                            onChange={(e) => handleOccupationChange(occ.id, "workLandmark", e.target.value)}
+                                                            placeholder="เช่น ใกล้เซเว่น, ตรงข้ามธนาคาร"
+                                                            className="h-11 bg-white"
+                                                            disabled={!!occ.isSameAsMainAddress}
+                                                        />
                                                     </div>
-
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center gap-2 text-sm font-bold text-gray-700 pb-2 border-b border-gray-100">
-                                                            รายละเอียดที่อยู่ {occ.employmentType === 'SA' && <span className="text-red-500 text-[10px] ml-1">*</span>}
-                                                        </div>
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">เลขที่บ้าน</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workHouseNumber || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workHouseNumber", e.target.value)}
-                                                                    placeholder="123/45"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ชั้น</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workFloor || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workFloor", e.target.value)}
-                                                                    placeholder="เช่น 2"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">หน่วย/ห้อง</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workUnit || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workUnit", e.target.value)}
-                                                                    placeholder="เช่น 201"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">หมู่ที่</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workMoo || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workMoo", e.target.value)}
-                                                                    placeholder="เช่น 1"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">หมู่บ้าน/อาคาร</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workVillage || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workVillage", e.target.value)}
-                                                                    placeholder="ชื่อหมู่บ้านหรืออาคาร"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ซอย</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workSoi || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workSoi", e.target.value)}
-                                                                    placeholder="ชื่อซอย"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">แยก</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workYaek || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workYaek", e.target.value)}
-                                                                    placeholder="ระบุแยก (ถ้ามี)"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ตรอก</Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workTrohk || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workTrohk", e.target.value)}
-                                                                    placeholder="ระบุตรอก (ถ้ามี)"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ถนน</Label>
-                                                                <Combobox
-                                                                    value={displayData.workStreet || ""}
-                                                                    onValueChange={(val) => handleOccupationChange(occ.id, "workStreet", val)}
-                                                                    options={[{ label: "สุขุมวิท", value: "สุขุมวิท" }, { label: "พหลโยธิน", value: "พหลโยธิน" }]}
-                                                                    placeholder="ระบุถนน"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">ตำบล/แขวง <span className="text-red-500">*</span></Label>
-                                                                <Combobox
-                                                                    value={displayData.workSubDistrict || ""}
-                                                                    onValueChange={(val) => handleOccupationChange(occ.id, "workSubDistrict", val)}
-                                                                    options={[{ label: "ลาดพร้าว", value: "ลาดพร้าว" }, { label: "วังทองหลาง", value: "วังทองหลาง" }]}
-                                                                    placeholder="ระบุตำบล/แขวง"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">อำเภอ/เขต <span className="text-red-500">*</span></Label>
-                                                                <Combobox
-                                                                    value={displayData.workDistrict || ""}
-                                                                    onValueChange={(val) => handleOccupationChange(occ.id, "workDistrict", val)}
-                                                                    options={[{ label: "ลาดพร้าว", value: "ลาดพร้าว" }, { label: "จตุจักร", value: "จตุจักร" }]}
-                                                                    placeholder="ระบุอำเภอ/เขต"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">จังหวัด <span className="text-red-500">*</span></Label>
-                                                                <Combobox
-                                                                    value={displayData.workProvince || ""}
-                                                                    onValueChange={(val) => handleOccupationChange(occ.id, "workProvince", val)}
-                                                                    options={[{ label: "กรุงเทพมหานคร", value: "กรุงเทพมหานคร" }, { label: "นนทบุรี", value: "นนทบุรี" }]}
-                                                                    placeholder="ระบุจังหวัด"
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs text-muted-foreground">รหัสไปรษณีย์ <span className="text-red-500">*</span></Label>
-                                                                <Input
-                                                                    className="h-11 bg-white"
-                                                                    value={displayData.workZipCode || ""}
-                                                                    onChange={(e) => handleOccupationChange(occ.id, "workZipCode", e.target.value.replace(/\D/g, '').slice(0, 5))}
-                                                                    placeholder="10XXX"
-                                                                    maxLength={5}
-                                                                    disabled={isLinked}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                                        <div className="space-y-2">
-                                                            <Label>เบอร์ติดต่อบริษัท {occ.employmentType === 'SA' && <span className="text-red-500">*</span>}</Label>
-                                                            <Input
-                                                                value={displayData.companyPhone || ""}
-                                                                onChange={(e) => handleOccupationChange(occ.id, "companyPhone", e.target.value)}
-                                                                placeholder="02-XXX-XXXX"
-                                                                className="h-11 bg-white"
-                                                                disabled={isLinked}
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label>บริเวณใกล้เคียง/จุดสังเกต</Label>
-                                                            <Input
-                                                                value={displayData.workLandmark || ""}
-                                                                onChange={(e) => handleOccupationChange(occ.id, "workLandmark", e.target.value)}
-                                                                placeholder="เช่น ใกล้เซเว่น, ตรงข้ามธนาคาร"
-                                                                className="h-11 bg-white"
-                                                                disabled={isLinked}
-                                                            />
-                                                        </div>
-                                                    </div>
-
                                                     <div className="space-y-2">
                                                         <Label>ลักษณะที่ตั้งของกิจการ <span className="text-red-500">*</span></Label>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <Select
-                                                                value={displayData.workLocationType || ""}
+                                                                value={(occ.isSameAsMainAddress ? (formData.occupations?.find((o: any) => o.id === 'main') || {}).workLocationType : occ.workLocationType) || ""}
                                                                 onValueChange={(val) => handleOccupationChange(occ.id, "workLocationType", val)}
-                                                                disabled={isLinked}
+                                                                disabled={!!occ.isSameAsMainAddress}
                                                             >
-                                                                <SelectTrigger className="h-11 bg-white" disabled={isLinked}>
+                                                                <SelectTrigger className="h-11 bg-white" disabled={!!occ.isSameAsMainAddress}>
                                                                     <SelectValue placeholder="โลเกชั่นที่ตั้ง" />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -1812,22 +1610,44 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                                                     <SelectItem value="other">อื่นๆ รายละเอียดอื่นๆ</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
-                                                            {displayData.workLocationType === 'other' && (
+                                                            {((occ.isSameAsMainAddress ? (formData.occupations?.find((o: any) => o.id === 'main') || {}).workLocationType : occ.workLocationType) === 'other') && (
                                                                 <Input
-                                                                    value={displayData.workLocationTypeOther || ""}
+                                                                    value={(occ.isSameAsMainAddress ? (formData.occupations?.find((o: any) => o.id === 'main') || {}).workLocationTypeOther : occ.workLocationTypeOther) || ""}
                                                                     onChange={(e) => handleOccupationChange(occ.id, "workLocationTypeOther", e.target.value)}
                                                                     placeholder="โปรดระบุรายละเอียด"
                                                                     className="h-11 bg-white"
-                                                                    disabled={isLinked}
+                                                                    disabled={!!occ.isSameAsMainAddress}
                                                                 />
                                                             )}
                                                         </div>
                                                     </div>
                                                 </div>
-                                            );
-                                        })()}
-                                    </div>
 
+                                                {!(occ.employmentType === 'SE' && occ.occupationCode !== 'FARMER') && (
+                                                    <div className="pt-4 border-t border-gray-100">
+                                                        <div className="space-y-3">
+                                                            <Label>สถานะกิจการปัจจุบัน {(occ.employmentType === 'SA' || occ.employmentType === 'SE') && <span className="text-red-500">*</span>}</Label>
+                                                            <RadioGroup
+                                                                value={(occ.isSameAsMainAddress ? (formData.occupations?.find((o: any) => o.id === 'main') || {}).businessStatus : occ.businessStatus) || ""}
+                                                                onValueChange={(val) => handleOccupationChange(occ.id, "businessStatus", val)}
+                                                                className="flex gap-6 pt-1"
+                                                                disabled={!!occ.isSameAsMainAddress}
+                                                            >
+                                                                <div className="flex items-center space-x-2">
+                                                                    <RadioGroupItem value="active" id={`${occ.id}-active`} disabled={!!occ.isSameAsMainAddress} />
+                                                                    <Label htmlFor={`${occ.id}-active`} className="font-normal cursor-pointer">ดำเนินกิจการอยู่</Label>
+                                                                </div>
+                                                                <div className="flex items-center space-x-2">
+                                                                    <RadioGroupItem value="closed" id={`${occ.id}-closed`} disabled={!!occ.isSameAsMainAddress} />
+                                                                    <Label htmlFor={`${occ.id}-closed`} className="font-normal cursor-pointer">ปิดกิจการ</Label>
+                                                                </div>
+                                                            </RadioGroup>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        }
+                                    />
                                     {/* 3. ช่องทางการรับรายได้ */}
                                     <div className="rounded-xl border border-border-color bg-gray-50/40 p-6 space-y-6">
                                         <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-border-color">
@@ -2034,7 +1854,8 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                         </div>
                                     </div>
                                 </TabsContent>
-                            ))}
+                            ))
+                            }
                         </Tabs>
 
                         {/* Special Incomes component has been removed in favor of this tab system */}
@@ -2525,9 +2346,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                         </div>
                     </CardContent>
                 </Card>
-
             </div>
-
             {/* Right side breakdown */}
             <div className="w-full xl:w-[350px] shrink-0 sticky top-6 space-y-4">
                 <Card className="border-border-subtle overflow-hidden">
@@ -2599,7 +2418,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            </div >
 
             <SpecialIncomeDialog
                 open={isSpecialIncomeDialogOpen}
@@ -2630,71 +2449,73 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
             </AlertDialog>
 
             {/* Photo Lightbox */}
-            {lightboxIndex !== null && formData.incomePhotos && (
-                <div
-                    className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
-                    onClick={() => setLightboxIndex(null)}
-                >
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
-                        className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
+            {
+                lightboxIndex !== null && formData.incomePhotos && (
+                    <div
+                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
+                        onClick={() => setLightboxIndex(null)}
                     >
-                        <X className="w-8 h-8" />
-                    </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
+                            className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
+                        >
+                            <X className="w-8 h-8" />
+                        </button>
 
-                    {/* Navigation */}
-                    {formData.incomePhotos.length > 1 && (
-                        <>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setLightboxIndex(prev => prev !== null ? (prev - 1 + formData.incomePhotos.length) % formData.incomePhotos.length : 0);
-                                }}
-                                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10"><path d="m15 18-6-6 6-6" /></svg>
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setLightboxIndex(prev => prev !== null ? (prev + 1) % formData.incomePhotos.length : 0);
-                                }}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10"><path d="m9 18 6-6-6-6" /></svg>
-                            </button>
-                        </>
-                    )}
+                        {/* Navigation */}
+                        {formData.incomePhotos.length > 1 && (
+                            <>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxIndex(prev => prev !== null ? (prev - 1 + formData.incomePhotos.length) % formData.incomePhotos.length : 0);
+                                    }}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10"><path d="m15 18-6-6 6-6" /></svg>
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxIndex(prev => prev !== null ? (prev + 1) % formData.incomePhotos.length : 0);
+                                    }}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10"><path d="m9 18 6-6-6-6" /></svg>
+                                </button>
+                            </>
+                        )}
 
-                    {/* Main Image */}
-                    <img
-                        src={formData.incomePhotos[lightboxIndex]}
-                        alt={`Business Photo ${lightboxIndex + 1}`}
-                        className="max-h-[80vh] max-w-full object-contain rounded-lg"
-                        onClick={(e) => e.stopPropagation()}
-                    />
+                        {/* Main Image */}
+                        <img
+                            src={formData.incomePhotos[lightboxIndex]}
+                            alt={`Business Photo ${lightboxIndex + 1}`}
+                            className="max-h-[80vh] max-w-full object-contain rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                        />
 
-                    {/* Thumbnail Strip */}
-                    <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto pb-2" onClick={(e) => e.stopPropagation()}>
-                        {formData.incomePhotos.map((doc: string, idx: number) => (
-                            <button
-                                key={idx}
-                                onClick={() => setLightboxIndex(idx)}
-                                className={cn(
-                                    "w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
-                                    idx === lightboxIndex ? "border-white scale-110 ring-2 ring-white/20" : "border-transparent opacity-50 hover:opacity-100"
-                                )}
-                            >
-                                <img src={doc} className="w-full h-full object-cover" />
-                            </button>
-                        ))}
+                        {/* Thumbnail Strip */}
+                        <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto pb-2" onClick={(e) => e.stopPropagation()}>
+                            {formData.incomePhotos.map((doc: string, idx: number) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setLightboxIndex(idx)}
+                                    className={cn(
+                                        "w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
+                                        idx === lightboxIndex ? "border-white scale-110 ring-2 ring-white/20" : "border-transparent opacity-50 hover:opacity-100"
+                                    )}
+                                >
+                                    <img src={doc} className="w-full h-full object-cover" />
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="absolute top-4 left-4 text-white/80 font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-md">
+                            {lightboxIndex + 1} / {formData.incomePhotos.length}
+                        </div>
                     </div>
-
-                    <div className="absolute top-4 left-4 text-white/80 font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-md">
-                        {lightboxIndex + 1} / {formData.incomePhotos.length}
-                    </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

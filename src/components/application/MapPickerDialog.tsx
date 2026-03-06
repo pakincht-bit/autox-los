@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/Button"
 
 // Dynamically import the map contents component with no SSR
-const MapContents = dynamic(() => import("./MapContents"), {
+const MapContents = dynamic(() => import("./MapContents").then(mod => mod.MapContents || mod.default), {
     ssr: false,
     loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
