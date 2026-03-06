@@ -252,6 +252,49 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         }
     }, [searchParams]);
 
+    // ── Load Mock Data for 'existing-user' ───────────────────────────────────
+    useEffect(() => {
+        if (appId === 'existing-user') {
+            setIsExistingCustomer(true);
+            setFormData((prev: any) => {
+                // Only override if not already populated with mock data (basic check)
+                if (prev.firstName === "สมชาย") return prev;
+
+                return {
+                    ...prev,
+                    idNumber: "1-1004-00123-45-6",
+                    firstName: "สมชาย",
+                    lastName: "ใจดี",
+                    phone: "081-234-5678",
+                    // Chaiyo Loan Products
+                    chaiyoLoans: [
+                        { type: "สินเชื่อรถยนต์", amount: 5500 },
+                        { type: "สินเชื่อจำนองที่ดิน", amount: 2600 }
+                    ],
+                    chaiyoInsuranceInstallment: 450,
+                    totalChaiyoDebt: 8550, // 5500 + 2600 + 450
+                    occupations: [
+                        {
+                            id: 'main',
+                            isMain: true,
+                            type: 'SA',
+                            saIncomes: [
+                                { type: 'salary', amount: '25000' }
+                            ],
+                            totalIncome: '25000'
+                        }
+                    ],
+                    personalDebts: [
+                        { type: 'personal', amount: '3500' },
+                        { type: 'housing', amount: '8000' }
+                    ],
+                    totalPersonalDebt: '11500',
+                    incomeRemarks: "ลูกค้าประวัติดี มีรายได้ประจำจากเงินเดือน"
+                };
+            });
+        }
+    }, [appId]);
+
     // ── Navigation ──────────────────────────────────────────────────────────
     const currentFlowIndex = ALL_FLOW_STEPS.findIndex(s => pathname.endsWith(s.slug) || pathname.includes(s.slug));
     const currentStep = currentFlowIndex >= 0 ? ALL_FLOW_STEPS[currentFlowIndex] : null;

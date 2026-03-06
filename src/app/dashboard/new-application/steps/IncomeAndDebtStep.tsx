@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Textarea";
 import {
     Table,
@@ -37,6 +37,15 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/Dialog";
+import { Info, HelpCircle } from "lucide-react";
 
 interface IncomeAndDebtStepProps {
     formData: any;
@@ -60,15 +69,50 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
     };
 
     const [activeTab, setActiveTab] = useState("main");
+    const occupations = formData.occupations || [{ id: 'main', isMain: true }];
+
     const [isSpecialIncomeDialogOpen, setIsSpecialIncomeDialogOpen] = useState(false);
     const [editingSpecialIncome, setEditingSpecialIncome] = useState<SpecialIncomeSource | null>(null);
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{
         id?: string,
         index?: number,
         occId?: string,
         name?: string,
-        type: 'special' | 'reference' | 'photo' | 'bankAccount' | 'incomeDocument' | 'saIncomeRow' | 'seIncomeRow' | 'seCostRow'
+        categoryId?: string,
+        type: 'special' | 'reference' | 'photo' | 'bankAccount' | 'incomeDocument' | 'saIncomeRow' | 'seIncomeRow' | 'seCostRow' | 'debtRow' | 'categorizedPhoto'
     } | null>(null);
+
+    // Debt Row Handlers
+    const handleAddDebtRow = () => {
+        const debts = formData.personalDebts || [];
+        handleChange("personalDebts", [...debts, { type: "", amount: "" }]);
+    };
+
+    const handleUpdateDebtRow = (index: number, field: string, value: string) => {
+        const debts = [...(formData.personalDebts || [])];
+        let finalValue = value;
+        if (field === 'amount') {
+            const clean = value.replace(/[^0-9.]/g, '');
+            const parts = clean.split('.');
+            if (parts.length > 2) {
+                finalValue = parts[0] + '.' + parts.slice(1).join('');
+            } else if (parts.length === 2 && parts[1].length > 2) {
+                finalValue = parts[0] + '.' + parts[1].slice(0, 2);
+            } else {
+                finalValue = clean;
+            }
+        }
+        debts[index] = { ...debts[index], [field]: finalValue };
+        handleChange("personalDebts", debts);
+    };
+
+    const handleRemoveDebtRow = (index: number) => {
+        const debts = [...(formData.personalDebts || [])];
+        debts.splice(index, 1);
+        handleChange("personalDebts", debts);
+        setItemToDelete(null);
+    };
 
     const handleSaveSpecialIncome = (source: SpecialIncomeSource) => {
         const currentIncomes = formData.specialIncomes || [];
@@ -105,6 +149,8 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
             handleRemoveSEIncomeRow(itemToDelete.occId, itemToDelete.index);
         } else if (itemToDelete.type === 'seCostRow' && itemToDelete.occId && itemToDelete.index !== undefined) {
             handleRemoveSECostRow(itemToDelete.occId, itemToDelete.index);
+        } else if (itemToDelete.type === 'debtRow' && itemToDelete.index !== undefined) {
+            handleRemoveDebtRow(itemToDelete.index);
         }
     };
 
@@ -122,6 +168,11 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         return parts.join(".");
     };
 
+    // Helper to round down to 2 decimal places
+    const roundDown2 = (num: number) => {
+        return Math.floor(num * 100) / 100;
+    };
+
     // Calculate Totals automatically
     useEffect(() => {
         // Special Income Calc
@@ -132,29 +183,67 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
             handleChange("specialIncome", specialIncomeSum.toString());
         }
 
-        // Income
-        const main = Number(formData.mainIncome) || 0;
+        // Get Occupation Sums
+        const mainOccSum = occupations.filter((o: any) => o.isMain).reduce((acc: number, o: any) => {
+            if (o.employmentType === 'SA') {
+                const saSum = (o.saIncomes || []).reduce((sumAcc: number, item: any) => sumAcc + (Number(item.amount) || 0), 0);
+                return acc + roundDown2(saSum);
+            }
+            if (o.employmentType === 'SE') {
+                const sales = (o.seIncomes || []).reduce((sumAcc: number, item: any) => sumAcc + (Number(item.calculatedMonthly) || 0), 0);
+                const costs = (o.seCosts || []).reduce((sumAcc: number, item: any) => sumAcc + (Number(item.calculatedMonthly) || 0), 0);
+                return acc + roundDown2(sales - costs);
+            }
+            return acc;
+        }, 0);
+
+        const secondaryOccSum = occupations.filter((o: any) => !o.isMain).reduce((acc: number, o: any) => {
+            if (o.employmentType === 'SA') {
+                const saSum = (o.saIncomes || []).reduce((sumAcc: number, item: any) => sumAcc + (Number(item.amount) || 0), 0);
+                return acc + roundDown2(saSum);
+            }
+            if (o.employmentType === 'SE') {
+                const sales = (o.seIncomes || []).reduce((sumAcc: number, item: any) => sumAcc + (Number(item.calculatedMonthly) || 0), 0);
+                const costs = (o.seCosts || []).reduce((sumAcc: number, item: any) => sumAcc + (Number(item.calculatedMonthly) || 0), 0);
+                return acc + roundDown2(sales - costs);
+            }
+            return acc;
+        }, 0);
+
+        // Income Summery
         const special = specialIncomeSum;
         const other = Number(formData.otherIncome) || 0;
-        const totalIncome = main + special + other;
+        const totalIncome = mainOccSum + secondaryOccSum + special + other;
+
+        // Keep mainIncome and secondaryIncome properties in sync for data model consistency
+        if (formData.mainOccupationIncome !== mainOccSum.toString()) {
+            handleChange("mainOccupationIncome", mainOccSum.toString());
+        }
+        if (formData.secondaryOccupationIncome !== secondaryOccSum.toString()) {
+            handleChange("secondaryOccupationIncome", secondaryOccSum.toString());
+        }
+
         if (formData.totalIncome !== totalIncome.toString()) {
             handleChange("totalIncome", totalIncome.toString());
         }
 
         // Debt - Personal
-        const home = Number(formData.homeInstallment) || 0;
-        const car = Number(formData.carInstallment) || 0;
-        const otherPersonal = Number(formData.otherPersonalDebt) || 0;
-        const totalPersonalDebt = home + car + otherPersonal;
+        const debtsList = formData.personalDebts || [];
+        const personalDebtSum = debtsList.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
+        const totalPersonalDebt = roundDown2(personalDebtSum);
+
         if (formData.totalPersonalDebt !== totalPersonalDebt.toString()) {
             handleChange("totalPersonalDebt", totalPersonalDebt.toString());
         }
 
         // Debt - Chaiyo
-        const chaiyoLoan = Number(formData.chaiyoLoanInstallment) || 0;
-        const chaiyoNew = Number(formData.chaiyoNewInstallment) || 0;
+        const chaiyoList = formData.chaiyoLoans || [];
+        const chaiyoLoansSum = chaiyoList.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
+        // Add legacy field if exists for fallback
+        const legacyChaiyo = Number(formData.chaiyoLoanInstallment) || 0;
         const chaiyoIns = Number(formData.chaiyoInsuranceInstallment) || 0;
-        const totalChaiyoDebt = chaiyoLoan + chaiyoNew + chaiyoIns;
+        const totalChaiyoDebt = chaiyoLoansSum + legacyChaiyo + chaiyoIns;
+
         if (formData.totalChaiyoDebt !== totalChaiyoDebt.toString()) {
             handleChange("totalChaiyoDebt", totalChaiyoDebt.toString());
         }
@@ -165,9 +254,9 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
             handleChange("totalDebt", totalDebt.toString());
         }
     }, [
-        formData.mainIncome, formData.specialIncome, formData.otherIncome,
-        formData.homeInstallment, formData.carInstallment, formData.otherPersonalDebt,
-        formData.chaiyoLoanInstallment, formData.chaiyoNewInstallment, formData.chaiyoInsuranceInstallment
+        occupations, formData.specialIncome, formData.otherIncome,
+        formData.personalDebts,
+        formData.chaiyoLoans, formData.chaiyoLoanInstallment, formData.chaiyoInsuranceInstallment
     ]);
 
     // Reference Persons
@@ -175,7 +264,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         const refs = formData.referencePersons || [];
         setFormData((prev: any) => ({
             ...prev,
-            referencePersons: [...refs, { name: "", phone: "" }]
+            referencePersons: [...refs, { name: "", phone: "", relationship: "", customRelationship: "" }]
         }));
     };
 
@@ -193,7 +282,6 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
     };
 
     // Occupations Management
-    const occupations = formData.occupations || [{ id: 'main', isMain: true }];
 
     const handleAddSecondaryOccupation = () => {
         const secondaryCount = occupations.filter((o: any) => !o.isMain).length;
@@ -337,6 +425,18 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         setItemToDelete(null);
     };
 
+    const DEBT_TYPES = [
+        { value: "commercial", label: "สินเชื่อเพื่อการพาณิชย์" },
+        { value: "od", label: "สินเชื่อวงเงินเบิกเกินบัญชี" },
+        { value: "personal", label: "สินเชื่อบุคคล" },
+        { value: "housing", label: "สินเชื่อที่อยู่อาศัย" },
+        { value: "leasing", label: "สินเชื่อให้เช่าแบบลิซซิ่งรถยนต์" },
+        { value: "hire_purchase", label: "สินเชื่อเช่าซื้อที่อื่น" },
+        { value: "agriculture", label: "สินเชื่อเพื่อการเกษตร" },
+        { value: "cooperative", label: "เงินกู้สหกรณ์" },
+        { value: "other", label: "ภาระหนี้อื่นๆ" },
+    ];
+
     const SA_INCOME_TYPES = [
         { label: "เงินเดือน", value: "salary" },
         { label: "รายได้ประจำ", value: "fixed_income" },
@@ -344,22 +444,89 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
         { label: "โบนัส", value: "bonus" },
     ];
 
+    const REFERENCE_RELATIONSHIPS = [
+        { value: "kamnan", label: "กำนัน" },
+        { value: "phuyaiban", label: "ผู้ใหญ่บ้าน" },
+        { value: "neighbor", label: "เพื่อนบ้าน" },
+        { value: "community_leader", label: "ผู้นำชุมชน" },
+        { value: "obt_official", label: "เจ้าหน้าที่ อบต" },
+        { value: "obh_official", label: "เจ้าหน้าที่ อบจ" },
+        { value: "employer", label: "นายจ้าง" },
+        { value: "customer", label: "ลูกค้าในร้าน" },
+        { value: "nearby_shop", label: "ร้านค้าข้างเคียง" },
+        { value: "other", label: "อื่นๆ โปรดระบุ" },
+    ];
+
+    const PHOTO_GUIDES = [
+        {
+            id: 'landmarks',
+            title: 'รูปสถานที่/จุดสังเกตุหลัก',
+            description: 'รูปสถานที่, รูปป้าย ที่เป็นจุดสังเกตุหลัก รอบกิจการผู้กู้ (ที่คนในพื้นที่รู้จัก) เช่น ป้ายซอย, ตึกอาคาร, วัด, ตลาด',
+            required: true,
+            icon: Building,
+            demoUrl: '/images/guidelines/landmarks_demo.png'
+        },
+        {
+            id: 'business_wide',
+            title: 'รูปมุมกว้างที่ตั้งกิจการ',
+            description: 'รูปมุมกว้าง เห็นที่ตั้งของกิจการ, เห็นป้ายหน้าร้าน (เห็นเบอร์โทรกิจการ) และ เห็นบริเวณข้างเคียง',
+            required: true,
+            icon: ImagePlus,
+            demoUrl: '/images/guidelines/business_wide_demo.png'
+        },
+        {
+            id: 'equipment',
+            title: 'รูปวัสดุ/อุปกรณ์กิจการ',
+            description: 'รูปวัสดุ และอุปกรณ์ที่ใช้ในการดำเนินกิจการ (อุปกรณ์ หรือเครื่องมือ ทำมาหากิน)',
+            required: true,
+            icon: Briefcase,
+            demoUrl: '/images/guidelines/equipment_demo.png'
+        },
+        {
+            id: 'applicant_working',
+            title: 'รูปผู้กู้ขณะทำงาน',
+            description: 'รูปผู้กู้ ขณะประกอบกิจการ',
+            required: true,
+            icon: Users,
+            demoUrl: '/images/guidelines/applicant_working_demo.png'
+        },
+        {
+            id: 'address_sign',
+            title: 'รูปเลขที่ตั้งกิจการ',
+            description: 'รูปเลขที่ตั้งกิจการ (ระบุเลขที่บ้าน หรือเลขที่ตั้งกิจการ)',
+            required: false,
+            icon: Home,
+            demoUrl: '/images/guidelines/address_sign_demo.png'
+        },
+        {
+            id: 'qr_code',
+            title: 'รูป QR Code รับเงิน',
+            description: 'รูป QR Code สำหรับรับเงินของกิจการ',
+            required: false,
+            icon: CreditCard,
+            demoUrl: '/images/guidelines/qr_code_demo.png'
+        }
+    ];
+
     // SE Income Handlers
     const calculateSEMonthlyIncome = (item: any) => {
         const amount = Number(item.salesAmount) || 0;
         if (!item.frequency) return 0;
+        let result = 0;
         if (item.frequency === 'daily') {
             const days = Number(item.daysPerMonth) || 0;
-            return amount * days;
-        }
-        if (item.frequency === 'weekly') {
+            result = amount * days;
+        } else if (item.frequency === 'weekly') {
             const weeks = Number(item.weeksPerMonth) || 0;
-            return amount * weeks;
+            result = amount * weeks;
+        } else if (item.frequency === 'monthly') {
+            result = amount;
+        } else if (item.frequency === 'quarterly') {
+            result = amount / 3;
+        } else if (item.frequency === 'yearly') {
+            result = amount / 12;
         }
-        if (item.frequency === 'monthly') return amount;
-        if (item.frequency === 'quarterly') return amount / 3;
-        if (item.frequency === 'yearly') return amount / 12;
-        return 0;
+        return roundDown2(result);
     };
 
     const handleAddSEIncomeRow = (occId: string) => {
@@ -451,18 +618,21 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
     const calculateSEMonthlyCost = (item: any) => {
         const amount = Number(item.costAmount) || 0;
         if (!item.frequency) return 0;
+        let result = 0;
         if (item.frequency === 'daily') {
             const days = Number(item.daysPerMonth) || 0;
-            return amount * days;
-        }
-        if (item.frequency === 'weekly') {
+            result = amount * days;
+        } else if (item.frequency === 'weekly') {
             const weeks = Number(item.weeksPerMonth) || 0;
-            return amount * weeks;
+            result = amount * weeks;
+        } else if (item.frequency === 'monthly') {
+            result = amount;
+        } else if (item.frequency === 'quarterly') {
+            result = amount / 3;
+        } else if (item.frequency === 'yearly') {
+            result = amount / 12;
         }
-        if (item.frequency === 'monthly') return amount;
-        if (item.frequency === 'quarterly') return amount / 3;
-        if (item.frequency === 'yearly') return amount / 12;
-        return 0;
+        return roundDown2(result);
     };
 
     const handleAddSECostRow = (occId: string) => {
@@ -1161,12 +1331,12 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                                             })()}
                                                         </TableBody>
                                                         <TableFooter>
-                                                            <TableRow className="bg-emerald-50/50 hover:bg-emerald-50/50">
-                                                                <TableCell colSpan={3} className="text-right font-bold text-emerald-700 py-4">
+                                                            <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 transition-none">
+                                                                <TableCell colSpan={3} className="text-right font-bold py-4 text-xs">
                                                                     รวมยอดขายต่อเดือน:
                                                                 </TableCell>
                                                                 <TableCell className="text-right pr-6 py-4">
-                                                                    <div className="text-lg font-black text-emerald-700 font-mono">
+                                                                    <div className="text-lg font-bold font-mono">
                                                                         ฿{formatNumberWithCommas(
                                                                             (occ.seIncomes || []).reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0)
                                                                         )}
@@ -1182,7 +1352,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                             <div className="space-y-4 pt-6 mt-6 border-t border-border-color">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                        <TrendingDown className="w-4 h-4 text-orange-600" /> ข้อมูลต้นทุนของกิจการ
+                                                        <TrendingDown className="w-4 h-4 text-red-500" /> ข้อมูลต้นทุนของกิจการ
                                                     </h4>
                                                     <Button
                                                         type="button"
@@ -1300,7 +1470,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                                                             />
                                                                         </TableCell>
                                                                         <TableCell className="py-3 pr-4 align-top">
-                                                                            <div className="text-right text-sm font-mono font-bold text-orange-600 mt-1">
+                                                                            <div className="text-right text-sm font-mono font-bold text-gray-600 mt-1">
                                                                                 {formatNumberWithCommas(item.calculatedMonthly || "0")}
                                                                             </div>
                                                                         </TableCell>
@@ -1323,18 +1493,22 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                                                 ))
                                                             )}
                                                         </TableBody>
+                                                        <TableFooter>
+                                                            <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 transition-none">
+                                                                <TableCell colSpan={4} className="text-right font-bold py-4 text-xs">
+                                                                    รวมต้นทุนต่อเดือน:
+                                                                </TableCell>
+                                                                <TableCell className="text-right pr-4 py-4">
+                                                                    <div className="text-lg font-bold font-mono text-gray-900">
+                                                                        ฿{formatNumberWithCommas(
+                                                                            (occ.seCosts || []).reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0)
+                                                                        )}
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell />
+                                                            </TableRow>
+                                                        </TableFooter>
                                                     </Table>
-                                                </div>
-
-                                                <div className="flex justify-end pt-2">
-                                                    <div className="bg-orange-50/50 border border-orange-100 rounded-xl px-4 py-3 flex items-center gap-4">
-                                                        <Label className="text-orange-700 font-bold">รวมต้นทุนต่อเดือน:</Label>
-                                                        <div className="text-xl font-black text-orange-700 font-mono">
-                                                            ฿{formatNumberWithCommas(
-                                                                (occ.seCosts || []).reduce((acc: number, curr: any) => acc + (Number(curr.calculatedMonthly) || 0), 0)
-                                                            )}
-                                                        </div>
-                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1342,7 +1516,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                             <div className="pt-6 mt-6 border-t border-border-color">
                                                 <div className="bg-chaiyo-blue/5 border border-chaiyo-blue/20 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="bg-white p-2 rounded-lg shadow-sm border border-chaiyo-blue/10 text-chaiyo-blue">
+                                                        <div className="bg-white p-2 rounded-lg border border-chaiyo-blue/10 text-chaiyo-blue">
                                                             <DollarSign className="w-5 h-5" />
                                                         </div>
                                                         <div>
@@ -1357,7 +1531,7 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                                             const netIncome = totalIncome - totalCost;
                                                             return (
                                                                 <div className={cn(
-                                                                    "text-2xl font-black font-mono",
+                                                                    "text-2xl font-bold font-mono",
                                                                     netIncome < 0 ? "text-red-500" : "text-chaiyo-blue"
                                                                 )}>
                                                                     ฿{formatNumberWithCommas(netIncome)}
@@ -1869,75 +2043,211 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
 
                 {/* ===== SECTION 2: Debt (ภาระหนี้สิน) ===== */}
                 <Card className="border-border-strong">
-                    <CardHeader className="bg-orange-50/50 border-b border-border-strong pb-4">
-                        <CardTitle className="text-lg flex items-center gap-2 text-orange-700">
+                    <CardHeader className="bg-blue-50/50 border-b border-border-strong pb-4">
+                        <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
                             <CreditCard className="w-5 h-5" />
                             ภาระหนี้สิน
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Personal Debt */}
-                            <div className="space-y-4">
-                                <h5 className="font-bold text-gray-700 flex items-center justify-between">
-                                    <span>ภาระหนี้ส่วนตัวรวม</span>
-                                </h5>
-                                <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-gray-500">ค่างวดผ่อนบ้าน/ที่ดิน (บาท/เดือน)</Label>
-                                        <Input
-                                            value={formatNumberWithCommas(formData.homeInstallment) || ""}
-                                            onChange={(e) => handleNumberChange("homeInstallment", e.target.value)}
-                                            className="text-right h-11 bg-white"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-gray-500">ค่างวดรถ (บาท/เดือน)</Label>
-                                        <Input
-                                            value={formatNumberWithCommas(formData.carInstallment) || ""}
-                                            onChange={(e) => handleNumberChange("carInstallment", e.target.value)}
-                                            className="text-right h-11 bg-white"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-gray-500">ภาระหนี้อื่น (บาท/เดือน)</Label>
-                                        <Input
-                                            value={formatNumberWithCommas(formData.otherPersonalDebt) || ""}
-                                            onChange={(e) => handleNumberChange("otherPersonalDebt", e.target.value)}
-                                            className="text-right h-11 bg-white"
-                                            placeholder="0"
-                                        />
-                                    </div>
+                            <div className="md:col-span-2 space-y-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h5 className="font-bold text-gray-700 flex items-center gap-2">
+                                        <span>ภาระหนี้ส่วนตัวรายเดือน (รวมที่อื่น)</span>
+                                    </h5>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleAddDebtRow}
+                                        className="h-8 text-[11px] font-medium"
+                                    >
+                                        <Plus className="w-3 h-3 mr-1" /> เพิ่มรายการหนี้
+                                    </Button>
+                                </div>
+
+                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                    <Table>
+                                        <TableHeader className="bg-gray-50/50">
+                                            <TableRow>
+                                                <TableHead className="w-[10%] text-center text-xs">ลำดับ</TableHead>
+                                                <TableHead className="w-[50%] text-xs">ประเภทสินเชื่อ</TableHead>
+                                                <TableHead className="w-[30%] text-xs text-right pr-10">ค่างวด (บาท/เดือน)</TableHead>
+                                                <TableHead className="w-[10%] text-center text-xs">จัดการ</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {(!formData.personalDebts || formData.personalDebts.length === 0) ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic text-xs">
+                                                        ยังไม่มีรายการหนี้ส่วนตัวรายเดือน กรุณากดเพิ่มรายการ
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                formData.personalDebts.map((item: any, idx: number) => (
+                                                    <TableRow key={idx} className="group transition-colors hover:bg-gray-50/50">
+                                                        <TableCell className="py-3 text-center text-xs font-medium text-gray-500">
+                                                            {idx + 1}
+                                                        </TableCell>
+                                                        <TableCell className="py-2">
+                                                            <div className="space-y-1.5 transition-all duration-200">
+                                                                <Select
+                                                                    value={item.type || ""}
+                                                                    onValueChange={(val) => handleUpdateDebtRow(idx, 'type', val)}
+                                                                >
+                                                                    <SelectTrigger className="h-9 text-sm bg-gray-50/30 border-gray-200 focus:ring-chaiyo-blue/20">
+                                                                        <SelectValue placeholder="เลือกประเภทสินเชื่อ" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {DEBT_TYPES.map(type => (
+                                                                            <SelectItem key={type.value} value={type.value} className="text-sm cursor-pointer">{type.label}</SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+
+                                                                {item.type === 'other' && (
+                                                                    <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                        <Input
+                                                                            value={item.customType || ""}
+                                                                            onChange={(e) => handleUpdateDebtRow(idx, 'customType', e.target.value)}
+                                                                            placeholder="ระบุประเภทหนี้ (เช่น เงินกู้นอกระบบ)"
+                                                                            className="h-8 text-xs bg-white border-dashed border-gray-300 focus:border-chaiyo-blue"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="py-2 pr-4">
+                                                            <Input
+                                                                type="text"
+                                                                value={formatNumberWithCommas(item.amount) || ""}
+                                                                onChange={(e) => handleUpdateDebtRow(idx, 'amount', e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="h-9 text-sm bg-gray-50/30 text-right font-mono border-gray-200 pr-6"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="py-2 text-center">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 rounded-full"
+                                                                onClick={() => setItemToDelete({
+                                                                    index: idx,
+                                                                    name: (DEBT_TYPES.find(d => d.value === item.type)?.label) || `รายการที่ ${idx + 1}`,
+                                                                    type: 'debtRow'
+                                                                })}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                        <TableFooter>
+                                            <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 transition-none">
+                                                <TableCell colSpan={2} className="text-right font-bold py-4 text-xs">
+                                                    รวมภาระหนี้ส่วนตัวรายเดือน:
+                                                </TableCell>
+                                                <TableCell className="text-right pr-10 py-4">
+                                                    <div className="text-lg font-bold font-mono text-gray-900 pr-0.5">
+                                                        ฿{formatNumberWithCommas(formData.totalPersonalDebt || 0)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell />
+                                            </TableRow>
+                                        </TableFooter>
+                                    </Table>
                                 </div>
                             </div>
 
-                            {/* Chaiyo Debt */}
-                            {isExistingCustomer && (
-                                <div className="space-y-4">
-                                    <h5 className="font-bold text-gray-700 flex items-center justify-between">
-                                        <span>ภาระหนี้กับเงินไชโยรวม</span>
+                            {/* Chaiyo Debt Table */}
+                            <div className="md:col-span-2 space-y-4 pt-4 mt-6 border-t border-border-color animate-in fade-in slide-in-from-top-4 duration-500">
+                                <div className="flex items-center justify-between">
+                                    <h5 className="font-bold text-gray-700 flex items-center gap-2">
+                                        ภาระหนี้ที่ลูกค้ามีกับเงินไชโย
                                     </h5>
-                                    <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-gray-500">ค่างวดสินเชื่อกับเงินไชโย (บาท/เดือน)</Label>
-                                            <div className="text-right h-11 border-gray-200 bg-white flex items-center justify-end px-3 rounded-md border text-sm">
-                                                {formatNumberWithCommas(formData.chaiyoLoanInstallment) || "0"}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-gray-500">ค่างวดประกันผ่อนกับเงินไชโย (บาท/เดือน)</Label>
-                                            <div className="text-right h-11 border-gray-200 bg-white flex items-center justify-end px-3 rounded-md border text-sm">
-                                                {formatNumberWithCommas(formData.chaiyoInsuranceInstallment) || "0"}
-                                            </div>
-                                        </div>
-                                        <div className="pt-2">
-                                            <p className="text-[11px] text-red-500">* หมายเหตุ: ค่านี้ยังไม่รวมยอดขอสินเชื่อในครั้งนี้</p>
-                                        </div>
-                                    </div>
+
                                 </div>
-                            )}
+
+                                <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
+                                    <Table>
+                                        <TableHeader className="bg-gray-50/50">
+                                            <TableRow className="hover:bg-transparent border-none">
+                                                <TableHead className="w-[10%] text-center text-xs">ลำดับ</TableHead>
+                                                <TableHead className="w-[60%] text-xs">ประเภทสินเชื่อ (Loan Type)</TableHead>
+                                                <TableHead className="w-[30%] text-right pr-10 text-xs">ค่างวด (บาท/เดือน)</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {!isExistingCustomer || (
+                                                (formData.chaiyoLoans || []).length === 0 &&
+                                                Number(formData.chaiyoLoanInstallment || 0) === 0 &&
+                                                Number(formData.chaiyoInsuranceInstallment || 0) === 0
+                                            ) ? (
+                                                <TableRow className="hover:bg-transparent border-none">
+                                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground italic text-xs">
+                                                        ไม่พบประวัติภาระหนี้เดิมกับเงินไชโย (ลูกค้ารายใหม่)
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                <>
+                                                    {/* Specific Chaiyo Products */}
+                                                    {(formData.chaiyoLoans || []).map((loan: any, lIdx: number) => (
+                                                        <TableRow key={`chaiyo-${lIdx}`} className="hover:bg-gray-50/50 transition-colors border-border-subtle">
+                                                            <TableCell className="text-center text-xs text-gray-400">{lIdx + 1}</TableCell>
+                                                            <TableCell className="text-sm text-gray-700">{loan.type}</TableCell>
+                                                            <TableCell className="text-right pr-10 font-mono text-sm text-gray-600">
+                                                                {formatNumberWithCommas(loan.amount) || "0.00"}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+
+                                                    {/* Legacy Field Fallback */}
+                                                    {Number(formData.chaiyoLoanInstallment || 0) > 0 && (
+                                                        <TableRow className="hover:bg-gray-50/50 transition-colors border-border-subtle">
+                                                            <TableCell className="text-center text-xs text-gray-400">
+                                                                {(formData.chaiyoLoans || []).length + 1}
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-gray-700">สินเชื่อกับเงินไชโยอื่นๆ</TableCell>
+                                                            <TableCell className="text-right pr-10 font-mono text-sm text-gray-600">
+                                                                {formatNumberWithCommas(formData.chaiyoLoanInstallment) || "0.00"}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )}
+
+                                                    {/* Insurance Installment */}
+                                                    {Number(formData.chaiyoInsuranceInstallment || 0) > 0 && (
+                                                        <TableRow className="hover:bg-gray-50/50 transition-colors border-border-subtle">
+                                                            <TableCell className="text-center text-xs text-gray-400">
+                                                                {(formData.chaiyoLoans || []).length + (Number(formData.chaiyoLoanInstallment || 0) > 0 ? 2 : 1)}
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-sm text-gray-700">สินเชื่อประกันผ่อนกับเงินไชโย</TableCell>
+                                                            <TableCell className="text-right pr-10 font-mono text-sm text-gray-600">
+                                                                {formatNumberWithCommas(formData.chaiyoInsuranceInstallment) || "0.00"}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )}
+                                                </>
+                                            )}
+                                        </TableBody>
+                                        <TableFooter>
+                                            <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 transition-none border-none">
+                                                <TableCell colSpan={2} className="text-right font-bold py-4 text-xs">
+                                                    รวมภาระหนี้เงินไชโยรวม:
+                                                </TableCell>
+                                                <TableCell className="text-right pr-10 py-4">
+                                                    <div className="text-lg font-bold font-mono text-gray-900 pr-0.5">
+                                                        ฿{formatNumberWithCommas(formData.totalChaiyoDebt || 0)}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        </TableFooter>
+                                    </Table>
+                                </div>
+
+                            </div>
                         </div>
 
                         {/* Remarks */}
@@ -1959,61 +2269,97 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                 <Card className="border-border-strong">
                     <CardHeader className="bg-blue-50/50 border-b border-border-strong pb-4">
                         <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
-                                    <Users className="w-5 h-5" />
-                                    บุคคลอ้างอิง (กรณีไม่มีเอกสารแสดงรายได้)
+                            <div className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-chaiyo-blue" />
+                                <CardTitle className="text-lg text-chaiyo-blue">
+                                    บุคคลอ้างอิง
+                                    {!occupations.some((occ: any) => (occ.incomeDocuments || []).length > 0) ? (
+                                        <span className="text-red-500 ml-1.5 text-xs font-normal">(จำเป็น กรณีไม่มีเอกสารแสดงรายได้) *</span>
+                                    ) : (
+                                        <span className="text-muted-foreground ml-1.5 text-xs font-normal">(ถ้ามี)</span>
+                                    )}
                                 </CardTitle>
                             </div>
-                            <Button variant="outline" size="sm" onClick={handleAddReference}>
-                                <Plus className="w-4 h-4 mr-1" /> เพิ่มบุคคลอ้างอิง
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className=""
+                                onClick={handleAddReference}
+                            >
+                                <Plus className="w-3 h-3 mr-1" /> เพิ่มบุคคลอ้างอิง
                             </Button>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="border border-border-subtle rounded-xl overflow-hidden">
+                    <CardContent className="p-4">
+                        <div className="border border-border-strong rounded-xl overflow-hidden bg-white">
                             <Table>
-                                <TableHeader className="bg-gray-50">
-                                    <TableRow className="hover:bg-gray-50">
-                                        <TableHead className="w-[10%] py-3 text-center">ลำดับ</TableHead>
-                                        <TableHead className="w-[40%] py-3">ชื่อ-นามสกุล</TableHead>
-                                        <TableHead className="w-[40%] py-3">เบอร์ติดต่อ</TableHead>
-                                        <TableHead className="w-[10%] py-3 text-center">จัดการ</TableHead>
+                                <TableHeader className="bg-gray-50/50">
+                                    <TableRow className="hover:bg-transparent border-none">
+                                        <TableHead className="w-[8%] text-center text-xs">ลำดับ</TableHead>
+                                        <TableHead className="w-[37%] text-xs">ชื่อ-นามสกุล</TableHead>
+                                        <TableHead className="w-[35%] text-xs">ความเกี่ยวข้อง</TableHead>
+                                        <TableHead className="w-[10%] text-xs text-center">จัดการ</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {(!formData.referencePersons || formData.referencePersons.length === 0) ? (
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                                                ยังไม่มีบุคคลอ้างอิง
+                                        <TableRow className="hover:bg-transparent border-none">
+                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic text-xs">
+                                                ยังไม่มีข้อมูลบุคคลอ้างอิง — กรุณากดปุ่มเพิ่มเพื่อระบุข้อมูล
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         formData.referencePersons.map((ref: any, index: number) => (
-                                            <TableRow key={index} className="table-row-hover group">
-                                                <TableCell className="py-3 text-center font-medium">{index + 1}</TableCell>
-                                                <TableCell className="py-3">
+                                            <TableRow key={index} className="group transition-colors hover:bg-gray-50/50">
+                                                <TableCell className="py-3 text-center text-xs font-medium text-gray-500">
+                                                    {index + 1}
+                                                </TableCell>
+                                                <TableCell className="py-2">
                                                     <Input
-                                                        value={ref.name}
+                                                        value={ref.name || ""}
                                                         onChange={(e) => handleUpdateReference(index, "name", e.target.value)}
                                                         placeholder="ระบุชื่อ-นามสกุล"
-                                                        className="h-9"
+                                                        className="h-9 text-sm bg-gray-50/30 border-gray-200 focus:ring-chaiyo-blue/20"
                                                     />
                                                 </TableCell>
-                                                <TableCell className="py-3">
-                                                    <Input
-                                                        value={ref.phone}
-                                                        onChange={(e) => handleUpdateReference(index, "phone", e.target.value)}
-                                                        placeholder="08x-xxx-xxxx"
-                                                        className="h-9 font-mono"
-                                                    />
+                                                <TableCell className="py-2">
+                                                    <div className="space-y-1.5 transition-all duration-200">
+                                                        <Select
+                                                            value={ref.relationship || ""}
+                                                            onValueChange={(val) => handleUpdateReference(index, "relationship", val)}
+                                                        >
+                                                            <SelectTrigger className="h-9 text-sm bg-gray-50/30 border-gray-200 focus:ring-chaiyo-blue/20">
+                                                                <SelectValue placeholder="เลือกความเกี่ยวข้อง" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {REFERENCE_RELATIONSHIPS.map(rel => (
+                                                                    <SelectItem key={rel.value} value={rel.value} className="text-sm cursor-pointer">{rel.label}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+
+                                                        {ref.relationship === 'other' && (
+                                                            <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                <Input
+                                                                    value={ref.customRelationship || ""}
+                                                                    onChange={(e) => handleUpdateReference(index, "customRelationship", e.target.value)}
+                                                                    placeholder="โปรดระบุรายละเอียด"
+                                                                    className="h-8 text-xs bg-white border-dashed border-gray-300 focus:border-chaiyo-blue"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell className="py-3 text-center">
+                                                <TableCell className="py-2 text-center text-gray-500">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
                                                         className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 rounded-full"
-                                                        onClick={() => setItemToDelete({ index, name: ref.name || `บุคคลที่ ${index + 1}`, type: 'reference' })}
+                                                        onClick={() => setItemToDelete({
+                                                            index,
+                                                            name: ref.name || `บุคคลที่ ${index + 1}`,
+                                                            type: 'reference'
+                                                        })}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
@@ -2027,45 +2373,156 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                     </CardContent>
                 </Card>
 
-                {/* ===== SECTION 4: Upload Photos (อัพโหลดรูปประกอบ) ===== */}
-                <Card className="border-border-strong">
+                {/* ===== SECTION 4: Upload Photos (อัพโหลดรูปประกอบกิจการ) ===== */}
+                <Card className="border-border-strong bg-white overflow-hidden">
                     <CardHeader className="bg-blue-50/50 border-b border-border-strong pb-4">
-                        <CardTitle className="text-lg flex items-center gap-2 text-chaiyo-blue">
-                            <ImagePlus className="w-5 h-5" />
-                            อัพโหลดรูปประกอบ (กรณีที่ไม่มีหลักฐานของรายได้ สามารถอัพโหลดรูปประกอบเพื่อใช้แทนได้
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <ImagePlus className="w-6 h-6 text-chaiyo-blue" />
+                                <CardTitle className="text-lg text-chaiyo-blue">
+
+                                    อัพโหลดรูปประกอบกิจการ
+                                </CardTitle>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                {/* Hidden Input */}
+                                <input
+                                    type="file"
+                                    multiple
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const files = e.target.files;
+                                        if (!files || files.length === 0) return;
+
+                                        const newPhotos: string[] = [];
+                                        for (let i = 0; i < files.length; i++) {
+                                            const file = files[i];
+                                            const url = URL.createObjectURL(file);
+                                            newPhotos.push(url);
+                                        }
+
+                                        handleChange("incomePhotos", [...(formData.incomePhotos || []), ...newPhotos]);
+                                        e.target.value = '';
+                                    }}
+                                    id="businessPhotoUpload"
+                                />                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="gap-1.5 flex items-center bg-white text-gray-600 hover:text-gray-900"
+                                        >
+                                            <Info className="w-4 h-4" />
+                                            ดูคำแนะนำการถ่ายรูป
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                                        <DialogHeader>
+                                            <DialogTitle className="flex items-center gap-2">
+                                                <div className="p-1.5 bg-chaiyo-blue/10 rounded-lg text-chaiyo-blue">
+                                                    <HelpCircle className="w-5 h-5" />
+                                                </div>
+                                                คำแนะนำการถ่ายรูปประกอบกิจการ
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                กรุณาถ่ายรูปตามรายการต่อไปนี้เพื่อให้เจ้าหน้าที่ตรวจสอบข้อมูลได้อย่างถูกต้อง
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                                            <div className="space-y-3">
+                                                <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-2">
+                                                    รูปที่จำเป็น (Mandatory)
+                                                </h4>
+                                                {PHOTO_GUIDES.filter(g => g.required).map((guide) => (
+                                                    <div key={guide.id} className="p-3 rounded-xl border border-amber-100 bg-amber-50/30 space-y-2">
+                                                        <div className="flex items-center gap-2 font-bold text-sm text-gray-800">
+                                                            <guide.icon className="w-4 h-4 text-amber-600" />
+                                                            {guide.title}
+                                                        </div>
+                                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                            {guide.description}
+                                                        </p>
+                                                        {guide.demoUrl && (
+                                                            <div className="w-full h-32 mt-2 rounded-lg overflow-hidden border border-amber-200 shadow-sm relative group bg-white">
+                                                                <img src={guide.demoUrl} alt={guide.title} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="space-y-3">
+                                                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                    รูปเพิ่มเติม (Optional)
+                                                </h4>
+                                                {PHOTO_GUIDES.filter(g => !g.required).map((guide) => (
+                                                    <div key={guide.id} className="p-3 rounded-xl border border-gray-100 bg-gray-50/30 space-y-2">
+                                                        <div className="flex items-center gap-2 font-bold text-sm text-gray-800">
+                                                            <guide.icon className="w-4 h-4 text-gray-600" />
+                                                            {guide.title}
+                                                        </div>
+                                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                            {guide.description}
+                                                        </p>
+                                                        {guide.demoUrl && (
+                                                            <div className="w-full h-32 mt-2 rounded-lg overflow-hidden border border-gray-200 shadow-sm relative group bg-white">
+                                                                <img src={guide.demoUrl} alt={guide.title} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </div>
 
 
-                            )
-                        </CardTitle>
                     </CardHeader>
+
                     <CardContent className="p-6">
                         <div className="flex flex-wrap gap-4">
-                            {(formData.incomePhotos || []).map((photo: string, idx: number) => (
-                                <div key={idx} className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-gray-200 group bg-white shadow-sm transition-all hover:border-chaiyo-blue">
-                                    <img src={photo} alt={`income-photo-${idx}`} className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            {(formData.incomePhotos || []).map((url: string, idx: number) => (
+                                <div key={idx} className="relative w-28 h-28 rounded-xl overflow-hidden border border-border-strong group bg-white shadow-sm">
+                                    <img src={url} alt={`business-img-${idx}`} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
-                                            onClick={() => setItemToDelete({ index: idx, name: `รูปที่ ${idx + 1}`, type: 'photo' })}
-                                            className="text-white hover:text-red-300 transition-colors p-1.5 bg-white/10 rounded-full backdrop-blur-sm"
+                                            className="absolute inset-0 flex flex-col items-center justify-center text-white gap-1 z-10"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setLightboxIndex(idx);
+                                            }}
                                         >
-                                            <X className="w-5 h-5" />
+                                            <Eye className="w-6 h-6 hover:text-blue-200 transition-colors" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemovePhoto(idx);
+                                            }}
+                                            className="absolute top-1.5 right-1.5 text-white hover:text-red-300 transition-colors bg-black/20 hover:bg-black/40 rounded-full p-1.5 border border-white/20 backdrop-blur-sm shadow-sm z-20"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                 </div>
                             ))}
-                            <button
-                                onClick={handleAddPhoto}
-                                className="w-32 h-32 rounded-2xl border-2 border-dashed border-gray-300 hover:border-chaiyo-blue hover:bg-blue-50 flex flex-col items-center justify-center gap-3 text-gray-400 hover:text-chaiyo-blue transition-all bg-white shadow-sm group cursor-pointer"
+
+                            <div
+                                className={cn(
+                                    "h-28 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 gap-1 bg-gray-50/50 cursor-pointer hover:bg-blue-50/50 hover:border-chaiyo-blue hover:text-chaiyo-blue transition-all shrink-0",
+                                    (!formData.incomePhotos || formData.incomePhotos.length === 0) ? "w-full" : "w-28"
+                                )}
+                                onClick={() => document.getElementById('businessPhotoUpload')?.click()}
                             >
-                                <div className="p-3 bg-gray-50 rounded-full group-hover:bg-blue-100 transition-colors">
-                                    <Plus className="w-6 h-6" />
-                                </div>
-                                <span className="text-xs font-bold">เพิ่มรูปถ่าย</span>
-                            </button>
+                                <ImagePlus className="w-5 h-5 opacity-70" />
+                                <span className={cn("font-medium", (!formData.incomePhotos || formData.incomePhotos.length === 0) ? "text-sm" : "text-[11px] text-center leading-tight")}>
+                                    {!formData.incomePhotos || formData.incomePhotos.length === 0 ? "อัปโหลดรูปภาพประกอบ" : <>อัปโหลด<br />รูปภาพ</>}
+                                </span>
+                            </div>
                         </div>
-                        {(!formData.incomePhotos || formData.incomePhotos.length === 0) && (
-                            <p className="text-sm text-muted-foreground mt-4">ยังไม่มีรูปประกอบ — กดปุ่ม &quot;เพิ่มรูปถ่าย&quot; เพื่ออัพโหลด</p>
-                        )}
                     </CardContent>
                 </Card>
 
@@ -2089,8 +2546,12 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                                 </h4>
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex justify-between text-gray-600">
-                                        <span>รายได้หลัก</span>
-                                        <span className="font-mono">{formatNumberWithCommas(formData.mainIncome || 0)}</span>
+                                        <span>รายได้อาชีพหลัก</span>
+                                        <span className="font-mono">{formatNumberWithCommas(formData.mainOccupationIncome || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>รายได้อาชีพเสริม</span>
+                                        <span className="font-mono">{formatNumberWithCommas(formData.secondaryOccupationIncome || 0)}</span>
                                     </div>
                                     <div className="flex justify-between text-gray-600">
                                         <span>รายได้พิเศษ</span>
@@ -2167,6 +2628,73 @@ export function IncomeAndDebtStep({ formData, setFormData, isExistingCustomer = 
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Photo Lightbox */}
+            {lightboxIndex !== null && formData.incomePhotos && (
+                <div
+                    className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
+                    onClick={() => setLightboxIndex(null)}
+                >
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
+                        className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
+                    >
+                        <X className="w-8 h-8" />
+                    </button>
+
+                    {/* Navigation */}
+                    {formData.incomePhotos.length > 1 && (
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxIndex(prev => prev !== null ? (prev - 1 + formData.incomePhotos.length) % formData.incomePhotos.length : 0);
+                                }}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10"><path d="m15 18-6-6 6-6" /></svg>
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxIndex(prev => prev !== null ? (prev + 1) % formData.incomePhotos.length : 0);
+                                }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10"><path d="m9 18 6-6-6-6" /></svg>
+                            </button>
+                        </>
+                    )}
+
+                    {/* Main Image */}
+                    <img
+                        src={formData.incomePhotos[lightboxIndex]}
+                        alt={`Business Photo ${lightboxIndex + 1}`}
+                        className="max-h-[80vh] max-w-full object-contain rounded-lg"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+
+                    {/* Thumbnail Strip */}
+                    <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto pb-2" onClick={(e) => e.stopPropagation()}>
+                        {formData.incomePhotos.map((doc: string, idx: number) => (
+                            <button
+                                key={idx}
+                                onClick={() => setLightboxIndex(idx)}
+                                className={cn(
+                                    "w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
+                                    idx === lightboxIndex ? "border-white scale-110 ring-2 ring-white/20" : "border-transparent opacity-50 hover:opacity-100"
+                                )}
+                            >
+                                <img src={doc} className="w-full h-full object-cover" />
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="absolute top-4 left-4 text-white/80 font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-md">
+                        {lightboxIndex + 1} / {formData.incomePhotos.length}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
