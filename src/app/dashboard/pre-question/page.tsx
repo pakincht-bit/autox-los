@@ -1482,56 +1482,6 @@ function PreQuestionPageContent() {
         <div className="h-full">
             <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20 px-4 sm:px-6 lg:px-8 pt-6">
 
-                {/* Stepper Indicator (Matching Application Flow) */}
-                <div className="flex justify-center items-center mb-16 print:hidden w-full">
-                    <div className="relative flex items-center justify-between w-full max-w-2xl px-4 md:px-12">
-                        {/* Progress Line */}
-                        <div className="absolute left-4 right-4 md:left-12 md:right-12 top-[14px] -translate-y-1/2 h-[2px] bg-gray-200 z-0">
-                            <div
-                                className="h-full bg-chaiyo-blue transition-all duration-500 ease-in-out"
-                                style={{
-                                    width: `${((currentStep - 1) / 2) * 100}%`
-                                }}
-                            ></div>
-                        </div>
-
-                        {[
-                            { id: 1, label: "แบบสอบถามเบื้องต้น", icon: FileText },
-                            { id: 2, label: "คำนวณสินเชื่อ / แนะนำสินค้า", icon: Calculator },
-                            { id: 3, label: "เอกสารและความยินยอม", icon: ShieldCheck }
-                        ].map((step) => {
-                            const isActive = currentStep === step.id;
-                            const isCompleted = currentStep > step.id;
-                            const Icon = step.icon;
-
-                            return (
-                                <div key={step.id} className="relative z-10 flex flex-col items-center">
-                                    {/* Circle Step Indicator */}
-                                    <div className={cn(
-                                        "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 bg-white",
-                                        isActive
-                                            ? "border-chaiyo-blue text-chaiyo-blue scale-110"
-                                            : isCompleted
-                                                ? "bg-chaiyo-blue border-chaiyo-blue text-white"
-                                                : "border-gray-200 text-gray-300"
-                                    )}>
-                                        {isCompleted ? <Check className="w-4 h-4" /> : <Icon className="w-3.5 h-3.5" />}
-                                    </div>
-
-                                    {/* Label positioned below */}
-                                    <div className="absolute top-9 w-24 flex justify-center">
-                                        <span className={cn(
-                                            "text-[10px] md:text-xs font-bold text-center transition-colors whitespace-nowrap",
-                                            isActive ? "text-chaiyo-blue" : isCompleted ? "text-gray-800" : "text-gray-400"
-                                        )}>
-                                            {step.label}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
 
                 {/* STEP 1: Preliminary Questionnaire (New) */}
                 {/* STEP 1: Preliminary Questionnaire (New Github Layout) */}
@@ -1548,7 +1498,6 @@ function PreQuestionPageContent() {
                             <div className="space-y-6 mt-4">
 
                                 <div className="space-y-4">
-                                    <Label>ประเภทหลักประกัน <span className="text-red-500">*</span></Label>
                                     <div className="flex flex-wrap gap-2">
                                         {PRODUCTS.map((p) => (
                                             <button

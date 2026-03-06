@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle, Loader2, CreditCard, User, Camera, ArrowRight, UserCheck, UserPlus, FileText, MapPin, Briefcase, Calendar, ShieldAlert, AlertTriangle, XCircle, ArrowLeft, AlertCircle } from "lucide-react";
+import { CheckCircle, Loader2, CreditCard, User, Camera, ArrowRight, UserCheck, UserPlus, FileText, MapPin, Briefcase, Calendar, ShieldAlert, AlertTriangle, XCircle, ArrowLeft, AlertCircle, Info, Save, Check, Printer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
@@ -20,12 +20,14 @@ import { Combobox } from "@/components/ui/combobox";
 import {
     AlertDialog,
     AlertDialogAction,
+    AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface IdentityCheckStepProps {
     formData: any;
@@ -33,11 +35,17 @@ interface IdentityCheckStepProps {
     onNext: (isExisting: boolean, profile?: any) => void;
 }
 
-type KYCStage = 'INIT' | 'READING_CARD' | 'CHECKING_MEMBER' | 'CARD_SUCCESS' | 'TAKING_ID_FRONT' | 'TAKING_ID_BACK' | 'FACE_VERIFY' | 'FACE_SUCCESS' | 'COMPLETE';
+type KYCStage = 'INIT' | 'READING_CARD' | 'CHECKING_MEMBER' | 'CARD_SUCCESS' | 'TAKING_ID_FRONT' | 'TAKING_ID_BACK' | 'FACE_VERIFY' | 'FACE_SUCCESS' | 'FACE_FAILED' | 'COMPLETE';
 
 export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityCheckStepProps) {
     const [stage, setStage] = useState<KYCStage>('INIT');
-    const [verificationMethod, setVerificationMethod] = useState<'DIPCHIP' | 'MANUAL' | null>(null);
+    const [verificationMethod, setVerificationMethod] = useState<'DIPCHIP' | 'MANUAL' | null>('DIPCHIP');
+    const [dipchipError, setDipchipError] = useState(false);
+    const [isSimulatingError, setIsSimulatingError] = useState(false);
+
+    // Liveness Failure Simulation
+    const [livenessAttempts, setLivenessAttempts] = useState(0);
+    const [simulateLivenessFail, setSimulateLivenessFail] = useState(false);
 
     const [isExistingMember, setIsExistingMember] = useState<boolean>(false);
     const [existingProfile, setExistingProfile] = useState<any>(null);
@@ -59,17 +67,21 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
     const [isProcessingFrontPhoto, setIsProcessingFrontPhoto] = useState(false);
 
     const [alertDialog, setAlertDialog] = useState<{
-        isOpen: boolean;
-        title: string;
-        description: string;
-        type: "error" | "warning";
-        action?: () => void;
+        isOpen: boolean,
+        title: string,
+        description: string,
+        type: 'error' | 'warning' | 'success',
+        action?: () => void,
+        cancelAction?: () => void,
+        cancelText?: string
     }>({
         isOpen: false,
         title: "",
         description: "",
         type: "error"
     });
+    const [showNotContinueDialog, setShowNotContinueDialog] = useState(false);
+    const [notContinuePhone, setNotContinuePhone] = useState("");
     const [mockLivePhoto, setMockLivePhoto] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
@@ -274,8 +286,15 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
     // 1. Dip Chip -> Then Review Data
     const handleReadCard = async () => {
+        setDipchipError(false);
         setStage('READING_CARD');
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        if (isSimulatingError) {
+            setDipchipError(true);
+            setStage('INIT');
+            return;
+        }
 
         // Mock Data
         const mockData = {
@@ -354,7 +373,7 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                 fullAddress: formData.cardType === 'PINK_CARD' ? "789 หมู่ 3 บางรัก บางรัก กรุงเทพมหานคร 10500" : "456 หมู่ 2 บางรัก บางรัก กรุงเทพมหานคร 10500",
                 issueDate: "2022-10-10",
                 expiryDate: "2031-10-09",
-                laserId: formData.cardType === 'PINK_CARD' ? "PNK-0000000-01" : "CH2-9876543-21",
+                laserId: formData.cardType === 'PINK_CARD' ? "PNK-0000000-01" : "JT2-9876543-21",
                 nationality: formData.cardType === 'PINK_CARD' ? "Myanmar" : "Thai",
             };
 
@@ -387,6 +406,12 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                 description: `กรุณาระบุ: ${missingFields.map(f => f.label).join(', ')}`,
                 type: "error"
             });
+            return;
+        }
+
+        // Skip DOPA check for Alien/Pink Cards
+        if (dataToVerify.cardType === 'PINK_CARD') {
+            setStage('FACE_VERIFY');
             return;
         }
 
@@ -467,6 +492,32 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
 
         setStage('READING_CARD'); // Show matching processing
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        if (simulateLivenessFail) {
+            const nextAttempt = livenessAttempts + 1;
+            setLivenessAttempts(nextAttempt);
+
+            if (nextAttempt < 3) {
+                setAlertDialog({
+                    isOpen: true,
+                    title: "ยืนยันตัวตนไม่สำเร็จ",
+                    description: `ไม่สามารถยืนยันใบหน้าได้ (ครั้งที่ ${nextAttempt}/3) กรุณาลองใหม่อีกครั้ง`,
+                    type: "warning",
+                    action: () => setStage('FACE_VERIFY'),
+                    cancelAction: () => {
+                        setStage('INIT');
+                        setVerificationMethod('DIPCHIP');
+                        setLivenessAttempts(0);
+                    },
+                    cancelText: "ยกเลิก"
+                });
+                return;
+            } else {
+                setStage('FACE_FAILED');
+                return;
+            }
+        }
+
         setMockLivePhoto(photo);
         setStage('FACE_SUCCESS');
     };
@@ -606,182 +657,238 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                 </div>
 
                 {/* Main Content Area */}
-                {stage === 'INIT' && !verificationMethod ? (
-                    renderSelectionScreen()
-                ) : (
-                    <div className="max-w-2xl mx-auto pt-4 transition-all duration-500 w-full">
-                        <div className="space-y-8 pb-20">
-                            {/* Header with Back Button (Only if not processing) */}
-                            {(stage === 'INIT' || stage === 'CARD_SUCCESS' || stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') && (
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        if (stage === 'TAKING_ID_BACK') {
-                                            setStage('TAKING_ID_FRONT');
-                                        } else {
-                                            handleBackToSelection();
-                                        }
-                                    }}
-                                    className="pl-0 text-foreground hover:text-foreground -mt-4 mb-2"
-                                >
-                                    <ArrowLeft className="w-4 h-4 mr-2" /> {stage === 'TAKING_ID_BACK' ? 'กลับไปถ่ายหน้าบัตร' : 'เลือกวิธีอื่น'}
-                                </Button>
-                            )}
+                <div className="max-w-2xl mx-auto pt-4 transition-all duration-500 w-full">
+                    <div className="space-y-8 pb-20">
 
-                            {/* STAGE 1: INPUT DATA (Method Specific) */}
-                            {(stage === 'INIT' || stage === 'READING_CARD' || stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') && (
-                                <>
-                                    {verificationMethod === 'MANUAL' && (stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') && (
-                                        <div className="space-y-6 animate-in zoom-in-95 duration-500">
-                                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0">
-                                                    <CreditCard className="w-6 h-6 text-orange-600" />
+
+                        {/* Combined Identity Verification Methods */}
+                        {(stage === 'INIT' || stage === 'READING_CARD') && (
+                            <div className="space-y-8 relative">
+                                {/* Prototype simulation toggle */}
+                                {stage === 'INIT' && (
+                                    <div className="absolute -top-12 right-0 flex items-center gap-2 bg-gray-100/50 px-3 py-1.5 rounded-full border border-gray-200/50 scale-90 origin-right hover:bg-gray-100 transition-colors">
+                                        <div className="relative inline-flex h-4 w-8 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                            style={{ backgroundColor: isSimulatingError ? '#10069F' : '#e5e7eb' }}
+                                            onClick={() => setIsSimulatingError(!isSimulatingError)}
+                                        >
+                                            <span className={cn("pointer-events-none block h-3 w-3 rounded-full bg-white shadow-lg ring-0 transition-transform", isSimulatingError ? "translate-x-4" : "translate-x-1")} />
+                                        </div>
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">จำลองข้อผิดพลาด</span>
+                                    </div>
+                                )}
+
+                                {/* Primary Option: Dipchip */}
+                                <Card className={cn(
+                                    "border-2 transition-all duration-300 shadow-none overflow-hidden",
+                                    dipchipError
+                                        ? "border-red-200 bg-red-50"
+                                        : "border-chaiyo-blue/10 bg-blue-50/20 hover:bg-blue-50/40 cursor-pointer"
+                                )} onClick={!dipchipError ? handleReadCard : undefined}>
+                                    <CardContent className="flex flex-col items-center justify-center py-10 text-center relative px-8">
+                                        {stage === 'READING_CARD' ? (
+                                            <>
+                                                <Loader2 className="w-16 h-16 text-chaiyo-blue animate-spin mb-4" />
+                                                <h3 className="text-xl font-bold text-chaiyo-blue">กำลังอ่านข้อมูลจากบัตร...</h3>
+                                            </>
+                                        ) : dipchipError ? (
+                                            <div className="animate-in fade-in zoom-in-95 duration-500 w-full flex flex-col items-center">
+                                                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                                                    <XCircle className="w-10 h-10 text-red-600" />
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-orange-800 text-sm">{stage === 'TAKING_ID_FRONT' ? 'ขั้นตอนที่ 1: ถ่ายรูปด้านหน้าบัตร' : 'ขั้นตอนที่ 2: ถ่ายรูปด้านหลังบัตร'}</h4>
-                                                    <p className="text-orange-700/70 text-xs">วางบัตรให้ตรงกับกรอบที่กำหนด และกดปุ่มถ่ายภาพ</p>
+                                                <h3 className="text-xl font-bold text-red-800">ไม่สามารถอ่านข้อมูลจากชิปได้</h3>
+                                                <p className="text-red-700/70 text-sm mt-2 mb-8 max-w-sm leading-relaxed">
+                                                    พบข้อผิดพลาดขณะอ่านข้อมูลจากบัตรประชาชน <br />
+                                                    กรุณาตรวจสอบการเสียบบัตรและลองอีกครั้ง หรือใช้วิธีถ่ายรูปแทน
+                                                </p>
+                                                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md justify-center">
+                                                    <Button
+                                                        onClick={handleReadCard}
+                                                        className="bg-red-600 hover:bg-red-700 text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-red-200"
+                                                    >
+                                                        ลองอีกครั้ง
+                                                    </Button>
+
                                                 </div>
                                             </div>
-
-                                            <Card className="border-border-subtle bg-slate-900 overflow-hidden relative aspect-[3/2] rounded-3xl shadow-2xl">
-                                                <CardContent className="flex flex-col items-center justify-center p-0 h-full relative">
-                                                    <video
-                                                        ref={videoRef}
-                                                        autoPlay
-                                                        playsInline
-                                                        muted
-                                                        className={cn(
-                                                            "absolute inset-0 w-full h-full object-cover",
-                                                        )}
-                                                    />
-
-                                                    {isProcessingFrontPhoto && (
-                                                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-none">
-                                                            <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
-                                                            <p className="text-white font-bold text-lg">กำลังประมวลผลรูปภาพ...</p>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Card Overlay */}
-                                                    {!cameraError && (
-                                                        <div className="absolute inset-x-8 inset-y-12 border-2 border-dashed border-white/50 rounded-2xl z-30 pointer-events-none flex items-center justify-center">
-                                                            <div className="bg-white/10 backdrop-blur-[2px] w-full h-full rounded-2xl border border-white/20"></div>
-                                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                                                <div className="w-20 h-1 bg-white/30 rounded-full mb-1"></div>
-                                                                <div className="w-12 h-1 bg-white/30 rounded-full mx-auto"></div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {isCameraActive && (
-                                                        <div className="absolute bottom-6 left-0 right-0 flex justify-center z-40">
-                                                            <Button
-                                                                size="lg"
-                                                                onClick={handleCaptureID}
-                                                                className="bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-full px-10 h-14 text-lg shadow-xl"
-                                                            >
-                                                                <Camera className="w-6 h-6 mr-2" /> {stage === 'TAKING_ID_FRONT' ? 'ถ่ายภาพด้านหน้า' : 'ถ่ายภาพด้านหลัง'}
-                                                            </Button>
-                                                        </div>
-                                                    )}
-
-                                                    {!isCameraActive && !cameraError && (
-                                                        <div className="z-40 text-center">
-                                                            <Loader2 className="w-10 h-10 text-white animate-spin mx-auto mb-2" />
-                                                            <p className="text-white text-sm">กำลังเปิดกล้อง...</p>
-                                                        </div>
-                                                    )}
-
-                                                    {cameraError && (
-                                                        <div className="z-40 text-center px-6">
-                                                            <p className="text-white font-bold">{cameraError}</p>
-                                                            <Button variant="secondary" onClick={() => startCamera("environment")} className="mt-4 font-bold px-8">ลองอีกครั้ง</Button>
-                                                        </div>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    )}
-
-                                    {verificationMethod === 'DIPCHIP' && (stage === 'INIT' || stage === 'READING_CARD') && (
-                                        <Card className="border-2 border-dashed border-chaiyo-blue/20 bg-blue-50/20 shadow-none hover:bg-blue-50/40 transition-colors cursor-pointer" onClick={handleReadCard}>
-                                            <CardContent className="flex flex-col items-center justify-center py-20">
-                                                {stage === 'READING_CARD' ? (
-                                                    <>
-                                                        <Loader2 className="w-16 h-16 text-chaiyo-blue animate-spin mb-4" />
-                                                        <h3 className="text-xl font-bold text-chaiyo-blue">กำลังอ่านข้อมูลจากบัตร...</h3>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-6">
-                                                            <CreditCard className="w-10 h-10 text-chaiyo-blue" />
-                                                        </div>
-                                                        <h3 className="text-xl font-bold text-foreground">เสียบบัตรประชาชน</h3>
-                                                        <p className="text-muted text-sm mt-2 mb-6">เพื่อดึงข้อมูลจากชิปการ์ด (Smart Card)</p>
-                                                        <Button className="pointer-events-none bg-chaiyo-blue">อ่านข้อมูลบัตร</Button>
-                                                    </>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    )}
-
-                                    {verificationMethod === 'MANUAL' && (
-                                        <div className="space-y-4">
-                                            <Card className="border-none">
-                                                <CardContent className="p-6">
-                                                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                                        ถ่ายรูปบัตร
-                                                    </h3>
-
-                                                    <div className="space-y-4">
-                                                        {stage === 'READING_CARD' ? (
-                                                            <div className="flex flex-col items-center justify-center py-8">
-                                                                <Loader2 className="w-10 h-10 text-chaiyo-blue animate-spin mb-2" />
-                                                                <p className="text-sm text-muted">กำลังประมวลผลภาพ (OCR)...</p>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <Button variant="outline" className="w-full h-32 border-dashed border-2 flex flex-col gap-3 items-center justify-center rounded-2xl hover:border-chaiyo-blue hover:bg-blue-50/30 transition-all" onClick={() => handleOCRUpload('THAI_ID')}>
-                                                                        <img src="/images/card_citizen.svg" alt="บัตรประชาชน" className="h-12 w-auto mb-1" />
-                                                                        <span className="text-base font-bold text-gray-700">บัตรประชาชน</span>
-                                                                    </Button>
-                                                                    <Button variant="outline" className="w-full h-32 border-dashed border-2 flex flex-col gap-3 items-center justify-center rounded-2xl hover:border-pink-400 hover:bg-pink-50/30 transition-all" onClick={() => handleOCRUpload('PINK_CARD')}>
-                                                                        <img src="/images/card_alien.svg" alt="บัตรต่างด้าวชมพู" className="h-12 w-auto mb-1" />
-                                                                        <span className="text-base font-bold text-gray-700">บัตรต่างด้าวชมพู</span>
-                                                                    </Button>
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-
-                            {/* STAGE 2: CHECKING STATUS (DOPA) */}
-                            {stage === 'CHECKING_MEMBER' && (
-                                <Card className="border-border-subtle overflow-hidden">
-                                    <div className="h-2 w-full bg-gray-100 overflow-hidden">
-                                        <div className="h-full bg-chaiyo-blue animate-progress origin-left"></div>
-                                    </div>
-                                    <CardContent className="flex flex-col items-center justify-center py-20">
-                                        <div className="w-16 h-16 relative mb-6">
-                                            <ShieldAlert className="w-16 h-16 text-chaiyo-blue animate-pulse" />
-                                            <Loader2 className="w-20 h-20 text-chaiyo-blue/20 animate-spin absolute -top-2 -left-2" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-foreground">กำลังตรวจสอบสถานะ DOPA...</h3>
-                                        <p className="text-muted text-sm mt-2 text-center max-w-sm">กรุณารอสักครู่ ระบบกำลังเชื่อมต่อกับฐานข้อมูล กรมการปกครองเพื่อตรวจสอบสถานะบัตร</p>
+                                        ) : (
+                                            <>
+                                                <div className="w-32 h-24 shadow-lg border border-gray-100 rounded-xl flex items-center justify-center mb-6 p-4 bg-white">
+                                                    <img src="/images/card_citizen.svg" alt="Dipchip" className="w-full h-full object-contain" />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-foreground">เสียบบัตรประชาชน (Dipchip)</h3>
+                                                <p className="text-muted text-sm mt-2 mb-6 max-w-sm">ดึงข้อมูลจากชิปการ์ดเพื่อความรวดเร็วและแม่นยำสูงสุด</p>
+                                                <Button className="pointer-events-none bg-chaiyo-blue px-10 h-10 rounded-xl">อ่านข้อมูลบัตร</Button>
+                                            </>
+                                        )}
                                     </CardContent>
                                 </Card>
-                            )}
 
-                            {/* STAGE 3: FACE VERIFY */}
-                            {(stage === 'FACE_VERIFY') && (
-                                <div className="space-y-6 animate-in zoom-in-95 duration-500">
-                                    <div className="bg-chaiyo-blue/10 border border-chaiyo-blue/20 rounded-xl p-4 flex items-center gap-4">
+                                {/* Secondary Options: OCR/Manual */}
+                                {stage === 'INIT' && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-[1px] flex-1 bg-gray-200"></div>
+                                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-2">หรือใช้วิธีอื่น</span>
+                                            <div className="h-[1px] flex-1 bg-gray-200"></div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <Button
+                                                variant="outline"
+                                                className="h-28 border-border-subtle hover:border-chaiyo-blue hover:bg-blue-50/30 flex flex-col items-center justify-center gap-2 rounded-2xl transition-all group"
+                                                onClick={() => {
+                                                    setVerificationMethod('MANUAL');
+                                                    handleOCRUpload('THAI_ID');
+                                                }}
+                                            >
+                                                <div className="w-12 h-10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                    <img src="/images/card_citizen.svg" alt="บัตรประชาชน" className="w-full h-full object-contain" />
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-700">ถ่ายรูปบัตรประชาชน</span>
+                                            </Button>
+
+                                            <Button
+                                                variant="outline"
+                                                className="h-28 border-border-subtle hover:border-pink-400 hover:bg-pink-50/30 flex flex-col items-center justify-center gap-2 rounded-2xl transition-all group"
+                                                onClick={() => {
+                                                    setVerificationMethod('MANUAL');
+                                                    handleOCRUpload('PINK_CARD');
+                                                }}
+                                            >
+                                                <div className="w-12 h-10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                    <img src="/images/card_alien.svg" alt="บัตรต่างด้าวชมพู" className="w-full h-full object-contain" />
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-700">ถ่ายรูปบัตรชมพู / อื่นๆ</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* OCR Camera View */}
+                        {verificationMethod === 'MANUAL' && (stage === 'TAKING_ID_FRONT' || stage === 'TAKING_ID_BACK') && (
+                            <div className="space-y-6 animate-in zoom-in-95 duration-500">
+                                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0">
+                                        <CreditCard className="w-6 h-6 text-orange-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-orange-800 text-sm">{stage === 'TAKING_ID_FRONT' ? 'ขั้นตอนที่ 1: ถ่ายรูปด้านหน้าบัตร' : 'ขั้นตอนที่ 2: ถ่ายรูปด้านหลังบัตร'}</h4>
+                                        <p className="text-orange-700/70 text-xs">วางบัตรให้ตรงกับกรอบที่กำหนด และกดปุ่มถ่ายภาพ</p>
+                                    </div>
+                                    <Button variant="ghost" onClick={handleBackToSelection} className="text-orange-600 hover:text-orange-700 hover:bg-orange-100">ยกเลิก</Button>
+                                </div>
+
+                                <Card className="border-border-subtle bg-slate-900 overflow-hidden relative aspect-[3/2] rounded-3xl shadow-2xl">
+                                    <CardContent className="flex flex-col items-center justify-center p-0 h-full relative">
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            muted
+                                            className={cn(
+                                                "absolute inset-0 w-full h-full object-cover",
+                                            )}
+                                        />
+
+                                        {isProcessingFrontPhoto && (
+                                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-none">
+                                                <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+                                                <p className="text-white font-bold text-lg">กำลังประมวลผลรูปภาพ...</p>
+                                            </div>
+                                        )}
+
+                                        {/* Card Overlay */}
+                                        {!cameraError && (
+                                            <div className="absolute inset-x-8 inset-y-12 border-2 border-dashed border-white/50 rounded-2xl z-30 pointer-events-none flex items-center justify-center">
+                                                <div className="bg-white/5 backdrop-blur-[1px] w-full h-full rounded-2xl border border-white/20 relative overflow-hidden">
+                                                    {/* Guidelines for Front Card */}
+                                                    {stage === 'TAKING_ID_FRONT' && (
+                                                        <>
+                                                            {/* User Photo Placeholder */}
+                                                            <div className="absolute right-6 bottom-6 w-[28%] aspect-[3/4] border border-white/30 rounded-lg bg-white/5 flex items-center justify-center">
+                                                                <User className="w-8 h-8 text-white/20" />
+                                                            </div>
+
+                                                            {/* Chip Placeholder (for Thai ID) */}
+                                                            {formData.cardType === 'THAI_ID' && (
+                                                                <div className="absolute left-6 top-10 w-12 h-10 border border-white/20 rounded-md bg-white/5 flex items-center justify-center">
+                                                                    <div className="grid grid-cols-2 gap-0.5 w-6">
+                                                                        <div className="h-1 bg-white/20 rounded-full"></div>
+                                                                        <div className="h-1 bg-white/20 rounded-full"></div>
+                                                                        <div className="h-1 bg-white/20 rounded-full"></div>
+                                                                        <div className="h-1 bg-white/20 rounded-full"></div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Text Line Guidelines */}
+                                                            <div className="absolute left-6 top-[35%] w-1/2 space-y-3">
+                                                                <div className="h-2 w-full bg-white/10 rounded-full"></div>
+                                                                <div className="h-2 w-3/4 bg-white/10 rounded-full"></div>
+                                                                <div className="h-2 w-4/5 bg-white/10 rounded-full"></div>
+                                                            </div>
+
+                                                            <div className="absolute left-1/2 top-4 -translate-x-1/2 bg-white/20 text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest whitespace-nowrap">
+                                                                {formData.cardType === 'THAI_ID' ? 'ด้านหน้าบัตรประชาชน' : 'ด้านหน้าบัตรต่างด้าว'}
+                                                            </div>
+                                                        </>
+                                                    )}
+
+                                                    {/* Guidelines for Back Card */}
+                                                    {stage === 'TAKING_ID_BACK' && (
+                                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                                                            <div className="w-1/2 h-10 border border-white/30 rounded-xl bg-white/10 flex items-center justify-center">
+                                                                <div className="w-2/3 h-2 bg-white/20 rounded-full"></div>
+                                                            </div>
+                                                            <div className="bg-white/20 text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest">
+                                                                ด้านหลังบัตร
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {isCameraActive && (
+                                            <div className="absolute bottom-6 left-0 right-0 flex justify-center z-40">
+                                                <Button
+                                                    size="default"
+                                                    onClick={handleCaptureID}
+                                                    className="text-white font-bold px-10 h-12 text-lg shadow-xl"
+                                                >
+                                                    <Camera className="w-6 h-6 mr-2" /> {stage === 'TAKING_ID_FRONT' ? 'ถ่ายภาพด้านหน้า' : 'ถ่ายภาพด้านหลัง'}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* STAGE 2: CHECKING STATUS (DOPA) */}
+                        {stage === 'CHECKING_MEMBER' && (
+                            <Card className="border-border-subtle overflow-hidden">
+                                <div className="h-2 w-full bg-gray-100 overflow-hidden">
+                                    <div className="h-full bg-chaiyo-blue animate-progress origin-left"></div>
+                                </div>
+                                <CardContent className="flex flex-col items-center justify-center py-20">
+                                    <div className="w-16 h-16 relative mb-6">
+                                        <ShieldAlert className="w-16 h-16 text-chaiyo-blue animate-pulse" />
+                                        <Loader2 className="w-20 h-20 text-chaiyo-blue/20 animate-spin absolute -top-2 -left-2" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-foreground">กำลังตรวจสอบสถานะ DOPA...</h3>
+                                    <p className="text-muted text-sm mt-2 text-center max-w-sm">กรุณารอสักครู่ ระบบกำลังเชื่อมต่อกับฐานข้อมูล กรมการปกครองเพื่อตรวจสอบสถานะบัตร</p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* STAGE 3: FACE VERIFY */}
+                        {(stage === 'FACE_VERIFY') && (
+                            <div className="space-y-6 animate-in zoom-in-95 duration-500">
+                                <div className="bg-chaiyo-blue/10 border border-chaiyo-blue/20 rounded-xl p-4 flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0">
                                             <Camera className="w-6 h-6 text-chaiyo-blue" />
                                         </div>
@@ -791,262 +898,364 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                         </div>
                                     </div>
 
-                                    <Card className="border-border-subtle bg-slate-900 overflow-hidden relative aspect-square md:aspect-video rounded-3xl shadow-2xl">
-                                        <CardContent className="flex flex-col items-center justify-center p-0 h-full relative">
-                                            {/* Camera Feed */}
-                                            <video
-                                                ref={videoRef}
-                                                autoPlay
-                                                playsInline
-                                                muted
-                                                className={cn(
-                                                    "absolute inset-0 w-full h-full object-cover",
-                                                    !isCameraActive && "hidden"
-                                                )}
-                                            />
-
-                                            {/* Camera Overlay */}
-                                            {!cameraError && (
-                                                <>
-                                                    <div className="absolute inset-0 border-[16px] border-slate-900 rounded-3xl z-20 pointer-events-none opacity-50"></div>
-                                                    <div className="w-64 h-80 rounded-[100px] border-2 border-dashed border-white/50 z-30 relative flex items-center justify-center">
-                                                        <div className="absolute -top-4 bg-chaiyo-blue text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest">Face Guide</div>
-                                                    </div>
-                                                </>
-                                            )}
-
-                                            {cameraError ? (
-                                                <div className="z-40 text-center px-6">
-                                                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                                                    <p className="text-white font-bold">{cameraError}</p>
-                                                    <Button variant="secondary" onClick={() => startCamera("user")} className="mt-4 font-bold px-8">ลองอีกครั้ง</Button>
-                                                </div>
-                                            ) : !isCameraActive && (
-                                                <div className="z-40 text-center">
-                                                    <Loader2 className="w-10 h-10 text-white animate-spin mx-auto mb-2" />
-                                                    <p className="text-white text-sm">กำลังเปิดกล้อง...</p>
-                                                </div>
-                                            )}
-
-                                            {/* Auto Detect Indicator */}
-                                            {isCameraActive && (
-                                                <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 z-40 animate-pulse">
-                                                    <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                    <p className="text-white text-sm font-bold drop-shadow-md">กำลังตรวจสอบใบหน้า...</p>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                    {/* Simulation Toggle */}
+                                    <div className="flex items-center gap-2 bg-white/50 px-2.5 py-1 rounded-full border border-chaiyo-blue/10 scale-90 origin-right">
+                                        <div className="relative inline-flex h-4 w-8 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none"
+                                            style={{ backgroundColor: simulateLivenessFail ? '#10069F' : '#e5e7eb' }}
+                                            onClick={() => setSimulateLivenessFail(!simulateLivenessFail)}
+                                        >
+                                            <span className={cn("pointer-events-none block h-3 w-3 rounded-full bg-white shadow-lg ring-0 transition-transform", simulateLivenessFail ? "translate-x-4" : "translate-x-1")} />
+                                        </div>
+                                        <span className="text-[10px] font-bold text-chaiyo-blue uppercase tracking-wider">จำลองข้อผิดพลาด</span>
+                                    </div>
                                 </div>
-                            )}
 
-                            {/* STAGE 4: FACE SUCCESS / MATCH */}
-                            {stage === 'FACE_SUCCESS' && (
-                                <div className="space-y-6 animate-in fade-in duration-700">
-                                    <Card className="border-2 border-emerald-200 bg-emerald-50/50 shadow-xl overflow-hidden rounded-3xl">
-                                        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                                            <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                                                <CheckCircle className="w-14 h-14 text-emerald-600" />
+                                <Card className="border-border-subtle bg-slate-900 overflow-hidden relative aspect-square md:aspect-video rounded-3xl shadow-2xl">
+                                    <CardContent className="flex flex-col items-center justify-center p-0 h-full relative">
+                                        {/* Camera Feed */}
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            muted
+                                            className={cn(
+                                                "absolute inset-0 w-full h-full object-cover",
+                                                !isCameraActive && "hidden"
+                                            )}
+                                        />
+
+                                        {/* Camera Overlay */}
+                                        {!cameraError && (
+                                            <>
+                                                <div className="absolute inset-0 border-[16px] border-slate-900 rounded-3xl z-20 pointer-events-none opacity-50"></div>
+                                                <div className="w-64 h-80 rounded-[100px] border-2 border-dashed border-white/50 z-30 relative flex items-center justify-center">
+                                                    <div className="absolute -top-4 bg-chaiyo-blue text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest">Face Guide</div>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {cameraError ? (
+                                            <div className="z-40 text-center px-6">
+                                                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                                                <p className="text-white font-bold">{cameraError}</p>
+                                                <Button variant="secondary" onClick={() => startCamera("user")} className="mt-4 font-bold px-8">ลองอีกครั้ง</Button>
                                             </div>
-                                            <h3 className="text-3xl font-black text-emerald-900 mb-2">ยืนยันตัวตนสำเร็จ</h3>
-                                            <p className="text-emerald-700 text-lg max-w-md mx-auto">การตรวจสอบใบหน้าและ DOPA ถูกต้องตรงกัน ระบบได้ยืนยันสถานะลูกค้าเรียบร้อยแล้ว</p>
+                                        ) : !isCameraActive && (
+                                            <div className="z-40 text-center">
+                                                <Loader2 className="w-10 h-10 text-white animate-spin mx-auto mb-2" />
+                                                <p className="text-white text-sm">กำลังเปิดกล้อง...</p>
+                                            </div>
+                                        )}
 
-
-
-                                            <Button size="lg" className="mt-12 w-full max-w-sm bg-emerald-600 hover:bg-emerald-700 text-white h-16 text-xl font-bold rounded-2xl shadow-xl shadow-emerald-200" onClick={handleCreateProfile}>
-                                                ดำเนินการต่อ <ArrowRight className="ml-2 w-6 h-6" />
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            )}
-
-                            {/* STAGE 5: FINAL PROCESSING (COMPLETE) */}
-                            {stage === 'COMPLETE' && (
-                                <Card className="border-border-subtle overflow-hidden">
-                                    <CardContent className="flex flex-col items-center justify-center py-20">
-                                        <Loader2 className="w-16 h-16 text-chaiyo-blue animate-spin mb-6" />
-                                        <h3 className="text-xl font-bold text-foreground">กำลังนำคุณเข้าสู่ขั้นตอนถัดไป...</h3>
-                                        <p className="text-muted text-sm mt-2">เตรียมเอกสารและข้อมูลพื้นฐานของลูกค้า</p>
+                                        {/* Auto Detect Indicator */}
+                                        {isCameraActive && (
+                                            <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 z-40 animate-pulse">
+                                                <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <p className="text-white text-sm font-bold drop-shadow-md">กำลังตรวจสอบใบหน้า...</p>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
-                            )}
+                            </div>
+                        )}
 
-                            {/* RESULT CONTAINER (EXTRACTED DATA / REVIEW) */}
-                            {(stage === 'CARD_SUCCESS') && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                    {/* Success Alert */}
-                                    <Alert variant="success" className="rounded-xl border-emerald-200 shadow-none">
-                                        <CheckCircle className="h-4 w-4" />
-                                        <AlertTitle className="font-bold">อ่านข้อมูลสำเร็จ</AlertTitle>
-                                        <AlertDescription>
-                                            {verificationMethod === 'DIPCHIP'
-                                                ? "ดึงข้อมูลจากชิปการ์ดเรียบร้อยแล้ว ไม่สามารถแก้ไขข้อมูลได้"
-                                                : "ดึงข้อมูลจาก OCR เรียบร้อยแล้ว กรุณาตรวจสอบและแก้ไขหากจำเป็น"}
-                                        </AlertDescription>
-                                    </Alert>
+                        {/* STAGE 4: FACE SUCCESS / MATCH */}
+                        {stage === 'FACE_SUCCESS' && (
+                            <div className="space-y-6 animate-in fade-in duration-700">
+                                <Card className="overflow-hidden rounded-3xl">
+                                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                                        <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                                            <CheckCircle className="w-14 h-14 text-emerald-600" />
+                                        </div>
+                                        <h3 className="text-3xl font-black  mb-2">ยืนยันตัวตนสำเร็จ</h3>
+                                        <p className=" text-lg max-w-md mx-auto">การตรวจสอบใบหน้าและ DOPA ถูกต้องตรงกัน ระบบได้ยืนยันสถานะลูกค้าเรียบร้อยแล้ว</p>
 
-                                    <Card className="border-border-subtle overflow-hidden shadow-none">
-                                        <CardHeader className="bg-gray-50/50 border-b pb-4">
-                                            <CardTitle className="text-sm font-bold flex items-center gap-2 text-gray-700">
-                                                <FileText className="w-4 h-4 text-chaiyo-blue" />
-                                                ข้อมูลที่ดึงได้จากบัตร
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-6 space-y-6">
-                                            {/* ID & Laser Row */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
+                                        <div className="flex flex-col items-center gap-4 w-full max-w-sm mt-12">
+                                            <Button size="default" className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-12 font-bold rounded-2xl shadow-xl shadow-blue-100" onClick={handleCreateProfile}>
+                                                ดำเนินการต่อ <ArrowRight className="ml-2 w-6 h-6" />
+                                            </Button>
+
+                                            <Button
+                                                variant="outline"
+                                                className="w-full h-12 text-chaiyo-blue font-bold hover:bg-blue-50 rounded-xl"
+                                                onClick={() => setShowNotContinueDialog(true)}
+                                            >
+                                                ไว้ภายหลัง
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+                        {/* STAGE: FACE FAILED (FINAL FAILURE) */}
+                        {stage === 'FACE_FAILED' && (
+                            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                                <Card className="border-2 border-red-200 bg-red-50/30 overflow-hidden rounded-3xl">
+                                    <CardContent className="flex flex-col items-center py-12 px-8 text-center">
+                                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                                            <XCircle className="w-12 h-12 text-red-600" />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-red-900 mb-2">การยืนยันตัวตนไม่สำเร็จ</h3>
+                                        <p className="text-red-700 text-base max-w-sm mb-10">ตรวจสอบใบหน้าไม่ผ่านครบ 3 ครั้งตามที่กฎกำหนด <br /> ไม่สามารถดำเนินการในขั้นตอนนี้ได้ต่อ</p>
+
+                                        <div className="w-full max-w-md bg-white border border-red-100 rounded-2xl p-6 text-left space-y-4 mb-10">
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ชื่อ-นามสกุล ลูกค้า</Label>
+                                                <p className="text-lg font-bold text-gray-900">{formData.firstName} {formData.lastName}</p>
+                                            </div>
+
+                                            <div className="space-y-2 pt-2 border-t border-gray-50">
+                                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                    เบอร์ติดต่อ
+                                                </Label>
+                                                <Input
+                                                    placeholder="0xx-xxx-xxxx"
+                                                    className="rounded-xl h-11 border-gray-200 focus:border-chaiyo-blue"
+                                                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
+                                            <Button
+                                                variant="destructive"
+                                                className="h-12 rounded-xl font-bold flex items-center justify-center gap-2 order-2 sm:order-1"
+                                                onClick={() => window.location.href = '/dashboard'}
+                                            >
+                                                <XCircle className="w-4 h-4" /> ปิดการทำรายการ
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="h-12 rounded-xl font-bold border-chaiyo-blue text-chaiyo-blue hover:bg-blue-50 flex items-center justify-center gap-2 order-1 sm:order-2"
+                                                onClick={() => {
+                                                    setAlertDialog({
+                                                        isOpen: true,
+                                                        title: "บันทึกฉบับร่างสำเร็จ",
+                                                        description: "ระบบได้บันทึกข้อมูลใบคำขอไว้ในรายการฉบับร่างแล้ว เมื่อลูกค้ากลับมาต้องทำการตรวจสอบจากบัตรและใบหน้าใหม่อีกครั้ง",
+                                                        type: "success",
+                                                        action: () => window.location.href = '/dashboard'
+                                                    });
+                                                }}
+                                            >
+                                                <Save className="w-4 h-4" /> บันทึกฉบับร่าง
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {stage === 'COMPLETE' && (
+                            <Card className="border-border-subtle overflow-hidden">
+                                <CardContent className="flex flex-col items-center justify-center py-20">
+                                    <Loader2 className="w-16 h-16 text-chaiyo-blue animate-spin mb-6" />
+                                    <h3 className="text-xl font-bold text-foreground">กำลังนำคุณเข้าสู่ขั้นตอนถัดไป...</h3>
+                                    <p className="text-muted text-sm mt-2">เตรียมเอกสารและข้อมูลพื้นฐานของลูกค้า</p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* RESULT CONTAINER (EXTRACTED DATA / REVIEW) */}
+                        {(stage === 'CARD_SUCCESS') && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                {/* Success Alert */}
+                                <Alert variant="success" className="rounded-xl border-emerald-200 shadow-none">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <AlertTitle className="font-bold">อ่านข้อมูลสำเร็จ</AlertTitle>
+                                    <AlertDescription>
+                                        {verificationMethod === 'DIPCHIP'
+                                            ? "ดึงข้อมูลจากชิปการ์ดเรียบร้อยแล้ว ไม่สามารถแก้ไขข้อมูลได้"
+                                            : "ดึงข้อมูลจาก OCR เรียบร้อยแล้ว กรุณาตรวจสอบและแก้ไขหากจำเป็น"}
+                                    </AlertDescription>
+                                </Alert>
+
+                                <Card className="border-border-subtle overflow-hidden shadow-none">
+                                    <CardHeader className="bg-gray-50/50 border-b pb-4">
+                                        <CardTitle className="text-sm font-bold flex items-center gap-2 text-gray-700">
+                                            <FileText className="w-4 h-4 text-chaiyo-blue" />
+                                            ข้อมูลที่ดึงได้จากบัตร
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        {/* ID & Laser Row */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
+                                                    {formData.cardType === 'PINK_CARD' ? "เลขประจำตัว" : "เลขบัตรประจำตัวประชาชน"} <span className="text-red-500">*</span>
+                                                </Label>
+                                                <Input
+                                                    value={formData.idNumber || ""}
+                                                    onChange={(e) => handleFormChange('idNumber', e.target.value)}
+                                                    readOnly={verificationMethod === 'DIPCHIP'}
+                                                    className={cn(
+                                                        "rounded-xl",
+                                                        verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none shadow-none px-4" : "bg-white border focus:border-chaiyo-blue"
+                                                    )}
+                                                />
+                                            </div>
+                                            {formData.cardType !== 'PINK_CARD' && (
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                                                        {formData.cardType === 'PINK_CARD' ? "เลขประจำตัว" : "เลขบัตรประจำตัวประชาชน"} <span className="text-red-500">*</span>
+                                                        หมายเลขหลังบัตร (Laser ID) <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
-                                                        value={formData.idNumber || ""}
-                                                        onChange={(e) => handleFormChange('idNumber', e.target.value)}
+                                                        value={formData.laserId || ""}
+                                                        onChange={(e) => handleFormChange('laserId', e.target.value)}
                                                         readOnly={verificationMethod === 'DIPCHIP'}
                                                         className={cn(
                                                             "rounded-xl",
                                                             verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none shadow-none px-4" : "bg-white border focus:border-chaiyo-blue"
                                                         )}
+                                                        placeholder="JT0-0000000-00"
                                                     />
                                                 </div>
-                                                {formData.cardType !== 'PINK_CARD' && (
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                                                            หมายเลขหลังบัตร (Laser ID) <span className="text-red-500">*</span>
-                                                        </Label>
-                                                        <Input
-                                                            value={formData.laserId || ""}
-                                                            onChange={(e) => handleFormChange('laserId', e.target.value)}
-                                                            readOnly={verificationMethod === 'DIPCHIP'}
-                                                            className={cn(
-                                                                "rounded-xl",
-                                                                verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none shadow-none px-4" : "bg-white border focus:border-chaiyo-blue"
-                                                            )}
-                                                            placeholder="JT0-0000000-00"
-                                                        />
-                                                    </div>
-                                                )}
+                                            )}
+                                        </div>
+
+                                        {/* Name Row */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-muted-foreground font-bold">
+                                                    ชื่อ <span className="text-red-500">*</span>
+                                                </Label>
+                                                <Input
+                                                    value={formData.firstName || ""}
+                                                    onChange={(e) => handleFormChange('firstName', e.target.value)}
+                                                    readOnly={verificationMethod === 'DIPCHIP'}
+                                                    className={cn(
+                                                        "rounded-xl",
+                                                        verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white"
+                                                    )}
+                                                />
                                             </div>
-
-                                            {/* Name Row */}
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs text-muted-foreground font-bold">
-                                                        ชื่อ <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Input
-                                                        value={formData.firstName || ""}
-                                                        onChange={(e) => handleFormChange('firstName', e.target.value)}
-                                                        readOnly={verificationMethod === 'DIPCHIP'}
-                                                        className={cn(
-                                                            "rounded-xl",
-                                                            verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white"
-                                                        )}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs text-muted-foreground font-bold">ชื่อกลาง</Label>
-                                                    <Input
-                                                        value={formData.middleName || ""}
-                                                        onChange={(e) => handleFormChange('middleName', e.target.value)}
-                                                        readOnly={verificationMethod === 'DIPCHIP'}
-                                                        className={cn(
-                                                            "rounded-xl",
-                                                            verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white"
-                                                        )}
-                                                        placeholder="-"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs text-muted-foreground font-bold">
-                                                        นามสกุล   <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Input
-                                                        value={formData.lastName || ""}
-                                                        onChange={(e) => handleFormChange('lastName', e.target.value)}
-                                                        readOnly={verificationMethod === 'DIPCHIP'}
-                                                        className={cn(
-                                                            "rounded-xl",
-                                                            verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white"
-                                                        )}
-                                                    />
-                                                </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-muted-foreground font-bold">ชื่อกลาง</Label>
+                                                <Input
+                                                    value={formData.middleName || ""}
+                                                    onChange={(e) => handleFormChange('middleName', e.target.value)}
+                                                    readOnly={verificationMethod === 'DIPCHIP'}
+                                                    className={cn(
+                                                        "rounded-xl",
+                                                        verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white"
+                                                    )}
+                                                    placeholder="-"
+                                                />
                                             </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-muted-foreground font-bold">
+                                                    นามสกุล   <span className="text-red-500">*</span>
+                                                </Label>
+                                                <Input
+                                                    value={formData.lastName || ""}
+                                                    onChange={(e) => handleFormChange('lastName', e.target.value)}
+                                                    readOnly={verificationMethod === 'DIPCHIP'}
+                                                    className={cn(
+                                                        "rounded-xl",
+                                                        verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white"
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
 
-                                            {/* Birth Date and Expiry Date Row */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <div className="flex items-end justify-between min-h-[20px]">
-                                                        <Label className="text-xs text-muted-foreground font-bold">
-                                                            วันเดือนปีเกิด <span className="text-red-500">*</span>
-                                                        </Label>
-
-                                                    </div>
-                                                    <Input
-                                                        value={dateDisplay || ""}
-                                                        onChange={(e) => handleDateInputChange(e, 'birthDate', setDateDisplay)}
-                                                        readOnly={verificationMethod === 'DIPCHIP'}
-                                                        className={cn(
-                                                            "rounded-xl",
-                                                            verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white border focus:border-chaiyo-blue"
-                                                        )}
-                                                        placeholder="DD/MM/YYYY"
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <div className="flex items-end justify-between min-h-[20px]">
-                                                        <Label className="text-xs text-muted-foreground font-bold">
-                                                            วันที่บัตรหมดอายุ {!isLifetime && <span className="text-red-500">*</span>}
-                                                        </Label>
-                                                        {verificationMethod !== 'DIPCHIP' && formData.cardType !== 'PINK_CARD' && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Checkbox
-                                                                    id="isLifetime"
-                                                                    checked={isLifetime}
-                                                                    onCheckedChange={(checked) => toggleLifetime(!!checked)}
-                                                                />
-                                                                <Label htmlFor="isLifetime" className="text-[10px] font-bold text-muted-foreground cursor-pointer leading-none">ตลอดชีพ</Label>
+                                        {/* Birth Date and Expiry Date Row */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-1.5 min-h-[20px]">
+                                                    <Label className="text-xs text-muted-foreground font-bold">
+                                                        วันเดือนปีเกิด <span className="text-red-500">*</span>
+                                                    </Label>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button type="button" className="text-muted-foreground hover:text-chaiyo-blue transition-colors outline-none cursor-pointer">
+                                                                <Info className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent side="top" align="start" className="max-w-[300px] p-4 text-xs leading-relaxed bg-white border-border-strong text-foreground shadow-2xl rounded-2xl z-50">
+                                                            <div className="space-y-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-chaiyo-blue"></div>
+                                                                    <p className="font-bold text-chaiyo-blue text-sm">กรณีไม่ทราบวันหรือเดือนเกิด</p>
+                                                                </div>
+                                                                <p className="text-muted-foreground">หากลูกค้าไม่ทราบวันหรือเดือนเกิด ให้ระบุเป็น <code className="bg-red-50 text-red-600 px-1 rounded font-bold">--</code> ในช่องที่กำกับ</p>
+                                                                <div className="bg-gray-50 p-3 rounded-xl border border-border-subtle space-y-2">
+                                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ตัวอย่างการระบุ</p>
+                                                                    <div className="flex justify-between items-center border-b border-gray-200/50 pb-1.5">
+                                                                        <span className="text-muted-foreground">ไม่ทราบวันเกิด:</span>
+                                                                        <code className="text-foreground font-bold px-1.5 py-0.5 bg-white border border-border-subtle rounded-md">--/01/2538</code>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-muted-foreground">ไม่ทราบวันและเดือน:</span>
+                                                                        <code className="text-foreground font-bold px-1.5 py-0.5 bg-white border border-border-subtle rounded-md">--/--/2538</code>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                    <Input
-                                                        value={isLifetime ? "-" : (expiryDateDisplay || "")}
-                                                        onChange={(e) => handleDateInputChange(e, 'expiryDate', setExpiryDateDisplay)}
-                                                        className={cn("rounded-xl border", (verificationMethod === 'DIPCHIP' || isLifetime) ? "bg-gray-50 border-gray-200 shadow-none px-4" : "bg-white focus:border-chaiyo-blue")}
-                                                        readOnly={verificationMethod === 'DIPCHIP' || isLifetime}
-                                                        placeholder={isLifetime ? "ตลอดชีพ" : "DD/MM/YYYY"}
-                                                    />
+                                                        </PopoverContent>
+                                                    </Popover>
                                                 </div>
+                                                <Input
+                                                    value={dateDisplay || ""}
+                                                    onChange={(e) => handleDateInputChange(e, 'birthDate', setDateDisplay)}
+                                                    readOnly={verificationMethod === 'DIPCHIP'}
+                                                    className={cn(
+                                                        "rounded-xl",
+                                                        verificationMethod === 'DIPCHIP' ? "bg-gray-50 border-none px-4" : "bg-white border focus:border-chaiyo-blue"
+                                                    )}
+                                                    placeholder="DD/MM/YYYY"
+                                                />
                                             </div>
 
-                                            <div className="pt-6 border-t">
-                                                <Button
-                                                    size="lg"
-                                                    className="w-full bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-16 text-xl font-bold rounded-2xl"
-                                                    onClick={() => handleDOPAVerify()}
-                                                    disabled={!formData.idNumber || formData.idNumber.replace(/-/g, '').length < 13 || (formData.cardType !== 'PINK_CARD' && !formData.laserId) || !formData.firstName || !formData.lastName || !formData.birthDate || (!isLifetime && !formData.expiryDate)}
-                                                >
-                                                    <ShieldAlert className="w-6 h-6 mr-2" /> ตรวจสอบ
-                                                </Button>
-                                                <p className="text-[10px] text-muted text-center mt-3">ผลการตรวจสอบจะเชื่อมตรงกับฐานข้อมูล กรมการปกครอง (DOPA)</p>
+                                            <div className="space-y-2">
+                                                <div className="flex items-end justify-between min-h-[20px]">
+                                                    <Label className="text-xs text-muted-foreground font-bold">
+                                                        วันที่บัตรหมดอายุ {!isLifetime && <span className="text-red-500">*</span>}
+                                                    </Label>
+                                                    {verificationMethod !== 'DIPCHIP' && formData.cardType !== 'PINK_CARD' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Checkbox
+                                                                id="isLifetime"
+                                                                checked={isLifetime}
+                                                                onCheckedChange={(checked) => toggleLifetime(!!checked)}
+                                                            />
+                                                            <Label htmlFor="isLifetime" className="text-[10px] font-bold text-muted-foreground cursor-pointer leading-none">ตลอดชีพ</Label>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <Input
+                                                    value={isLifetime ? "-" : (expiryDateDisplay || "")}
+                                                    onChange={(e) => handleDateInputChange(e, 'expiryDate', setExpiryDateDisplay)}
+                                                    className={cn("rounded-xl border", (verificationMethod === 'DIPCHIP' || isLifetime) ? "bg-gray-50 border-gray-200 shadow-none px-4" : "bg-white focus:border-chaiyo-blue")}
+                                                    readOnly={verificationMethod === 'DIPCHIP' || isLifetime}
+                                                    placeholder={isLifetime ? "ตลอดชีพ" : "DD/MM/YYYY"}
+                                                />
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            )}
-                            {/* FINAL ACTIONS */}
-                            {stage === 'COMPLETE' && (
-                                <div className="pt-4 flex justify-center">
-                                    <Button size="lg" className="w-full max-w-md bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-14 text-lg font-bold shadow-lg" onClick={handleCreateProfile}>
-                                        {isExistingMember ? "ดำเนินการต่อ" : "สร้างข้อมูลลูกค้าและเริ่มงาน"}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
+                                        </div>
+
+                                        <div className="pt-6 border-t">
+                                            <Button
+                                                size="default"
+                                                className="w-full text-white h-12 text-xl font-bold rounded-2xl"
+                                                onClick={() => handleDOPAVerify()}
+                                                disabled={!formData.idNumber || formData.idNumber.replace(/-/g, '').length < 13 || (formData.cardType !== 'PINK_CARD' && !formData.laserId) || !formData.firstName || !formData.lastName || !formData.birthDate || (!isLifetime && !formData.expiryDate)}
+                                            >
+                                                ตรวจสอบ
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+                        {/* FINAL ACTIONS */}
+                        {stage === 'COMPLETE' && (
+                            <div className="pt-4 flex justify-center">
+                                <Button size="lg" className="w-full max-w-md bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white h-14 text-lg font-bold shadow-lg" onClick={handleCreateProfile}>
+                                    {isExistingMember ? "ดำเนินการต่อ" : "สร้างข้อมูลลูกค้าและเริ่มงาน"}
+                                </Button>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
 
             <AlertDialog open={alertDialog.isOpen} onOpenChange={(open) => setAlertDialog({ ...alertDialog, isOpen: open })}>
@@ -1055,10 +1264,13 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                         <div className="flex items-center gap-3">
                             <div className={cn(
                                 "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                                alertDialog.type === 'error' ? "bg-red-100" : "bg-amber-100"
+                                alertDialog.type === 'error' ? "bg-red-100" :
+                                    alertDialog.type === 'success' ? "bg-emerald-100" : "bg-amber-100"
                             )}>
                                 {alertDialog.type === 'error' ? (
                                     <XCircle className="w-5 h-5 text-red-600" />
+                                ) : alertDialog.type === 'success' ? (
+                                    <Check className="w-5 h-5 text-emerald-600" />
                                 ) : (
                                     <AlertTriangle className="w-5 h-5 text-amber-600" />
                                 )}
@@ -1069,7 +1281,15 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                             {alertDialog.description}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
+                    <AlertDialogFooter className="gap-2">
+                        {alertDialog.cancelAction && (
+                            <AlertDialogCancel
+                                onClick={() => alertDialog.cancelAction?.()}
+                                className="rounded-xl border-gray-200"
+                            >
+                                {alertDialog.cancelText || "ยกเลิก"}
+                            </AlertDialogCancel>
+                        )}
                         <AlertDialogAction
                             onClick={() => {
                                 if (alertDialog.action) {
@@ -1077,12 +1297,69 @@ export function IdentityCheckStep({ formData, setFormData, onNext }: IdentityChe
                                 }
                             }}
                             className={cn(
-                                "text-white",
+                                "text-white rounded-xl",
                                 alertDialog.type === 'error' ? "bg-red-600 hover:bg-red-700" : "bg-chaiyo-blue hover:bg-chaiyo-blue/90"
                             )}
                         >
-                            {alertDialog.type === 'error' ? "รับทราบ" : alertDialog.type === 'warning' ? "ดำเนินการต่อ" : "ตรวจสอบอีกครั้ง"}
+                            {alertDialog.type === 'error' ? "รับทราบ" : alertDialog.type === 'warning' ? "ลองอีกครั้ง" : "ตรวจสอบอีกครั้ง"}
                         </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Not Continue Dialog */}
+            <AlertDialog open={showNotContinueDialog} onOpenChange={setShowNotContinueDialog}>
+                <AlertDialogContent className="max-w-md rounded-3xl p-8">
+                    <AlertDialogHeader className="items-center text-center">
+                        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                            <Info className="w-8 h-8 text-chaiyo-blue" />
+                        </div>
+                        <AlertDialogTitle className="text-2xl font-black text-gray-900">สรุปข้อมูลเบื้องต้น</AlertDialogTitle>
+                        <AlertDialogDescription className="text-base text-gray-500">
+                            กรณีไม่ดำเนินการต่อในขั้นตอนนี้ ระบบจะบันทึกข้อมูลและเตรียมเอกสารสำหรับลูกค้า
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <div className="space-y-6 py-6">
+                        <div className="bg-gray-50 rounded-2xl space-y-1">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ชื่อ-นามสกุล ลูกค้า</Label>
+                            <p className="text-lg font-bold text-gray-900">{formData.firstName} {formData.lastName}</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-sm font-bold text-gray-700">เบอร์ติดต่อ</Label>
+                            <Input
+                                placeholder="0xx-xxx-xxxx"
+                                value={notContinuePhone}
+                                onChange={(e) => setNotContinuePhone(e.target.value)}
+                                className="rounded-xl h-12 border-gray-200 focus:border-chaiyo-blue bg-white"
+                            />
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            className="w-full h-12 rounded-xl border-chaiyo-blue text-chaiyo-blue font-bold flex items-center justify-center gap-2 hover:bg-blue-50"
+                            onClick={() => {
+                                const pdfPath = "/salesheets/Sale Sheet_รถ บุคคลทั่วไป V8.0 2.pdf";
+                                window.open(pdfPath, '_blank');
+                            }}
+                        >
+                            <Printer className="w-5 h-5" /> พิมพ์ Salesheet
+                        </Button>
+                    </div>
+
+                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-3">
+                        <AlertDialogAction
+                            onClick={() => window.location.href = '/dashboard'}
+                            className="bg-chaiyo-blue hover:bg-chaiyo-blue/90 text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2 flex-1 order-1 sm:order-2"
+                        >
+                            <Save className="w-4 h-4" /> บันทึกฉบับร่าง
+                        </AlertDialogAction>
+                        <AlertDialogCancel
+                            className="border-gray-200 text-gray-500 hover:bg-gray-50 font-bold h-12 rounded-xl flex items-center justify-center gap-2 flex-1 order-2 sm:order-1"
+                        >
+                            ปิด
+                        </AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
