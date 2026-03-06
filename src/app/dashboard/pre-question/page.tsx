@@ -55,6 +55,11 @@ import {
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import {
+    Alert,
+    AlertTitle,
+    AlertDescription
+} from "@/components/ui/alert";
+import {
     Popover,
     PopoverContent,
     PopoverTrigger,
@@ -709,6 +714,7 @@ function PreQuestionPageContent() {
     const [currentStep, setCurrentStep] = useState(initialStep);
     const [showStaffBanner, setShowStaffBanner] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisError, setAnalysisError] = useState(false);
     const [aiDetectedFields, setAiDetectedFields] = useState<string[]>([]);
     const [isFetchingRedbook, setIsFetchingRedbook] = useState(false);
     const [isConditionDialogOpen, setIsConditionDialogOpen] = useState(false);
@@ -1299,6 +1305,7 @@ function PreQuestionPageContent() {
         if (imageCount === 0) return;
 
         setIsAnalyzing(true);
+        setAnalysisError(false);
         setAiDetectedFields([]);
         toast.info("กำลังวิเคราะห์รูปถ่าย...", { duration: 1500 });
 
@@ -1306,12 +1313,11 @@ function PreQuestionPageContent() {
             // Error case: Only 1 photo
             if (imageCount === 1) {
                 setIsAnalyzing(false);
-                toast.error("วิเคราะห์รูปถ่ายไม่สำเร็จ!", {
-                    description: "ข้อมูลไม่เพียงพอ กรุณาส่งรูปถ่ายเพิ่มเติมเพื่อเริ่มการวิเคราะห์อัตโนมัติ",
-                    icon: <AlertTriangle className="w-4 h-4 text-red-500" />
-                });
+                setAnalysisError(true);
                 return;
             }
+
+            setAnalysisError(false);
 
             let mockData: any = { appraisalPrice: 450000 };
             const fields = ['appraisalPrice', 'brand', 'model', 'year'];
@@ -1627,6 +1633,16 @@ function PreQuestionPageContent() {
                                                             </Button>
                                                         </div>
                                                     </div>
+
+                                                    {analysisError && (
+                                                        <Alert variant="destructive" className="mt-4 bg-red-50 border-red-200 text-red-900 animate-in fade-in slide-in-from-top-2">
+                                                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                                                            <AlertTitle className="font-bold">วิเคราะห์รูปถ่ายไม่สำเร็จ!</AlertTitle>
+                                                            <AlertDescription>
+                                                                ข้อมูลไม่เพียงพอ กรุณาส่งรูปถ่ายเพิ่มเติมเพื่อเริ่มการวิเคราะห์อัตโนมัติ
+                                                            </AlertDescription>
+                                                        </Alert>
+                                                    )}
 
                                                     <div className="flex flex-wrap gap-4 mt-4">
                                                         {uploadedDocs.map((doc, idx) => (
