@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { MapPin, Save, X } from "lucide-react"
+import { MapPin, Save, X, Search, Loader2 } from "lucide-react"
 import dynamic from "next/dynamic"
 
 import {
@@ -12,6 +12,7 @@ import {
     DialogFooter,
 } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
 
 // Dynamically import the map contents component with no SSR
 const MapContents = dynamic(() => import("./MapContents").then(mod => mod.MapContents || mod.default), {
@@ -46,10 +47,20 @@ export function MapPickerDialog({
     const [position, setPosition] = React.useState<[number, number] | null>(
         initialLat && initialLng ? [initialLat, initialLng] : null
     )
+    const [center, setCenter] = React.useState<[number, number]>(
+        initialLat && initialLng ? [initialLat, initialLng] : DEFAULT_CENTER
+    )
+    const [zoom, setZoom] = React.useState(initialLat && initialLng ? 15 : 6)
+    const [searchQuery, setSearchQuery] = React.useState("")
+    const [isSearching, setIsSearching] = React.useState(false)
 
     React.useEffect(() => {
         if (open) {
-            setPosition(initialLat && initialLng ? [initialLat, initialLng] : null)
+            const initialPos: [number, number] | null = initialLat && initialLng ? [initialLat, initialLng] : null
+            setPosition(initialPos)
+            setCenter(initialPos || DEFAULT_CENTER)
+            setZoom(initialPos ? 15 : 6)
+            setSearchQuery("")
         }
     }, [open, initialLat, initialLng])
 
@@ -60,20 +71,62 @@ export function MapPickerDialog({
         }
     }
 
+    const handleSearch = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault()
+        if (!searchQuery.trim()) return
+
+        try {
+            setIsSearching(true)
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`)
+            const data = await response.json()
+
+            if (data && data.length > 0) {
+                const { lat, lon } = data[0]
+                const newPos: [number, number] = [parseFloat(lat), parseFloat(lon)]
+                setPosition(newPos)
+                setCenter(newPos)
+                setZoom(17)
+            }
+        } catch (error) {
+            console.error("Search error:", error)
+        } finally {
+            setIsSearching(false)
+        }
+    }
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden bg-white sm:rounded-2xl border-none shadow-2xl">
-                <DialogHeader className="p-4 border-b flex flex-row items-center justify-between pb-3 sm:text-left">
-                    <DialogTitle className="flex items-center gap-2 text-chaiyo-blue font-bold">
+                <DialogHeader className="p-4 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3">
+                    <DialogTitle className="flex items-center gap-2 text-chaiyo-blue font-bold shrink-0">
                         <MapPin className="w-5 h-5" />
                         {title}
                     </DialogTitle>
+
+                    <form onSubmit={handleSearch} className="flex gap-2 w-full max-w-md ml-auto">
+                        <div className="relative flex-1">
+                            <Input
+                                placeholder="ค้นหาสถานที่ เช่น เซ็นทรัลเวิลด์..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-10 pl-9 rounded-lg border-gray-200"
+                            />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        </div>
+                        <Button
+                            type="submit"
+                            disabled={isSearching}
+                            className="h-10 px-4 bg-chaiyo-blue text-white rounded-lg hover:bg-chaiyo-blue/90"
+                        >
+                            {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "ค้นหา"}
+                        </Button>
+                    </form>
                 </DialogHeader>
 
                 <div className="flex-1 relative bg-gray-100 min-h-[400px]">
                     <MapContents
-                        center={position || DEFAULT_CENTER}
-                        zoom={position ? 15 : 6}
+                        center={center}
+                        zoom={zoom}
                         position={position}
                         onLocationSelect={(lat, lng) => setPosition([lat, lng])}
                     />

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet"
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
@@ -29,6 +29,14 @@ function MapEvents({ onLocationSelect }: { onLocationSelect: (lat: number, lng: 
     return null
 }
 
+function RecenterMap({ center, zoom }: { center: [number, number], zoom: number }) {
+    const map = useMap()
+    React.useEffect(() => {
+        map.setView(center, zoom)
+    }, [center, zoom, map])
+    return null
+}
+
 interface MapContentsProps {
     center: [number, number]
     zoom: number
@@ -53,6 +61,7 @@ export default function MapContents({
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <RecenterMap center={center} zoom={zoom} />
             <MapEvents onLocationSelect={onLocationSelect} />
             {position && markerIcon && (
                 <Marker position={position} icon={markerIcon} />
