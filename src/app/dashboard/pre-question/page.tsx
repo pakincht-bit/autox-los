@@ -2588,27 +2588,28 @@ function PreQuestionPageContent() {
                                                                         <div className="flex justify-between items-start relative z-10">
                                                                             <div className="flex flex-col gap-1.5">
                                                                                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10 tracking-widest uppercase">
+                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm tracking-widest uppercase">
                                                                                         {product.code}
                                                                                     </div>
-                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm border border-white/5">
+                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm">
                                                                                         {formData.requestedDuration} งวด
                                                                                     </div>
-                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm border border-white/5">
+                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm ">
                                                                                         {product.interestRate}
                                                                                     </div>
                                                                                 </div>
-                                                                                <h3 className="text-xl font-bold pr-4">{product.name}</h3>
                                                                             </div>
                                                                             <Button
-                                                                                variant="ghost"
+                                                                                variant="outline"
                                                                                 size="sm"
                                                                                 onClick={handlePrint}
-                                                                                className="bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-full h-8 px-3 text-[11px] backdrop-blur-sm transition-all flex items-center gap-1.5 font-bold"
+                                                                                className=" bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-full h-6 px-3 text-[11px] backdrop-blur-sm transition-all flex items-center gap-1.5 font-bold"
                                                                             >
                                                                                 <span>อ่านรายละเอียด</span>
                                                                             </Button>
                                                                         </div>
+                                                                        <h3 className="text-xl font-bold pr-4 mt-2">{product.name}</h3>
+
 
                                                                         {/* Requested Amount Block */}
                                                                         <div className="mt-5 backdrop-blur-md rounded-xl p-4 border bg-white/15 border-white/20">
