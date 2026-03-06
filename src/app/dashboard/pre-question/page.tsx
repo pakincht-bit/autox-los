@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from 'next/dynamic';
 
@@ -860,17 +860,8 @@ function PreQuestionPageContent() {
         // Prefill when entering Step 2 if not already set
         if (currentStep === 2 && (!formData.requestedAmount || Number(formData.requestedAmount) === 0) && finalSummaryLimit > 0) {
             setFormData((prev: any) => ({ ...prev, requestedAmount: String(finalSummaryLimit) }));
-            return;
         }
-
-        // Cap value if it exceeds limit
-        if (formData.requestedAmount) {
-            const requested = Number(String(formData.requestedAmount).replace(/,/g, '')) || 0;
-            if (requested > finalSummaryLimit) {
-                setFormData((prev: any) => ({ ...prev, requestedAmount: String(finalSummaryLimit) }));
-            }
-        }
-    }, [currentStep, finalSummaryLimit, formData.requestedAmount]);
+    }, [currentStep, finalSummaryLimit]);
 
     // Load state from localStorage on mount
     useEffect(() => {
@@ -903,15 +894,39 @@ function PreQuestionPageContent() {
 
     // Lightbox State
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-    const [uploadedDocs, setUploadedDocs] = useState<string[]>([
-        "https://placehold.co/600x800/e2e8f0/1e293b?text=Registration+Book+Page+1",
-    ]);
+    const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
+
+    // Form state extensions for Step 2
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const newPhotos: string[] = [];
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const url = URL.createObjectURL(file);
+            newPhotos.push(url);
+        }
+
+        setUploadedDocs(prev => {
+            const newList = [...prev, ...newPhotos];
+            handleAnalyzeImage(newList.length);
+            return newList;
+        });
+
+        // Reset input value so same file can be selected again
+        e.target.value = '';
+    };
 
     const handleAddPhoto = () => {
-        setUploadedDocs(prev => [
-            ...prev,
-            `https://placehold.co/600x800/e2e8f0/1e293b?text=${encodeURIComponent(formData.collateralType === 'car' ? 'Car Front' : formData.collateralType === 'moto' ? 'Moto Side' : 'Document')}+${prev.length + 1}`
-        ]);
+        fileInputRef.current?.click();
+    };
+
+    const handleOpenCamera = () => {
+        cameraInputRef.current?.click();
     };
 
     const handleRemovePhoto = (idx: number) => {
@@ -1279,6 +1294,59 @@ function PreQuestionPageContent() {
         }, 1000);
     };
 
+    const handleAnalyzeImage = (count?: number) => {
+        const imageCount = count ?? uploadedDocs.length;
+        if (imageCount === 0) return;
+
+        setIsAnalyzing(true);
+        setAiDetectedFields([]);
+        toast.info("กำลังวิเคราะห์รูปถ่าย...", { duration: 1500 });
+
+        setTimeout(() => {
+            // Error case: Only 1 photo
+            if (imageCount === 1) {
+                setIsAnalyzing(false);
+                toast.error("วิเคราะห์รูปถ่ายไม่สำเร็จ!", {
+                    description: "ข้อมูลไม่เพียงพอ กรุณาส่งรูปถ่ายเพิ่มเติมเพื่อเริ่มการวิเคราะห์อัตโนมัติ",
+                    icon: <AlertTriangle className="w-4 h-4 text-red-500" />
+                });
+                return;
+            }
+
+            let mockData: any = { appraisalPrice: 450000 };
+            const fields = ['appraisalPrice', 'brand', 'model', 'year'];
+
+            if (formData.collateralType === 'car') {
+                mockData = { ...mockData, brand: 'Toyota', model: 'Camry', year: '2019', subModel: 'HEV Premium' };
+                fields.push('subModel');
+            } else if (formData.collateralType === 'moto') {
+                mockData = { ...mockData, brand: 'Honda', model: 'Wave 125i', year: '2021', appraisalPrice: 35000 };
+            } else if (formData.collateralType === 'truck') {
+                mockData = { ...mockData, brand: 'Isuzu', model: 'D-Max', year: '2020', appraisalPrice: 500000 };
+            } else if (formData.collateralType === 'agri') {
+                mockData = { ...mockData, brand: 'Kubota', model: 'L5018', year: '2022', appraisalPrice: 600000 };
+            }
+
+            setFormData((prev: any) => ({
+                ...prev,
+                ...mockData,
+                aiDetectedData: mockData,
+                aiPrice: mockData.appraisalPrice,
+                redbookPrice: 0 // Will be set when user selects from redbook
+            }));
+            setAiDetectedFields(fields);
+            setIsAnalyzing(false);
+            toast.success("วิเคราะห์รูปถ่ายสำเร็จ!", {
+                icon: <Sparkles className="w-4 h-4 text-purple-500" />
+            });
+
+            // Automatically fetch redbook data after AI analysis
+            setTimeout(() => {
+                handleFetchRedbook();
+            }, 500);
+        }, 1500);
+    };
+
     const { setBreadcrumbs, setRightContent } = useSidebar();
 
     useEffect(() => {
@@ -1357,21 +1425,9 @@ function PreQuestionPageContent() {
     const eligibleLandProducts = LAND_PRODUCTS.filter(p => {
         if (formData.collateralType !== 'land') return false;
         if (borrowerAgeNum < p.minAge || borrowerAgeNum > p.maxAge) return false;
-        if (!p.collateralStatus.includes(currentStatus)) return false;
 
         // Deed type filtering
         if (p.deedTypeExclude && p.deedTypeExclude.includes(formData.landDeedType)) return false;
-
-        // Requested amount filtering: <= 200k use Pledge (with maxAmount), > 200k use Mortgage (no maxAmount)
-        if (formData.requestedAmount) {
-            const requested = Number(String(formData.requestedAmount).replace(/,/g, '')) || 0;
-            if (requested <= 200000) {
-                if (!p.maxAmount) return false;
-            } else {
-                if (p.maxAmount) return false;
-                if (requested > 5000000) return false;
-            }
-        }
 
         if (p.specialProject === 'b2b_payroll') {
             if (formData.specialProject !== 'b2b_payroll') return false;
@@ -1391,10 +1447,13 @@ function PreQuestionPageContent() {
                     eligibleLandProducts;
 
     // Filter products to match selected plan (monthly vs one-time/balloon)
-    productsToShow = productsToShow.filter(p => {
-        const isOneTimeProduct = p.name.toUpperCase().includes('ONE TIME') || p.name.toUpperCase().includes('ONE-TIME') || p.name.includes('สัญญารายปี');
-        return selectedPlan === 'balloon' ? isOneTimeProduct : !isOneTimeProduct;
-    });
+    // For land, show all possibilities as requested
+    if (formData.collateralType !== 'land') {
+        productsToShow = productsToShow.filter(p => {
+            const isOneTimeProduct = p.name.toUpperCase().includes('ONE TIME') || p.name.toUpperCase().includes('ONE-TIME') || p.name.includes('สัญญารายปี');
+            return selectedPlan === 'balloon' ? isOneTimeProduct : !isOneTimeProduct;
+        });
+    }
 
     const topProduct = productsToShow[0];
 
@@ -1525,13 +1584,31 @@ function PreQuestionPageContent() {
                                         {formData.collateralType === 'car' && (
                                             <div className="bg-white">
                                                 <div className="p-6 bg-blue-50/30">
-                                                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                         <div>
                                                             <h4 className="text-lg font-bold text-gray-900">
                                                                 อัพโหลดรูปถ่ายหลักประกัน
                                                             </h4>
                                                         </div>
                                                         <div className="flex items-center gap-3">
+                                                            {/* Hidden Inputs */}
+                                                            <input
+                                                                type="file"
+                                                                ref={fileInputRef}
+                                                                className="hidden"
+                                                                accept="image/*"
+                                                                multiple
+                                                                onChange={handleFileChange}
+                                                            />
+                                                            <input
+                                                                type="file"
+                                                                ref={cameraInputRef}
+                                                                className="hidden"
+                                                                accept="image/*"
+                                                                capture="environment"
+                                                                onChange={handleFileChange}
+                                                            />
+
                                                             <Button
                                                                 variant="outline"
                                                                 onClick={handleAddPhoto}
@@ -1542,7 +1619,7 @@ function PreQuestionPageContent() {
                                                             </Button>
                                                             <Button
                                                                 variant="outline"
-                                                                onClick={handleAddPhoto}
+                                                                onClick={handleOpenCamera}
                                                                 className="flex items-center gap-2"
                                                             >
                                                                 <Camera className="w-4 h-4" />
@@ -1551,22 +1628,22 @@ function PreQuestionPageContent() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex flex-wrap gap-4">
+                                                    <div className="flex flex-wrap gap-4 mt-4">
                                                         {uploadedDocs.map((doc, idx) => (
                                                             <div key={idx} className="relative w-28 h-28 rounded-xl overflow-hidden border border-border-strong group bg-white">
                                                                 <img src={doc} alt={`doc-${idx}`} className="w-full h-full object-cover" />
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                     <button
                                                                         onClick={() => setLightboxIndex(idx)}
-                                                                        className="text-white hover:text-blue-200 transition-colors p-1"
+                                                                        className="absolute inset-0 flex items-center justify-center text-white hover:text-blue-200 transition-colors"
                                                                     >
-                                                                        <Eye className="w-5 h-5" />
+                                                                        <Eye className="w-6 h-6" />
                                                                     </button>
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleRemovePhoto(idx); }}
-                                                                        className="text-white hover:text-red-300 transition-colors p-1"
+                                                                        className="absolute top-1.5 right-1.5 text-white hover:text-red-300 transition-colors bg-black/20 hover:bg-black/40 rounded-full p-1.5 border border-white/20 backdrop-blur-sm shadow-sm"
                                                                     >
-                                                                        <X className="w-5 h-5" />
+                                                                        <X className="w-3.5 h-3.5" />
                                                                     </button>
                                                                 </div>
                                                                 {isAnalyzing && (
@@ -1579,62 +1656,6 @@ function PreQuestionPageContent() {
 
                                                     </div>
 
-                                                    <div className="mt-5 flex justify-end">
-                                                        <Button
-                                                            size="default"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                setIsAnalyzing(true);
-                                                                setAiDetectedFields([]);
-                                                                toast.info("กำลังวิเคราะห์รูปถ่าย...", { duration: 1500 });
-
-                                                                setTimeout(() => {
-                                                                    let mockData: any = { appraisalPrice: 450000 };
-                                                                    const fields = ['appraisalPrice', 'brand', 'model', 'year'];
-
-                                                                    if (formData.collateralType === 'car') {
-                                                                        mockData = { ...mockData, brand: 'Toyota', model: 'Camry', year: '2019', subModel: 'HEV Premium' };
-                                                                        fields.push('subModel');
-                                                                    } else if (formData.collateralType === 'moto') {
-                                                                        mockData = { ...mockData, brand: 'Honda', model: 'Wave 125i', year: '2021', appraisalPrice: 35000 };
-                                                                    } else if (formData.collateralType === 'truck') {
-                                                                        mockData = { ...mockData, brand: 'Isuzu', model: 'D-Max', year: '2020', appraisalPrice: 500000 };
-                                                                    } else if (formData.collateralType === 'agri') {
-                                                                        mockData = { ...mockData, brand: 'Kubota', model: 'L5018', year: '2022', appraisalPrice: 600000 };
-                                                                    }
-
-                                                                    setFormData((prev: any) => ({
-                                                                        ...prev,
-                                                                        ...mockData,
-                                                                        aiDetectedData: mockData,
-                                                                        aiPrice: mockData.appraisalPrice,
-                                                                        redbookPrice: 0 // Will be set when user selects from redbook
-                                                                    }));
-                                                                    setAiDetectedFields(fields);
-                                                                    setIsAnalyzing(false);
-                                                                    toast.success("วิเคราะห์รูปถ่ายสำเร็จ!", {
-                                                                        icon: <Sparkles className="w-4 h-4 text-purple-500" />
-                                                                    });
-
-                                                                    // Automatically fetch redbook data after AI analysis
-                                                                    setTimeout(() => {
-                                                                        handleFetchRedbook();
-                                                                    }, 500);
-                                                                }, 1500);
-                                                            }}
-                                                            disabled={isAnalyzing || uploadedDocs.length === 0}
-                                                            className="font-bold"
-                                                        >
-                                                            {isAnalyzing ? (
-                                                                <>
-                                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                                                                    กำลังวิเคราะห์...
-                                                                </>
-                                                            ) : (
-                                                                <>วิเคราะห์รูปภาพ</>
-                                                            )}
-                                                        </Button>
-                                                    </div>
 
 
                                                 </div>
@@ -1688,7 +1709,7 @@ function PreQuestionPageContent() {
                                                         </div>
                                                         <div className="space-y-2">
                                                             <div className="flex items-center justify-between">
-                                                                <Label>รุ่นปี (คศ) <span className="text-red-500">*</span></Label>
+                                                                <Label>รุ่นปี (ค.ศ.) <span className="text-red-500">*</span></Label>
                                                             </div>
                                                             <Combobox
                                                                 options={YEARS_AD}
@@ -2478,11 +2499,11 @@ function PreQuestionPageContent() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
 
                                                 <div className="space-y-2">
-                                                    <Label className="font-bold text-gray-900">วงเงินที่ต้องการกู้ (บาท) <span className="text-red-500">*</span></Label>
+                                                    <Label>วงเงินที่ต้องการกู้ (บาท) <span className="text-red-500">*</span></Label>
                                                     <div className="relative">
                                                         <Input
                                                             type="text"
-                                                            className="h-12 pl-4 pr-12 text-xl font-bold font-mono border-gray-200 focus:border-chaiyo-blue focus:ring-1 focus:ring-chaiyo-blue transition-colors text-gray-900 bg-white"
+                                                            className="h-12 pl-4 pr-12 text-xl font-mono border-gray-200 focus:border-chaiyo-blue focus:ring-1 focus:ring-chaiyo-blue transition-colors text-gray-900 bg-white"
                                                             value={formData.requestedAmount ? Number(formData.requestedAmount).toLocaleString() : ''}
                                                             onChange={(e) => {
                                                                 const raw = e.target.value.replace(/,/g, '');
@@ -2492,20 +2513,19 @@ function PreQuestionPageContent() {
                                                                 }
                                                                 let val = Number(raw);
                                                                 if (isNaN(val)) return;
-                                                                if (val > finalSummaryLimit) val = finalSummaryLimit;
                                                                 setFormData({ ...formData, requestedAmount: String(val) });
                                                                 setShowProducts(false);
                                                             }}
                                                             placeholder="0"
                                                         />
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
                                                             บาท
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="space-y-2">
-                                                    <Label className="font-bold text-gray-900">จำนวนงวด (เดือน) <span className="text-red-500">*</span></Label>
+                                                    <Label>จำนวนงวด (เดือน) <span className="text-red-500">*</span></Label>
                                                     <Select
                                                         value={String(formData.requestedDuration || 60)}
                                                         onValueChange={(val) => setFormData({ ...formData, requestedDuration: Number(val) })}
@@ -2545,9 +2565,10 @@ function PreQuestionPageContent() {
                                                 ) : (
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                         {productsToShow.slice(0, 3).map((product, idx) => {
-                                                            const requestedAmount = Number(formData.requestedAmount || 0);
+                                                            const actualReqAmount = Number(formData.requestedAmount || 0);
                                                             const maxAmount = Number(maxLoan || 0);
-                                                            const hasDifferentMax = requestedAmount !== maxAmount && maxAmount > 0;
+                                                            const requestedAmount = actualReqAmount > maxAmount ? maxAmount : actualReqAmount;
+                                                            const hasDifferentMax = actualReqAmount < maxAmount && maxAmount > 0;
 
                                                             return (
                                                                 <div key={product.code} className="bg-white rounded-2xl overflow-hidden border border-border-strong relative group w-full flex flex-col hover:shadow-md transition-all duration-300">
@@ -2558,7 +2579,7 @@ function PreQuestionPageContent() {
                                                                             return (
                                                                                 <>
                                                                                     <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-                                                                                    <div className="absolute -bottom-4 -right-4 opacity-10 pointer-events-none rotate-12">
+                                                                                    <div className="absolute -top-4 -right-4 opacity-10 pointer-events-none rotate-12">
                                                                                         <CollateralIcon className="w-24 h-24" />
                                                                                     </div>
                                                                                 </>
@@ -2566,19 +2587,35 @@ function PreQuestionPageContent() {
                                                                         })()}
                                                                         <div className="flex justify-between items-start relative z-10">
                                                                             <div className="flex flex-col gap-1.5">
-                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                                                                                     <div className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10 tracking-widest uppercase">
                                                                                         {product.code}
+                                                                                    </div>
+                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm border border-white/5">
+                                                                                        {formData.requestedDuration} งวด
+                                                                                    </div>
+                                                                                    <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm border border-white/5">
+                                                                                        {product.interestRate}
                                                                                     </div>
                                                                                 </div>
                                                                                 <h3 className="text-xl font-bold pr-4">{product.name}</h3>
                                                                             </div>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={handlePrint}
+                                                                                className="bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-full h-8 px-3 text-[11px] backdrop-blur-sm transition-all flex items-center gap-1.5 font-bold"
+                                                                            >
+                                                                                <span>อ่านรายละเอียด</span>
+                                                                            </Button>
                                                                         </div>
 
                                                                         {/* Requested Amount Block */}
                                                                         <div className="mt-5 backdrop-blur-md rounded-xl p-4 border bg-white/15 border-white/20">
                                                                             <div className="flex items-center justify-between mb-2">
-                                                                                <p className="text-xs font-bold uppercase tracking-wider text-blue-200">วงเงินที่ต้องการ</p>
+                                                                                <p className="text-xs font-bold uppercase tracking-wider text-blue-200">
+                                                                                    {actualReqAmount > maxAmount ? "วงเงินสูงสุดที่แนะนำ" : "วงเงินที่ต้องการ"}
+                                                                                </p>
                                                                                 <div className="flex items-baseline gap-1.5">
                                                                                     <span className="text-3xl font-black leading-none tracking-tight text-white">
                                                                                         {requestedAmount.toLocaleString()}
@@ -2632,21 +2669,6 @@ function PreQuestionPageContent() {
                                                                             </div>
                                                                         )}
 
-                                                                        {/* Common Key Stats Grid (Duration & Interest) */}
-                                                                        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/10">
-                                                                            <div className="pr-1 text-left">
-                                                                                <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ระยะเวลา</p>
-                                                                                <p className="font-bold text-md leading-tight text-white">{formData.requestedDuration} <span className="text-[10px] font-normal opacity-80">งวด</span></p>
-                                                                            </div>
-                                                                            <div className="pl-1 text-right border-l border-white/10">
-                                                                                <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ดอกเบี้ย</p>
-                                                                                <div className="flex items-center justify-end gap-1">
-                                                                                    <p className={cn("font-bold text-md leading-tight whitespace-nowrap text-white")}>
-                                                                                        {product.interestRate}
-                                                                                    </p>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
                                                                     </div>
 
                                                                     {/* Benefits Section */}
@@ -2694,17 +2716,25 @@ function PreQuestionPageContent() {
                                                                                                     }
                                                                                                 </p>
                                                                                             </div>
+                                                                                            {isCard && (
+                                                                                                <div className="shrink-0 ml-2">
+                                                                                                    <img
+                                                                                                        src="/images/chaiyo-card.svg"
+                                                                                                        alt="Chaiyo Card"
+                                                                                                        className="w-16 h-auto drop-shadow-sm rounded"
+                                                                                                    />
+                                                                                                </div>
+                                                                                            )}
                                                                                         </li>
                                                                                     );
                                                                                 })}
                                                                         </ul>
 
                                                                         {/* Footer (Actions) */}
-                                                                        <div className="mt-4 grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+                                                                        <div className="mt-4 flex pt-4 border-t border-gray-100">
                                                                             <Button size="lg" onClick={() => {
                                                                                 router.push('/dashboard/new-application/salesheet');
-                                                                            }} className="w-full font-bold bg-chaiyo-blue text-white hover:bg-blue-800 rounded-xl h-12 shadow-sm">เลือก</Button>
-                                                                            <Button size="lg" variant="outline" onClick={handlePrint} className="w-full font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2 rounded-xl h-12"> <Eye className="w-4 h-4" /> ดู Salesheet</Button>
+                                                                            }} className="w-full font-bold bg-chaiyo-blue text-white hover:bg-blue-800 rounded-xl h-12 shadow-sm transition-all">เลือก</Button>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -2882,12 +2912,7 @@ function PreQuestionPageContent() {
                                                             return;
                                                         }
                                                         if (!isNaN(Number(value))) {
-                                                            const numValue = Number(value);
-                                                            if (numValue > maxLoan) {
-                                                                setFormData({ ...formData, requestedAmount: String(maxLoan) });
-                                                            } else {
-                                                                setFormData({ ...formData, requestedAmount: value });
-                                                            }
+                                                            setFormData({ ...formData, requestedAmount: value });
                                                         }
                                                     }}
                                                     className="pl-10 text-right text-lg font-mono border focus:border-chaiyo-blue transition-all h-14 rounded-xl"
@@ -2925,30 +2950,30 @@ function PreQuestionPageContent() {
                                                                             <div className="space-y-2">
                                                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ส่วนประกอบหลักประกัน</p>
                                                                                 <div className="flex justify-between text-sm">
-                                                                                    <span className="text-gray-500">ที่ดิน ({calculatedLandResult.chosenLand.label})</span>
-                                                                                    <span className="font-mono font-bold text-gray-900">{calculatedLandResult.chosenLand.limit.toLocaleString()}</span>
+                                                                                    <span className="text-gray-500">ที่ดิน ({calculatedLandResult!.chosenLand.label})</span>
+                                                                                    <span className="font-mono font-bold text-gray-900">{calculatedLandResult!.chosenLand.limit.toLocaleString()}</span>
                                                                                 </div>
-                                                                                {!calculatedLandResult.isLandOnly && (
+                                                                                {!calculatedLandResult!.isLandOnly && (
                                                                                     <div className="flex justify-between text-sm">
-                                                                                        <span className="text-gray-500">สิ่งปลูกสร้าง ({calculatedLandResult.chosenBuilding.label})</span>
-                                                                                        <span className="font-mono font-bold text-gray-900">{calculatedLandResult.chosenBuilding.limit.toLocaleString()}</span>
+                                                                                        <span className="text-gray-500">สิ่งปลูกสร้าง ({calculatedLandResult!.chosenBuilding.label})</span>
+                                                                                        <span className="font-mono font-bold text-gray-900">{calculatedLandResult!.chosenBuilding.limit.toLocaleString()}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 <div className="pt-2 border-t border-dashed flex justify-between text-sm font-bold">
                                                                                     <span className="text-gray-900">รวมวงเงินประเมิน</span>
-                                                                                    <span className="font-mono text-blue-600">{calculatedLandResult.finalAppraisalPrice.toLocaleString()}</span>
+                                                                                    <span className="font-mono text-blue-600">{calculatedLandResult!.finalAppraisalPrice.toLocaleString()}</span>
                                                                                 </div>
                                                                             </div>
 
                                                                             <div className="space-y-2 pt-2 border-t border-gray-100">
                                                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">เงื่อนไขและข้อจำกัด</p>
                                                                                 <div className="flex justify-between text-sm">
-                                                                                    <span className="text-gray-500">LTV Cap ({(calculatedLandResult.capLtv * 100).toFixed(0)}%)</span>
-                                                                                    <span className="font-mono text-gray-600">{(calculatedLandResult.basePriceTotal * calculatedLandResult.capLtv).toLocaleString()}</span>
+                                                                                    <span className="text-gray-500">LTV Cap ({(calculatedLandResult!.capLtv * 100).toFixed(0)}%)</span>
+                                                                                    <span className="font-mono text-gray-600">{(calculatedLandResult!.basePriceTotal * calculatedLandResult!.capLtv).toLocaleString()}</span>
                                                                                 </div>
                                                                                 <div className="flex justify-between text-sm">
                                                                                     <span className="text-gray-500">Absolute Cap</span>
-                                                                                    <span className="font-mono text-gray-600">{calculatedLandResult.isLandOnly ? "220,000" : "5,000,000"}</span>
+                                                                                    <span className="font-mono text-gray-600">{calculatedLandResult!.isLandOnly ? "220,000" : "5,000,000"}</span>
                                                                                 </div>
                                                                             </div>
 
@@ -3126,158 +3151,160 @@ function PreQuestionPageContent() {
                                                     <p className="text-gray-500 text-sm">กรุณาปรับเปลี่ยนเงื่อนไขเช่น อายุ สัญชาติ รูปแบบผ่อน หรือวงเงินกู้ เพื่อดูผลิตภัณฑ์อื่น ๆ</p>
                                                 </div>
                                             ) : (
-                                                productsToShow.map(product => (
-                                                    <div key={product.code} className="bg-white rounded-2xl overflow-hidden border border-border-strong relative group w-full flex flex-col hover:shadow-md transition-all duration-300">
-                                                        <div className="p-6 text-white relative overflow-hidden bg-chaiyo-blue transition-colors">
-                                                            {(() => {
-                                                                const CollateralIcon = PRODUCTS.find(p => p.id === formData.collateralType)?.icon || Sparkles;
-                                                                return (
-                                                                    <>
-                                                                        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-                                                                        <div className="absolute -bottom-4 -right-4 opacity-10 pointer-events-none rotate-12">
-                                                                            <CollateralIcon className="w-24 h-24" />
-                                                                        </div>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                            <div className="flex justify-between items-start relative z-10">
-                                                                <div className="flex flex-col gap-1.5">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <div className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10 tracking-widest uppercase">
-                                                                            {product.code}
-                                                                        </div>
-                                                                        {parseFloat(product.interestRate) < 23.99 && (
-                                                                            <div className="px-2.5 py-0.5 rounded-full bg-chaiyo-gold text-chaiyo-blue text-[10px] font-bold shadow-sm flex items-center gap-1 animate-pulse">
-                                                                                <Star className="w-3 h-3 fill-chaiyo-blue" />
-                                                                                ดอกเบี้ยพิเศษ
+                                                productsToShow.map(product => {
+                                                    const actualReqAmount = Number(formData.requestedAmount || 0);
+                                                    const maxLoanAmount = Number(maxLoan || 0);
+                                                    const displayAmount = actualReqAmount > maxLoanAmount ? maxLoanAmount : actualReqAmount;
+
+                                                    return (
+                                                        <div key={product.code} className="bg-white rounded-2xl overflow-hidden border border-border-strong relative group w-full flex flex-col hover:shadow-md transition-all duration-300">
+                                                            <div className="p-6 text-white relative overflow-hidden bg-chaiyo-blue transition-colors">
+                                                                {(() => {
+                                                                    const CollateralIcon = PRODUCTS.find(p => p.id === formData.collateralType)?.icon || Sparkles;
+                                                                    return (
+                                                                        <>
+                                                                            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                                                                            <div className="absolute -top-4 -right-4 opacity-10 pointer-events-none rotate-12">
+                                                                                <CollateralIcon className="w-24 h-24" />
                                                                             </div>
-                                                                        )}
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                                <div className="flex justify-between items-start relative z-10">
+                                                                    <div className="flex flex-col gap-1.5">
+                                                                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                                                            <div className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold backdrop-blur-sm border border-white/10 tracking-widest uppercase">
+                                                                                {product.code}
+                                                                            </div>
+                                                                            <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm border border-white/5">
+                                                                                {formData.requestedDuration} งวด
+                                                                            </div>
+                                                                            <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold backdrop-blur-sm border border-white/5">
+                                                                                {product.interestRate}
+                                                                            </div>
+                                                                            {parseFloat(product.interestRate) < 23.99 && (
+                                                                                <div className="px-2.5 py-0.5 rounded-full bg-chaiyo-gold text-chaiyo-blue text-[10px] font-bold shadow-sm flex items-center gap-1 animate-pulse">
+                                                                                    <Star className="w-3 h-3 fill-chaiyo-blue" />
+                                                                                    ดอกเบี้ยพิเศษ
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <h3 className="text-xl font-bold pr-4">{product.name}</h3>
                                                                     </div>
-                                                                    <h3 className="text-xl font-bold pr-4">{product.name}</h3>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={handlePrint}
+                                                                        className="bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-full h-8 px-3 text-[11px] backdrop-blur-sm transition-all flex items-center gap-1.5 font-bold"
+                                                                    >
+                                                                        <FileText className="w-3.5 h-3.5" />
+                                                                        <span>อ่าน Salesheet</span>
+                                                                    </Button>
                                                                 </div>
-                                                            </div>
 
-                                                            {/* วงเงิน Hero Strip */}
-                                                            <div className="mt-5 bg-white/15 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center gap-3">
-
-                                                                        <div>
-                                                                            <p className="text-xs font-bold uppercase tracking-wider text-blue-200">วงเงินที่ต้องการ</p>
+                                                                {/* วงเงิน Hero Strip */}
+                                                                <div className="mt-5 bg-white/15 backdrop-blur-md rounded-xl p-4 border border-white/20">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <p className="text-xs font-bold uppercase tracking-wider text-blue-200">
+                                                                            {actualReqAmount > maxLoanAmount ? "วงเงินสูงสุดที่แนะนำ" : "วงเงินที่ต้องการ"}
+                                                                        </p>
+                                                                        <div className="flex items-baseline gap-1.5">
+                                                                            <span className="text-3xl font-black text-white leading-none tracking-tight">
+                                                                                {displayAmount.toLocaleString()}
+                                                                            </span>
+                                                                            <span className="text-sm font-bold text-white/70">บาท</span>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex items-baseline gap-1.5">
-                                                                        <span className="text-3xl font-black text-white leading-none tracking-tight">
-                                                                            {Number(formData.requestedAmount || 0).toLocaleString()}
-                                                                        </span>
-                                                                        <span className="text-sm font-bold text-white/70">บาท</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/10">
-                                                                <div className="pr-1 text-left">
-                                                                    <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ค่างวดประมาณ</p>
-                                                                    <p className="font-bold text-md leading-tight text-white">
-                                                                        {(() => {
-                                                                            const amount = Number(formData.requestedAmount) || 0;
-                                                                            const duration = Number(formData.requestedDuration) || 12;
-                                                                            if (selectedPlan === 'balloon') {
-                                                                                return calcBalloonMonthly(amount).toLocaleString();
-                                                                            }
-                                                                            return calcMonthly(amount, duration).toLocaleString();
-                                                                        })()}
-                                                                        <span className="text-[10px] font-normal opacity-80 ml-1">บาท</span>
-                                                                    </p>
-                                                                </div>
-                                                                <div className="px-1 text-center border-l border-white/10">
-                                                                    <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ระยะเวลา</p>
-                                                                    <p className="font-bold text-md leading-tight text-white">{formData.requestedDuration} <span className="text-[10px] font-normal opacity-80">เดือน</span></p>
-                                                                </div>
-                                                                <div className="pl-1 text-right border-l border-white/10">
-                                                                    <p className="text-white/70 text-[10px] uppercase tracking-wider mb-1">ดอกเบี้ย</p>
-                                                                    <div className="flex items-center justify-end gap-1">
-                                                                        <p className={cn("font-bold text-md leading-tight whitespace-nowrap text-white")}>
-                                                                            {product.interestRate}
+                                                                    <div className="flex items-center justify-between border-t border-white/10 pt-2 mt-1">
+                                                                        <p className="text-white/70 text-[10px] uppercase tracking-wider">ค่างวดประมาณ</p>
+                                                                        <p className="font-bold text-md leading-tight text-white">
+                                                                            {(() => {
+                                                                                const duration = Number(formData.requestedDuration) || 12;
+                                                                                if (selectedPlan === 'balloon') {
+                                                                                    return calcBalloonMonthly(displayAmount).toLocaleString();
+                                                                                }
+                                                                                return calcMonthly(displayAmount, duration).toLocaleString();
+                                                                            })()}
+                                                                            <span className="text-[10px] font-normal opacity-80 ml-1">บาท/งวด</span>
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="p-6 bg-white flex-1 flex flex-col">
-                                                            {selectedPlan === 'balloon' && (
-                                                                <div className="bg-blue-50/50 py-3 px-4 rounded-xl border border-blue-100/50 flex flex-col items-center mb-6">
-                                                                    <div className="text-[10px] font-bold text-chaiyo-blue mb-0.5 uppercase tracking-wider">เงินต้นคงเหลือชำระงวดสุดท้าย</div>
-                                                                    <div className="text-2xl font-black text-chaiyo-blue tracking-tight leading-none">
-                                                                        {Number(formData.requestedAmount || 0).toLocaleString()}
-                                                                        <span className="text-[10px] font-bold text-gray-400 ml-1.5 uppercase">บาท</span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
 
-                                                            <ul className="space-y-3 flex-1">
-                                                                {[...product.features]
-                                                                    .filter(feature => feature.includes('บัตรเงินไชโย') || feature.includes('ประกันคุ้มครองวงเงินสินเชื่อ')) // Only show these
-                                                                    .map((feature, i) => {
-                                                                        const isCard = feature.includes('บัตรเงินไชโย');
-                                                                        const isInsurance = feature.includes('ประกันคุ้มครองวงเงินสินเชื่อ');
-                                                                        return (
-                                                                            <li key={i} className={cn(
-                                                                                "text-sm flex items-start gap-3 p-3 rounded-xl transition-all border",
-                                                                                isCard ? "bg-amber-50/50 border-amber-100" :
-                                                                                    isInsurance ? "bg-blue-50/50 border-blue-100" :
-                                                                                        "bg-emerald-50/50 border-emerald-100"
-                                                                            )}>
-                                                                                <div className={cn(
-                                                                                    "mt-0.5 rounded-full p-1 shrink-0",
-                                                                                    isCard ? "bg-amber-100" :
-                                                                                        isInsurance ? "bg-blue-100" :
-                                                                                            "bg-emerald-100"
+                                                            </div>
+                                                            <div className="p-6 bg-white flex-1 flex flex-col">
+                                                                {selectedPlan === 'balloon' && (
+                                                                    <div className="bg-blue-50/50 py-3 px-4 rounded-xl border border-blue-100/50 flex flex-col items-center mb-6">
+                                                                        <div className="text-[10px] font-bold text-chaiyo-blue mb-0.5 uppercase tracking-wider">เงินต้นคงเหลือชำระงวดสุดท้าย</div>
+                                                                        <div className="text-2xl font-black text-chaiyo-blue tracking-tight leading-none">
+                                                                            {displayAmount.toLocaleString()}
+                                                                            <span className="text-[10px] font-bold text-gray-400 ml-1.5 uppercase">บาท</span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                <ul className="space-y-3 flex-1">
+                                                                    {[...product.features]
+                                                                        .filter(feature => feature.includes('บัตรเงินไชโย') || feature.includes('ประกันคุ้มครองวงเงินสินเชื่อ')) // Only show these
+                                                                        .map((feature, i) => {
+                                                                            const isCard = feature.includes('บัตรเงินไชโย');
+                                                                            const isInsurance = feature.includes('ประกันคุ้มครองวงเงินสินเชื่อ');
+                                                                            return (
+                                                                                <li key={i} className={cn(
+                                                                                    "text-sm flex items-start gap-3 p-3 rounded-xl transition-all border",
+                                                                                    isCard ? "bg-amber-50/50 border-amber-100" :
+                                                                                        isInsurance ? "bg-blue-50/50 border-blue-100" :
+                                                                                            "bg-emerald-50/50 border-emerald-100"
                                                                                 )}>
-                                                                                    {isCard ? (
-                                                                                        <Gift className="w-4 h-4 text-amber-600" strokeWidth={2.5} />
-                                                                                    ) : isInsurance ? (
-                                                                                        <ShieldCheck className="w-4 h-4 text-blue-600" strokeWidth={2.5} />
-                                                                                    ) : (
-                                                                                        <Check className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
-                                                                                    )}
-                                                                                </div>
-                                                                                <div className="flex-1">
-                                                                                    <span className={cn(
-                                                                                        "leading-snug font-bold text-sm",
-                                                                                        isCard ? "text-amber-900" :
-                                                                                            isInsurance ? "text-blue-900" :
-                                                                                                "text-emerald-900"
+                                                                                    <div className={cn(
+                                                                                        "mt-0.5 rounded-full p-1 shrink-0",
+                                                                                        isCard ? "bg-amber-100" :
+                                                                                            isInsurance ? "bg-blue-100" :
+                                                                                                "bg-emerald-100"
                                                                                     )}>
-                                                                                        {feature.includes('บัตรเงินไชโย') ? 'ฟรี! บัตรเงินไชโย' : 'ฟรี! ประกันคุ้มครองวงเงินสินเชื่อ'}
-                                                                                    </span>
-                                                                                    <p className="text-xs text-gray-500 mt-0.5 font-normal leading-relaxed">
-                                                                                        {feature.includes('บัตรเงินไชโย')
-                                                                                            ? 'วงเงินหมุนเวียนพร้อมใช้ จ่ายเงินต้นไปแล้วเท่าไร กดใช้เพิ่มได้เท่านั้น ไม่มีค่าธรรมเนียม'
-                                                                                            : 'รับความคุ้มครองทันที คุ้มครองวงเงินสินเชื่อ อุ่นใจตลอดสัญญา ไม่มีค่าใช้จ่ายเพิ่มเติม'
-                                                                                        }
-                                                                                    </p>
-                                                                                </div>
-                                                                                {isCard && (
-                                                                                    <div className="shrink-0 ml-2">
-                                                                                        <img
-                                                                                            src="/images/chaiyo-card.svg"
-                                                                                            alt="Chaiyo Card"
-                                                                                            className="w-16 h-auto drop-shadow-sm rounded"
-                                                                                        />
+                                                                                        {isCard ? (
+                                                                                            <Gift className="w-4 h-4 text-amber-600" strokeWidth={2.5} />
+                                                                                        ) : isInsurance ? (
+                                                                                            <ShieldCheck className="w-4 h-4 text-blue-600" strokeWidth={2.5} />
+                                                                                        ) : (
+                                                                                            <Check className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
+                                                                                        )}
                                                                                     </div>
-                                                                                )}
-                                                                            </li>
-                                                                        );
-                                                                    })}
-                                                            </ul>
-                                                            <div className="mt-4 grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
-                                                                <Button size="lg" onClick={handleCreateApplication} className="w-full font-bold bg-chaiyo-blue text-white hover:bg-blue-800 rounded-xl h-12 shadow-sm">เลือก</Button>
-                                                                <Button size="lg" variant="outline" onClick={handlePrint} className="w-full font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2 rounded-xl h-12"> <Eye className="w-4 h-4" /> ดู Salesheet</Button>
+                                                                                    <div className="flex-1">
+                                                                                        <span className={cn(
+                                                                                            "leading-snug font-bold text-sm",
+                                                                                            isCard ? "text-amber-900" :
+                                                                                                isInsurance ? "text-blue-900" :
+                                                                                                    "text-emerald-900"
+                                                                                        )}>
+                                                                                            {feature.includes('บัตรเงินไชโย') ? 'ฟรี! บัตรเงินไชโย' : 'ฟรี! ประกันคุ้มครองวงเงินสินเชื่อ'}
+                                                                                        </span>
+                                                                                        <p className="text-xs text-gray-500 mt-0.5 font-normal leading-relaxed">
+                                                                                            {feature.includes('บัตรเงินไชโย')
+                                                                                                ? 'วงเงินหมุนเวียนพร้อมใช้ จ่ายเงินต้นไปแล้วเท่าไร กดใช้เพิ่มได้เท่านั้น ไม่มีค่าธรรมเนียม'
+                                                                                                : 'รับความคุ้มครองทันที คุ้มครองวงเงินสินเชื่อ อุ่นใจตลอดสัญญา ไม่มีค่าใช้จ่ายเพิ่มเติม'
+                                                                                            }
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    {isCard && (
+                                                                                        <div className="shrink-0 ml-2">
+                                                                                            <img
+                                                                                                src="/images/chaiyo-card.svg"
+                                                                                                alt="Chaiyo Card"
+                                                                                                className="w-16 h-auto drop-shadow-sm rounded"
+                                                                                            />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </li>
+                                                                            );
+                                                                        })}
+                                                                </ul>
+                                                                <div className="mt-4 flex pt-4 border-t border-gray-100">
+                                                                    <Button size="lg" onClick={handleCreateApplication} className="w-full font-bold bg-chaiyo-blue text-white hover:bg-blue-800 rounded-xl h-12 shadow-sm transition-all">เลือก</Button>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))
+                                                    );
+                                                })
                                             )}
                                         </div>
                                     </div>
@@ -3297,7 +3324,6 @@ function PreQuestionPageContent() {
                                 </div>
                             </div>
                         );
-
                     })()
                 }
 

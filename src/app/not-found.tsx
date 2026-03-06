@@ -17,17 +17,7 @@ export default function NotFoundPage() {
                     transition={{ duration: 0.6, ease: "easeOut" }}
                     className="relative w-full aspect-square md:h-[500px] flex items-center justify-center"
                 >
-                    <motion.div
-                        animate={{
-                            y: [0, -10, 0],
-                        }}
-                        transition={{
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                        }}
-                        className="relative w-full h-full"
-                    >
+                    <div className="relative w-full h-full">
                         <Image
                             src="/character/horse-confusing.png"
                             alt="Not Found"
@@ -35,7 +25,7 @@ export default function NotFoundPage() {
                             className="object-contain"
                             priority
                         />
-                    </motion.div>
+                    </div>
                 </motion.div>
 
                 {/* Right Column: Text & Actions */}
@@ -45,9 +35,7 @@ export default function NotFoundPage() {
                     transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
                     className="flex flex-col items-start text-left"
                 >
-                    <div className="inline-block px-3 py-1 bg-amber-50 text-status-pending text-xs font-bold rounded-full mb-6 uppercase tracking-wider">
-                        Error 404: Not Found
-                    </div>
+
 
                     <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 font-[family-name:var(--font-ibm-plex-thai)] leading-tight">
                         ไม่พบหน้าที่ท่านต้องการ
@@ -61,7 +49,7 @@ export default function NotFoundPage() {
                         <Button
                             asChild
                             size="xl"
-                            className="w-full rounded-2xl shadow-lg shadow-chaiyo-blue/20"
+                            className="w-full rounded-2xl"
                         >
                             <Link href="/" className="flex items-center justify-center">
                                 <ChevronLeft className="w-5 h-5 mr-2" />
@@ -69,9 +57,7 @@ export default function NotFoundPage() {
                             </Link>
                         </Button>
 
-                        <p className="text-sm text-gray-400 font-[family-name:var(--font-ibm-plex-thai)] pl-2">
-                            © {new Date().getFullYear() + 543} AutoX Co., Ltd.
-                        </p>
+
                     </div>
                 </motion.div>
             </div>
