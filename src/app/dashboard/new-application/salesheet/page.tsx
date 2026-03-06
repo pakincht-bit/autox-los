@@ -38,10 +38,7 @@ export default function SalesheetPage() {
                         <div>
                             <h3 className="text-orange-900 font-bold text-lg mb-0.5">พนักงาน : กรุณายื่นอุปกรณ์ให้ลูกค้า</h3>
                             <p className="text-orange-700 text-sm leading-relaxed">
-                                เพื่อให้ลูกค้าอ่านรายละเอียดและกดยืนยันด้วยตนเอง<br />
-                                <span className="font-medium text-orange-800 underline underline-offset-4 decoration-orange-300">
-                                    แจ้งลูกค้าว่ามีการอัดเสียงในขั้นตอนการอ่าน Salesheet นี้แล้ว
-                                </span>
+                                เพื่อให้ลูกค้าอ่านรายละเอียดและกดยืนยันด้วยตนเอง และแจ้งลูกค้าว่ามีการอัดเสียงในขั้นตอนนี้
                             </p>
                         </div>
                     </div>
